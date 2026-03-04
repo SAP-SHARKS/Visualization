@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisualScript — Smart Transcription</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e12;
+  --surface: #14171d;
+  --surface-2: #1a1e26;
+  --border: #252a35;
+  --text: #e8eaf0;
+  --text-dim: #8a90a0;
+  --accent: #3dd68c;
+  --accent-glow: rgba(61,214,140,0.15);
+  --charity: #5b9cf5;
+  --company: #f5a85b;
+  --red: #f55b5b;
+  --purple: #a47bf5;
+  --teal: #5bf5dc;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-x:hidden;}
+
+/* HEADER */
+.app-header{position:sticky;top:0;z-index:100;background:rgba(12,14,18,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:16px 40px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);letter-spacing:-0.5px;}
+.logo span{color:var(--text-dim);font-size:14px;font-family:'DM Sans';margin-left:12px;}
+.nav-pills{display:flex;gap:4px;background:var(--surface);border-radius:10px;padding:4px;}
+.nav-pill{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;color:var(--text-dim);cursor:pointer;transition:all 0.25s;border:none;background:none;}
+.nav-pill:hover{color:var(--text);}
+.nav-pill.active{background:var(--accent);color:var(--bg);}
+
+/* SECTIONS */
+.section{max-width:1100px;margin:0 auto;padding:60px 40px;}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:12px;opacity:0;animation:fadeUp .6s ease forwards;}
+.section-title{font-family:'DM Serif Display',serif;font-size:36px;letter-spacing:-0.5px;margin-bottom:8px;opacity:0;animation:fadeUp .6s ease .1s forwards;}
+.section-subtitle{color:var(--text-dim);font-size:16px;max-width:600px;margin-bottom:40px;opacity:0;animation:fadeUp .6s ease .2s forwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);}
+.stat-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+
+/* TRANSCRIPT LAYOUT */
+.transcript-layout{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:60px;}
+.transcript-panel{background:var(--surface);border-radius:16px;border:1px solid var(--border);display:flex;flex-direction:column;height:600px;}
+.visual-panel{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;height:600px;}
+.panel-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text-dim);flex-shrink:0;}
+.panel-header .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.transcript-body{padding:24px;overflow-y:auto;flex:1;}
+.t-line{padding:12px 16px;border-radius:10px;margin-bottom:10px;font-size:14px;line-height:1.7;cursor:pointer;transition:all .3s;border-left:3px solid transparent;position:relative;}
+.t-line:hover{background:var(--surface-2);}
+.t-line.active{background:var(--accent-glow);border-left-color:var(--accent);}
+.t-line .speaker{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;display:block;}
+.t-line .speaker.host{color:var(--charity);}
+.t-line .speaker.guest{color:var(--company);}
+.t-line .timestamp{position:absolute;right:12px;top:12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);opacity:0;transition:opacity .2s;}
+.t-line:hover .timestamp{opacity:1;}
+.highlight-word{background:rgba(61,214,140,0.2);color:var(--accent);padding:1px 4px;border-radius:3px;cursor:help;}
+
+/* VISUAL MODE SWITCHER */
+.visual-modes{display:flex;gap:4px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface-2);flex-wrap:wrap;flex-shrink:0;}
+.vmode-btn{padding:6px 14px;border-radius:7px;font-size:11px;font-weight:600;color:var(--text-dim);cursor:pointer;transition:all .2s;border:1px solid transparent;background:none;font-family:'DM Sans',sans-serif;}
+.vmode-btn:hover{color:var(--text);border-color:var(--border);}
+.vmode-btn.active{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.visual-content{flex:1;padding:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;transition:opacity .3s ease;}
+.visual-content.fading{opacity:0;}
+
+/* FLOW NODES */
+.flow-container{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;}
+.flow-node{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:20px 28px;text-align:center;width:280px;position:relative;transition:all .4s;}
+.flow-node:hover{border-color:var(--accent);box-shadow:0 0 30px var(--accent-glow);}
+.flow-node .node-icon{font-size:28px;margin-bottom:8px;}
+.flow-node .node-title{font-weight:600;font-size:15px;margin-bottom:4px;}
+.flow-node .node-detail{font-size:12px;color:var(--text-dim);}
+.flow-node .node-amount{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--accent);margin-top:6px;}
+.flow-arrow{width:2px;height:36px;background:linear-gradient(to bottom,var(--border),var(--accent));position:relative;}
+.flow-arrow::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--accent);}
+
+/* INFOGRAPHIC STYLES */
+.info-card{background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;position:relative;overflow:hidden;}
+.info-card .info-big-number{font-family:'JetBrains Mono',monospace;font-size:56px;font-weight:700;line-height:1;}
+.info-card .info-label{font-size:13px;color:var(--text-dim);margin-top:4px;}
+.info-row{display:flex;gap:16px;width:100%;margin-bottom:16px;}
+.info-row .info-card{flex:1;}
+.info-metric-bar{height:8px;border-radius:4px;background:var(--bg);overflow:hidden;margin-top:12px;}
+.info-metric-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+.info-icon-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.info-icon-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.info-steps{display:flex;gap:12px;width:100%;}
+.info-step{flex:1;text-align:center;padding:16px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;position:relative;}
+.info-step .step-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:6px;}
+.info-step .step-icon{font-size:28px;margin-bottom:6px;}
+.info-step .step-label{font-size:12px;font-weight:600;}
+.info-step-connector{position:absolute;right:-16px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;z-index:2;}
+
+/* NAPKIN STYLES */
+.napkin-board{width:100%;background:#1e2028;border-radius:16px;padding:32px;border:2px dashed var(--border);position:relative;}
+.napkin-board::before{content:'NAPKIN VIEW';position:absolute;top:10px;right:14px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);opacity:0.4;letter-spacing:2px;}
+.napkin-blob{display:inline-block;border:2px solid;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:600;position:relative;background:rgba(255,255,255,0.03);}
+.napkin-arrow{display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:20px;padding:4px 0;}
+.napkin-note{background:rgba(255,255,0,0.06);border:1px solid rgba(255,255,0,0.15);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text-dim);font-style:italic;margin-top:12px;}
+.napkin-flow{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.napkin-hflow{display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;}
+.napkin-box{border:2px solid var(--border);border-radius:12px;padding:14px 20px;text-align:center;background:rgba(255,255,255,0.02);min-width:120px;}
+.napkin-box.accent{border-color:var(--accent);color:var(--accent);}
+.napkin-box.charity{border-color:var(--charity);color:var(--charity);}
+.napkin-box.company{border-color:var(--company);color:var(--company);}
+.napkin-box .nb-icon{font-size:22px;margin-bottom:4px;}
+.napkin-box .nb-label{font-size:12px;font-weight:600;}
+.napkin-box .nb-detail{font-size:10px;color:var(--text-dim);margin-top:2px;}
+.napkin-connector{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:18px;}
+.napkin-bracket{display:flex;align-items:flex-start;gap:16px;width:100%;}
+.napkin-bracket-line{width:2px;min-height:60px;background:var(--border);border-radius:1px;margin:0 auto;}
+
+/* SANKEY STYLES */
+.sankey-container{width:100%;padding:10px 0;}
+.sankey-row{display:flex;align-items:center;gap:0;width:100%;margin-bottom:4px;}
+.sankey-label{width:100px;text-align:right;font-size:12px;font-weight:600;padding-right:14px;flex-shrink:0;}
+.sankey-bar-wrap{flex:1;height:36px;position:relative;}
+.sankey-bar{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 14px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;transition:width 1.2s ease;position:relative;overflow:hidden;}
+.sankey-bar::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%);animation:shimmer 2s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%)}}
+.sankey-bar .sankey-val{position:relative;z-index:1;}
+.sankey-end{width:80px;text-align:left;font-size:11px;color:var(--text-dim);padding-left:10px;flex-shrink:0;}
+.sankey-divider{width:100%;height:1px;background:var(--border);margin:12px 0;}
+
+/* COMPARE STYLES */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;}
+.compare-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;}
+.compare-card .cc-icon{font-size:32px;margin-bottom:8px;}
+.compare-card .cc-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.compare-card .cc-detail{font-size:12px;color:var(--text-dim);}
+.compare-card .cc-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:8px;}
+.compare-vs{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-dim);padding:8px;grid-column:1/-1;}
+
+/* TIMELINE */
+.timeline-track{display:flex;align-items:flex-start;gap:0;width:100%;overflow-x:auto;padding:20px 0 30px;}
+.timeline-node{flex-shrink:0;display:flex;flex-direction:column;align-items:center;width:140px;cursor:pointer;position:relative;}
+.timeline-dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--border);background:var(--bg);transition:all .3s;z-index:2;}
+.timeline-node.active .timeline-dot{border-color:var(--accent);background:var(--accent);box-shadow:0 0 12px var(--accent-glow);}
+.timeline-node:hover .timeline-dot{border-color:var(--accent);}
+.timeline-label{font-size:11px;color:var(--text-dim);margin-top:10px;text-align:center;font-weight:500;max-width:110px;}
+.timeline-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:4px;opacity:0.6;}
+.timeline-line{position:absolute;top:8px;left:50%;width:140px;height:2px;background:var(--border);z-index:1;}
+.timeline-node:last-child .timeline-line{display:none;}
+.timeline-node.active .timeline-line{background:linear-gradient(90deg,var(--accent),var(--border));}
+
+/* SPEAKER ANALYTICS */
+.speaker-bars{width:100%;display:flex;flex-direction:column;gap:14px;}
+.speaker-bar-row{display:flex;align-items:center;gap:14px;}
+.speaker-bar-label{width:80px;font-size:13px;font-weight:600;flex-shrink:0;}
+.speaker-bar-label.host{color:var(--charity);}
+.speaker-bar-label.guest{color:var(--company);}
+.speaker-bar-track{flex:1;height:28px;background:var(--bg);border-radius:6px;overflow:hidden;}
+.speaker-bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:12px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;transition:width 1s ease;}
+.speaker-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;margin-top:20px;}
+.speaker-stat{background:var(--surface-2);border-radius:10px;padding:16px;text-align:center;}
+.speaker-stat .ss-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;}
+.speaker-stat .ss-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+/* CONCEPTS GRID */
+.concepts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all .3s;cursor:default;position:relative;overflow:hidden;}
+.concept-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity .3s;}
+.concept-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3);}
+.concept-card:hover::before{opacity:1;}
+.concept-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;}
+.concept-card:nth-child(1) .concept-icon{background:rgba(61,214,140,0.12);}
+.concept-card:nth-child(2) .concept-icon{background:rgba(91,156,245,0.12);}
+.concept-card:nth-child(3) .concept-icon{background:rgba(245,168,91,0.12);}
+.concept-card:nth-child(4) .concept-icon{background:rgba(164,123,245,0.12);}
+.concept-card:nth-child(5) .concept-icon{background:rgba(245,91,91,0.12);}
+.concept-card:nth-child(6) .concept-icon{background:rgba(91,245,220,0.12);}
+.concept-term{font-weight:700;font-size:16px;margin-bottom:6px;}
+.concept-def{font-size:13px;color:var(--text-dim);line-height:1.6;}
+.concept-tag{display:inline-block;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;border-radius:5px;background:var(--surface-2);color:var(--text-dim);}
+
+/* SUGGESTIONS */
+.suggestions-list{display:flex;flex-direction:column;gap:16px;}
+.suggestion-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;display:flex;gap:20px;align-items:flex-start;transition:all .3s;}
+.suggestion-item:hover{border-color:var(--purple);background:var(--surface-2);}
+.suggestion-number{font-family:'DM Serif Display',serif;font-size:28px;color:var(--purple);opacity:0.6;min-width:36px;}
+.suggestion-content h4{font-size:15px;font-weight:600;margin-bottom:4px;}
+.suggestion-content p{font-size:13px;color:var(--text-dim);line-height:1.6;}
+.suggestion-badge{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:4px;margin-top:8px;display:inline-block;}
+.badge-ux{background:rgba(164,123,245,0.15);color:var(--purple);}
+.badge-biz{background:rgba(61,214,140,0.15);color:var(--accent);}
+.badge-tech{background:rgba(91,156,245,0.15);color:var(--charity);}
+
+/* QUIZ */
+.quiz-container{display:flex;flex-direction:column;gap:28px;}
+.quiz-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all .3s;}
+.quiz-number{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.quiz-question{font-size:17px;font-weight:600;margin-bottom:18px;}
+.quiz-options{display:flex;flex-direction:column;gap:8px;}
+.quiz-option{padding:14px 18px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:12px;}
+.quiz-option:hover{border-color:var(--accent);background:var(--accent-glow);}
+.quiz-option.selected.correct{border-color:var(--accent);background:rgba(61,214,140,0.12);}
+.quiz-option.selected.wrong{border-color:var(--red);background:rgba(245,91,91,0.1);}
+.option-letter{width:28px;height:28px;border-radius:7px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.quiz-feedback{margin-top:14px;padding:14px 18px;border-radius:10px;font-size:13px;line-height:1.6;display:none;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.correct{background:rgba(61,214,140,0.08);color:var(--accent);border:1px solid rgba(61,214,140,0.2);}
+.quiz-feedback.wrong{background:rgba(245,91,91,0.08);color:var(--red);border:1px solid rgba(245,91,91,0.2);}
+.quiz-score-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:20px;margin-bottom:20px;}
+.quiz-score-ring{width:60px;height:60px;border-radius:50%;border:4px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;flex-shrink:0;transition:all .5s;}
+.quiz-score-info{flex:1;}
+.quiz-score-info .qsi-title{font-size:14px;font-weight:600;margin-bottom:2px;}
+.quiz-score-info .qsi-sub{font-size:12px;color:var(--text-dim);}
+
+/* ASK SECTION */
+.ask-container{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.ask-input-area{padding:24px;display:flex;gap:12px;border-bottom:1px solid var(--border);}
+.ask-input{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s;}
+.ask-input:focus{border-color:var(--accent);}
+.ask-input::placeholder{color:var(--text-dim);}
+.ask-btn{padding:14px 24px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.ask-btn:hover{transform:scale(1.03);box-shadow:0 4px 20px var(--accent-glow);}
+.ask-threads{padding:24px;display:flex;flex-direction:column;gap:16px;max-height:400px;overflow-y:auto;}
+.thread-item{display:flex;gap:14px;}
+.thread-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.thread-avatar.user{background:rgba(91,156,245,0.15);}
+.thread-avatar.ai{background:rgba(61,214,140,0.15);}
+.thread-content{flex:1;}
+.thread-name{font-size:12px;font-weight:600;margin-bottom:4px;}
+.thread-name.user{color:var(--charity);}
+.thread-name.ai{color:var(--accent);}
+.thread-text{font-size:13px;color:var(--text-dim);line-height:1.6;}
+.suggested-questions{display:flex;flex-wrap:wrap;gap:8px;padding:0 24px 24px;}
+.sq-chip{padding:8px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-dim);cursor:pointer;transition:all .2s;}
+.sq-chip:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ACTION ITEMS */
+.action-items-list{display:flex;flex-direction:column;gap:12px;}
+.action-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:flex-start;gap:14px;transition:all .3s;}
+.action-item:hover{border-color:var(--accent);}
+.action-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;margin-top:2px;}
+.action-check.done{background:var(--accent);border-color:var(--accent);}
+.action-check.done::after{content:'✓';color:var(--bg);font-size:12px;font-weight:700;}
+.action-text{flex:1;}
+.action-text h4{font-size:14px;font-weight:600;margin-bottom:2px;}
+.action-text p{font-size:12px;color:var(--text-dim);}
+.action-text.done h4{text-decoration:line-through;color:var(--text-dim);}
+.action-priority{font-size:9px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:4px;font-weight:600;}
+.priority-high{background:rgba(245,91,91,0.15);color:var(--red);}
+.priority-med{background:rgba(245,168,91,0.15);color:var(--company);}
+.priority-low{background:rgba(91,156,245,0.15);color:var(--charity);}
+
+/* DEBUG LOG */
+.debug-toggle{position:fixed;bottom:20px;right:20px;z-index:200;padding:10px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);cursor:pointer;transition:all .2s;}
+.debug-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.debug-panel{position:fixed;bottom:0;left:0;right:0;z-index:199;background:rgba(12,14,18,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);transform:translateY(100%);transition:transform .3s ease;max-height:300px;display:flex;flex-direction:column;}
+.debug-panel.open{transform:translateY(0);}
+.debug-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.debug-header span{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);}
+.debug-clear{font-size:11px;color:var(--text-dim);cursor:pointer;background:none;border:none;font-family:'JetBrains Mono',monospace;}
+.debug-clear:hover{color:var(--red);}
+.debug-body{padding:12px 20px;overflow-y:auto;flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;}
+.debug-body .log-line{color:var(--text-dim);}
+.debug-body .log-line .log-time{color:var(--text-dim);opacity:0.5;margin-right:8px;}
+.debug-body .log-line.log-info .log-msg{color:var(--charity);}
+.debug-body .log-line.log-action .log-msg{color:var(--accent);}
+.debug-body .log-line.log-warn .log-msg{color:var(--company);}
+.debug-body .log-line.log-error .log-msg{color:var(--red);}
+
+/* DIVIDER + SCROLLBAR */
+.section-divider{max-width:1100px;margin:0 auto;padding:0 40px;}
+.section-divider hr{border:none;border-top:1px solid var(--border);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim);}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .transcript-layout{grid-template-columns:1fr;}
+  .concepts-grid{grid-template-columns:1fr 1fr;}
+  .stats-bar{grid-template-columns:1fr 1fr;}
+  .section{padding:40px 20px;}
+  .app-header{padding:12px 20px;}
+  .nav-pills{display:none;}
+  .compare-grid{grid-template-columns:1fr;}
+  .speaker-stat-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:600px){
+  .concepts-grid{grid-template-columns:1fr;}
+  .info-row{flex-direction:column;}
+  .info-steps{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">VisualScript <span>— Smart Transcription</span></div>
+  <nav class="nav-pills">
+    <button class="nav-pill active" onclick="scrollToSection('transcript')">Transcript</button>
+    <button class="nav-pill" onclick="scrollToSection('timeline')">Timeline</button>
+    <button class="nav-pill" onclick="scrollToSection('speakers')">Speakers</button>
+    <button class="nav-pill" onclick="scrollToSection('concepts')">Concepts</button>
+    <button class="nav-pill" onclick="scrollToSection('suggestions')">Suggestions</button>
+    <button class="nav-pill" onclick="scrollToSection('actions')">Actions</button>
+    <button class="nav-pill" onclick="scrollToSection('quiz')">Quiz</button>
+    <button class="nav-pill" onclick="scrollToSection('ask')">Ask</button>
+  </nav>
+</header>
+
+<!-- HERO STATS -->
+<div class="section" id="transcript">
+  <div class="section-label">Call Summary</div>
+  <div class="section-title">RoundUp Giving — Product Walkthrough</div>
+  <div class="section-subtitle">A visual breakdown of the product call explaining the round-up donation model, bank linking via Plaid, and the fee structure.</div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-value">4:32</div><div class="stat-label">Duration</div></div>
+    <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Key Concepts</div></div>
+    <div class="stat-card"><div class="stat-value">87.5%</div><div class="stat-label">To Charity</div></div>
+    <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">Speakers</div></div>
+  </div>
+
+  <!-- TRANSCRIPT + VISUAL -->
+  <div class="transcript-layout">
+    <div class="transcript-panel">
+      <div class="panel-header"><div class="dot"></div>CALL TRANSCRIPT</div>
+      <div class="transcript-body" id="transcriptBody">
+        <div class="t-line active" onclick="showVisual(0)" data-step="0">
+          <span class="speaker host">Host</span><span class="timestamp">0:12</span>
+          So walk me through the product — how does a user get started?
+        </div>
+        <div class="t-line" onclick="showVisual(1)" data-step="1">
+          <span class="speaker guest">Founder</span><span class="timestamp">0:18</span>
+          First, you download the app. Then through <span class="highlight-word" title="Plaid: Financial data network">Plaid</span>, the app links directly to your bank account. That's the setup — takes about 60 seconds.
+        </div>
+        <div class="t-line" onclick="showVisual(2)" data-step="2">
+          <span class="speaker host">Host</span><span class="timestamp">0:35</span>
+          And what happens when I make a purchase?
+        </div>
+        <div class="t-line" onclick="showVisual(3)" data-step="3">
+          <span class="speaker guest">Founder</span><span class="timestamp">0:41</span>
+          Let's say you buy something for <span class="highlight-word" title="See Flow Diagram">$9.60</span>. We round up to the next dollar — so we take <span class="highlight-word" title="See Fee Breakdown">$0.40</span>. That 40 cents doesn't happen at the <span class="highlight-word" title="POS: Point of Sale">POS level</span> — it happens on every transaction after the fact.
+        </div>
+        <div class="t-line" onclick="showVisual(4)" data-step="4">
+          <span class="speaker host">Host</span><span class="timestamp">1:05</span>
+          So the merchant has no idea this is happening?
+        </div>
+        <div class="t-line" onclick="showVisual(5)" data-step="5">
+          <span class="speaker guest">Founder</span><span class="timestamp">1:10</span>
+          Exactly. It's completely transparent to the merchant. The round-up is a separate charge from us, triggered by the transaction data we see through Plaid.
+        </div>
+        <div class="t-line" onclick="showVisual(6)" data-step="6">
+          <span class="speaker host">Host</span><span class="timestamp">1:32</span>
+          And how is the 40 cents split?
+        </div>
+        <div class="t-line" onclick="showVisual(7)" data-step="7">
+          <span class="speaker guest">Founder</span><span class="timestamp">1:38</span>
+          Of that 40 cents — <span class="highlight-word" title="See Fee Split">35 cents goes to charity</span>, and we keep 5 cents to cover operations and sustain the platform.
+        </div>
+        <div class="t-line" onclick="showVisual(8)" data-step="8">
+          <span class="speaker host">Host</span><span class="timestamp">2:05</span>
+          So the user is the one funding the donation — the <span class="highlight-word" title="Round-Up: micro-donation">round-up</span> is micro-philanthropy essentially.
+        </div>
+        <div class="t-line" onclick="showVisual(9)" data-step="9">
+          <span class="speaker guest">Founder</span><span class="timestamp">2:14</span>
+          That's exactly right. Every swipe becomes a small act of giving. The user barely notices, but the aggregate impact is massive.
+        </div>
+      </div>
+    </div>
+
+    <div class="visual-panel">
+      <div class="panel-header"><div class="dot" style="background:var(--purple);"></div>VISUAL BREAKDOWN</div>
+      <div class="visual-modes">
+        <button class="vmode-btn active" onclick="setVisualMode('flowchart')">Flowchart</button>
+        <button class="vmode-btn" onclick="setVisualMode('infographic')">Infographic</button>
+        <button class="vmode-btn" onclick="setVisualMode('napkin')">Napkin</button>
+        <button class="vmode-btn" onclick="setVisualMode('sankey')">Sankey</button>
+        <button class="vmode-btn" onclick="setVisualMode('compare')">Compare</button>
+      </div>
+      <div class="visual-content" id="visualContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- TIMELINE -->
+<div class="section" id="timeline">
+  <div class="section-label">Call Timeline</div>
+  <div class="section-title">Conversation Flow</div>
+  <div class="section-subtitle">Click any moment to jump to that part of the conversation and see the visual breakdown.</div>
+  <div class="timeline-track" id="timelineTrack">
+    <div class="timeline-node active" onclick="timelineJump(0)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Product intro</div><div class="timeline-time">0:12</div></div>
+    <div class="timeline-node" onclick="timelineJump(1)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Plaid setup</div><div class="timeline-time">0:18</div></div>
+    <div class="timeline-node" onclick="timelineJump(2)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Purchase Q</div><div class="timeline-time">0:35</div></div>
+    <div class="timeline-node" onclick="timelineJump(3)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Round-up</div><div class="timeline-time">0:41</div></div>
+    <div class="timeline-node" onclick="timelineJump(4)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Merchant Q</div><div class="timeline-time">1:05</div></div>
+    <div class="timeline-node" onclick="timelineJump(5)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Merchant A</div><div class="timeline-time">1:10</div></div>
+    <div class="timeline-node" onclick="timelineJump(6)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Split Q</div><div class="timeline-time">1:32</div></div>
+    <div class="timeline-node" onclick="timelineJump(7)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Split A</div><div class="timeline-time">1:38</div></div>
+    <div class="timeline-node" onclick="timelineJump(8)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Micro-giving</div><div class="timeline-time">2:05</div></div>
+    <div class="timeline-node" onclick="timelineJump(9)"><div class="timeline-line"></div><div class="timeline-dot"></div><div class="timeline-label">Impact</div><div class="timeline-time">2:14</div></div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- SPEAKER ANALYTICS -->
+<div class="section" id="speakers">
+  <div class="section-label">Speaker Analytics</div>
+  <div class="section-title">Who Said What</div>
+  <div class="section-subtitle">Breakdown of speaking time, word count, and contribution by each participant.</div>
+
+  <div class="speaker-bars">
+    <div class="speaker-bar-row">
+      <div class="speaker-bar-label host">Host</div>
+      <div class="speaker-bar-track"><div class="speaker-bar-fill" style="width:35%;background:var(--charity);">35%</div></div>
+    </div>
+    <div class="speaker-bar-row">
+      <div class="speaker-bar-label guest">Founder</div>
+      <div class="speaker-bar-track"><div class="speaker-bar-fill" style="width:65%;background:var(--company);">65%</div></div>
+    </div>
+  </div>
+  <div class="speaker-stat-grid">
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--charity);">42</div><div class="ss-label">Host words</div></div>
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--company);">98</div><div class="ss-label">Founder words</div></div>
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--accent);">5</div><div class="ss-label">Q&A exchanges</div></div>
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--purple);">6</div><div class="ss-label">Key terms used</div></div>
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--teal);">3</div><div class="ss-label">Numbers cited</div></div>
+    <div class="speaker-stat"><div class="ss-val" style="color:var(--red);">0</div><div class="ss-label">Unanswered Qs</div></div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- KEY CONCEPTS -->
+<div class="section" id="concepts">
+  <div class="section-label">Definitions & Context</div>
+  <div class="section-title">Key Concepts Explained</div>
+  <div class="section-subtitle">Terms and ideas from the call — plus additional context you need to fully understand the model.</div>
+  <div class="concepts-grid">
+    <div class="concept-card"><div class="concept-icon">🔗</div><div class="concept-term">Plaid</div><div class="concept-def">A financial data network that securely connects your bank account to third-party apps. It acts as a bridge — the app never stores your banking credentials.</div><div class="concept-tag">Mentioned in call</div></div>
+    <div class="concept-card"><div class="concept-icon">💳</div><div class="concept-term">POS (Point of Sale)</div><div class="concept-def">The physical or digital system where a purchase transaction occurs. The round-up does NOT happen here — it's a separate, post-transaction charge triggered by Plaid data.</div><div class="concept-tag">Mentioned in call</div></div>
+    <div class="concept-card"><div class="concept-icon">🔄</div><div class="concept-term">Round-Up Model</div><div class="concept-def">A micro-donation mechanism that rounds each purchase to the nearest dollar and redirects the difference. Your $9.60 purchase triggers a $0.40 round-up charge.</div><div class="concept-tag">Core mechanic</div></div>
+    <div class="concept-card"><div class="concept-icon">🔔</div><div class="concept-term">Transaction Webhooks</div><div class="concept-def">Real-time notifications from Plaid when a new transaction posts to the linked account. This is how the app detects purchases and calculates round-ups automatically.</div><div class="concept-tag">Not mentioned — technical context</div></div>
+    <div class="concept-card"><div class="concept-icon">🏦</div><div class="concept-term">ACH Debit</div><div class="concept-def">Automated Clearing House — the electronic funds transfer system used to pull the round-up amount from the user's bank. This is the mechanism behind the separate charge.</div><div class="concept-tag">Not mentioned — technical context</div></div>
+    <div class="concept-card"><div class="concept-icon">📊</div><div class="concept-term">Unit Economics</div><div class="concept-def">At $0.05 per transaction, the platform needs volume to be viable. With 30 transactions/user/month, that's $1.50/user — scale is critical to sustainability.</div><div class="concept-tag">Not mentioned — business context</div></div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- SUGGESTIONS -->
+<div class="section" id="suggestions">
+  <div class="section-label">Insights & Recommendations</div>
+  <div class="section-title">Suggestions for the Product</div>
+  <div class="section-subtitle">Actionable ideas surfaced from analyzing the call content.</div>
+  <div class="suggestions-list">
+    <div class="suggestion-item"><div class="suggestion-number">01</div><div class="suggestion-content"><h4>Let Users Choose Their Charity</h4><p>Allow users to select from a curated list of charities or causes. This increases emotional investment and retention — people are more likely to keep the app if they feel connected to where their money goes.</p><span class="suggestion-badge badge-ux">User Experience</span></div></div>
+    <div class="suggestion-item"><div class="suggestion-number">02</div><div class="suggestion-content"><h4>Show Real-Time Impact Dashboard</h4><p>Add a dashboard showing total donated, meals provided, trees planted, etc. Gamification of micro-giving (streaks, milestones) could significantly boost engagement.</p><span class="suggestion-badge badge-ux">User Experience</span></div></div>
+    <div class="suggestion-item"><div class="suggestion-number">03</div><div class="suggestion-content"><h4>Batch Round-Ups Weekly</h4><p>Instead of charging per-transaction, batch round-ups into a single weekly ACH debit. This reduces per-transaction fees, lowers bank dispute risk, and feels less intrusive to users.</p><span class="suggestion-badge badge-tech">Technical</span></div></div>
+    <div class="suggestion-item"><div class="suggestion-number">04</div><div class="suggestion-content"><h4>Add a "Boost" Option</h4><p>Let users multiply their round-up (2x, 5x, 10x) for specific purchases or causes. This creates a premium tier path without changing the core free model.</p><span class="suggestion-badge badge-biz">Business Model</span></div></div>
+    <div class="suggestion-item"><div class="suggestion-number">05</div><div class="suggestion-content"><h4>Clarify the Fee in Onboarding</h4><p>The 5-cent platform fee wasn't clearly framed in the call. During onboarding, show the split transparently — "87.5% to charity, 12.5% keeps us running" builds trust from day one.</p><span class="suggestion-badge badge-biz">Business Model</span></div></div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- ACTION ITEMS -->
+<div class="section" id="actions">
+  <div class="section-label">Follow-Up</div>
+  <div class="section-title">Action Items</div>
+  <div class="section-subtitle">Tasks extracted from the call that need follow-up.</div>
+  <div class="action-items-list" id="actionList">
+    <div class="action-item"><div class="action-check" onclick="toggleAction(this)"></div><div class="action-text"><h4>Clarify refund policy for round-ups</h4><p>Not addressed in call — what happens when a user returns a purchase?</p></div><span class="action-priority priority-high">HIGH</span></div>
+    <div class="action-item"><div class="action-check" onclick="toggleAction(this)"></div><div class="action-text"><h4>Document the Plaid integration security model</h4><p>Users will ask about data safety — prepare a clear answer for FAQ.</p></div><span class="action-priority priority-high">HIGH</span></div>
+    <div class="action-item"><div class="action-check" onclick="toggleAction(this)"></div><div class="action-text"><h4>Define monthly cap on round-ups</h4><p>Consider implementing a configurable monthly maximum to build user trust.</p></div><span class="action-priority priority-med">MEDIUM</span></div>
+    <div class="action-item"><div class="action-check" onclick="toggleAction(this)"></div><div class="action-text"><h4>List supported charities or categories</h4><p>Founder mentioned "charity" generically — need to specify which orgs or let users choose.</p></div><span class="action-priority priority-med">MEDIUM</span></div>
+    <div class="action-item"><div class="action-check" onclick="toggleAction(this)"></div><div class="action-text"><h4>Build impact dashboard mockup</h4><p>Show users their cumulative giving impact with real metrics.</p></div><span class="action-priority priority-low">LOW</span></div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- QUIZ -->
+<div class="section" id="quiz">
+  <div class="section-label">Comprehension Check</div>
+  <div class="section-title">Did You Catch Everything?</div>
+  <div class="section-subtitle">Test your understanding of the product and business model discussed in the call.</div>
+
+  <div class="quiz-score-bar" id="quizScoreBar">
+    <div class="quiz-score-ring" id="quizScoreRing">0/3</div>
+    <div class="quiz-score-info"><div class="qsi-title">Your Score</div><div class="qsi-sub" id="quizScoreSub">Answer all questions to see your result</div></div>
+  </div>
+
+  <div class="quiz-container">
+    <div class="quiz-card" data-quiz="0">
+      <div class="quiz-number">Question 01</div>
+      <div class="quiz-question">Where does the round-up charge happen?</div>
+      <div class="quiz-options">
+        <div class="quiz-option" onclick="answerQuiz(0,0,false)"><div class="option-letter">A</div>At the point of sale (POS)</div>
+        <div class="quiz-option" onclick="answerQuiz(0,1,true)"><div class="option-letter">B</div>As a separate post-transaction charge via the app</div>
+        <div class="quiz-option" onclick="answerQuiz(0,2,false)"><div class="option-letter">C</div>Added to the merchant's total</div>
+      </div>
+      <div class="quiz-feedback" id="feedback-0"></div>
+    </div>
+    <div class="quiz-card" data-quiz="1">
+      <div class="quiz-number">Question 02</div>
+      <div class="quiz-question">If you buy something for $9.60, how much goes to charity?</div>
+      <div class="quiz-options">
+        <div class="quiz-option" onclick="answerQuiz(1,0,false)"><div class="option-letter">A</div>$0.40</div>
+        <div class="quiz-option" onclick="answerQuiz(1,1,true)"><div class="option-letter">B</div>$0.35</div>
+        <div class="quiz-option" onclick="answerQuiz(1,2,false)"><div class="option-letter">C</div>$0.05</div>
+      </div>
+      <div class="quiz-feedback" id="feedback-1"></div>
+    </div>
+    <div class="quiz-card" data-quiz="2">
+      <div class="quiz-number">Question 03</div>
+      <div class="quiz-question">What role does Plaid play in this product?</div>
+      <div class="quiz-options">
+        <div class="quiz-option" onclick="answerQuiz(2,0,false)"><div class="option-letter">A</div>It processes the charity payment</div>
+        <div class="quiz-option" onclick="answerQuiz(2,1,false)"><div class="option-letter">B</div>It manages the POS system</div>
+        <div class="quiz-option" onclick="answerQuiz(2,2,true)"><div class="option-letter">C</div>It securely links the user's bank account to the app</div>
+      </div>
+      <div class="quiz-feedback" id="feedback-2"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"><hr></div>
+
+<!-- ASK -->
+<div class="section" id="ask">
+  <div class="section-label">Interactive Q&A</div>
+  <div class="section-title">Ask a Question</div>
+  <div class="section-subtitle">Anything unclear from the call? Ask below and get an instant answer based on the transcript.</div>
+  <div class="ask-container">
+    <div class="ask-input-area">
+      <input class="ask-input" id="askInput" type="text" placeholder="e.g. Can the user set a monthly donation cap?" onkeydown="if(event.key==='Enter')askQuestion()">
+      <button class="ask-btn" onclick="askQuestion()">Ask</button>
+    </div>
+    <div class="suggested-questions">
+      <div class="sq-chip" onclick="fillQuestion('What happens if I return a purchase?')">What happens if I return a purchase?</div>
+      <div class="sq-chip" onclick="fillQuestion('Can I pause round-ups temporarily?')">Can I pause round-ups temporarily?</div>
+      <div class="sq-chip" onclick="fillQuestion('Is there a maximum daily charge?')">Is there a maximum daily charge?</div>
+      <div class="sq-chip" onclick="fillQuestion('Which charities are supported?')">Which charities are supported?</div>
+    </div>
+    <div class="ask-threads" id="askThreads">
+      <div class="thread-item"><div class="thread-avatar user">👤</div><div class="thread-content"><div class="thread-name user">Audience Member</div><div class="thread-text">Is my banking data stored by the app?</div></div></div>
+      <div class="thread-item"><div class="thread-avatar ai">⚡</div><div class="thread-content"><div class="thread-name ai">VisualScript AI</div><div class="thread-text">Based on the call, the app uses Plaid to connect to your bank. Plaid acts as a secure intermediary — your banking credentials are handled by Plaid, not stored directly by the app. The app receives transaction data (amounts, merchants) but not your login details.</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div style="height:100px;"></div>
+
+<!-- DEBUG LOG -->
+<button class="debug-toggle" id="debugToggle" onclick="toggleDebug()">⚙ Debug Log</button>
+<div class="debug-panel" id="debugPanel">
+  <div class="debug-header"><span>⚙ Debug Log</span><button class="debug-clear" onclick="clearDebug()">Clear</button></div>
+  <div class="debug-body" id="debugBody"></div>
+</div>
+
+<script>
+// ===== DEBUG LOG =====
+const debugBody = document.getElementById('debugBody');
+function dlog(msg, type='info') {
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false});
+  const line = document.createElement('div');
+  line.className = 'log-line log-' + type;
+  line.innerHTML = '<span class="log-time">[' + t + ']</span><span class="log-msg">' + msg + '</span>';
+  debugBody.appendChild(line);
+  debugBody.scrollTop = debugBody.scrollHeight;
+}
+function toggleDebug() {
+  document.getElementById('debugPanel').classList.toggle('open');
+  dlog('Debug panel toggled', 'action');
+}
+function clearDebug() { debugBody.innerHTML = ''; }
+dlog('VisualScript initialized', 'info');
+dlog('Loaded transcript: 10 lines, 2 speakers', 'info');
+dlog('Visual modes: flowchart, infographic, napkin, sankey, compare', 'info');
+
+// ===== STATE =====
+let currentStep = 0;
+let currentMode = 'flowchart';
+let quizScore = 0;
+let quizAnswered = [false, false, false];
+
+// ===== VISUAL DATA =====
+// Each mode has an array of 6 steps (0-5)
+
+function getFlowchartVisual(step) {
+  const v = [
+    // 0 — Host: "walk me through the product"
+    `<div class="flow-container">
+      <div class="flow-node" style="border-color:var(--charity);"><div class="node-icon">🎙️</div><div class="node-title">Host Asks</div><div class="node-detail">"How does a user get started?"</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node"><div class="node-icon">📱</div><div class="node-title">Product Walkthrough</div><div class="node-detail">Step-by-step explanation begins</div></div>
+    </div>`,
+    // 1 — Founder: download app → Plaid → ready
+    `<div class="flow-container">
+      <div class="flow-node"><div class="node-icon">📱</div><div class="node-title">Download App</div><div class="node-detail">iOS & Android</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node"><div class="node-icon">🔗</div><div class="node-title">Link via Plaid</div><div class="node-detail">Securely connects to your bank</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node" style="border-color:var(--accent);"><div class="node-icon">✅</div><div class="node-title">Ready to Give</div><div class="node-detail">~60 seconds total</div></div>
+    </div>`,
+    // 2 — Host: "what happens when I make a purchase?"
+    `<div class="flow-container">
+      <div class="flow-node" style="border-color:var(--charity);"><div class="node-icon">🛒</div><div class="node-title">Host Asks</div><div class="node-detail">"What happens when I buy something?"</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node"><div class="node-icon">❓</div><div class="node-title">Purchase Event</div><div class="node-detail">How does the round-up get triggered?</div></div>
+    </div>`,
+    // 3 — Founder: $9.60 → $0.40 round-up, not at POS
+    `<div class="flow-container">
+      <div class="flow-node"><div class="node-icon">🛍️</div><div class="node-title">You Buy Something</div><div class="node-amount">$9.60</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node" style="border-color:var(--purple);"><div class="node-icon">🔔</div><div class="node-title">Plaid Detects It</div><div class="node-detail">Post-transaction, not at POS</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node" style="border-color:var(--accent);"><div class="node-icon">📐</div><div class="node-title">Round-Up Charged</div><div class="node-amount">$0.40</div><div class="node-detail">Separate charge from the app</div></div>
+    </div>`,
+    // 4 — Host: "merchant has no idea?"
+    `<div class="flow-container">
+      <div class="flow-node" style="border-color:var(--charity);"><div class="node-icon">🤔</div><div class="node-title">Host Asks</div><div class="node-detail">"Merchant has no idea this is happening?"</div></div>
+      <div class="flow-arrow"></div>
+      <div style="display:flex;gap:20px;justify-content:center;">
+        <div class="flow-node" style="width:170px;border-color:var(--red);"><div class="node-icon">🏪</div><div class="node-title">Merchant</div><div class="node-detail" style="color:var(--red);">Sees $9.60 only</div></div>
+        <div class="flow-node" style="width:170px;border-color:var(--accent);"><div class="node-icon">📱</div><div class="node-title">App</div><div class="node-detail" style="color:var(--accent);">Charges $0.40</div></div>
+      </div>
+    </div>`,
+    // 5 — Founder: "completely transparent to the merchant"
+    `<div style="text-align:center;">
+      <div style="display:flex;justify-content:center;gap:40px;align-items:center;margin-bottom:24px;">
+        <div style="text-align:center;"><div style="font-size:48px;margin-bottom:8px;">🏪</div><div style="font-weight:600;font-size:14px;">Merchant</div><div style="font-size:12px;color:var(--text-dim);">Sees: $9.60 charge</div><div style="font-size:11px;color:var(--red);margin-top:4px;">Zero awareness</div></div>
+        <div style="font-size:24px;color:var(--border);">≠</div>
+        <div style="text-align:center;"><div style="font-size:48px;margin-bottom:8px;">📱</div><div style="font-weight:600;font-size:14px;">App</div><div style="font-size:12px;color:var(--text-dim);">Charges: $0.40</div><div style="font-size:11px;color:var(--accent);margin-top:4px;">Via Plaid + ACH</div></div>
+      </div>
+      <div style="background:var(--surface-2);border-radius:10px;padding:16px;font-size:13px;color:var(--text-dim);max-width:360px;margin:0 auto;">⚡ <strong style="color:var(--text);">Completely invisible</strong> to the merchant. Two separate financial events from one purchase.</div>
+    </div>`,
+    // 6 — Host: "how is the 40 cents split?"
+    `<div class="flow-container">
+      <div class="flow-node" style="border-color:var(--charity);"><div class="node-icon">💰</div><div class="node-title">Host Asks</div><div class="node-detail">"How is the $0.40 split?"</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node"><div class="node-icon">✂️</div><div class="node-title">Revenue Split</div><div class="node-detail">Where does each cent go?</div></div>
+    </div>`,
+    // 7 — Founder: 35c charity, 5c platform
+    `<div class="flow-container">
+      <div class="flow-node"><div class="node-icon">💰</div><div class="node-title">Round-Up Collected</div><div class="node-amount">$0.40</div></div>
+      <div class="flow-arrow"></div>
+      <div style="display:flex;gap:20px;justify-content:center;">
+        <div class="flow-node" style="width:180px;border-color:var(--charity);"><div class="node-icon">💚</div><div class="node-title">Charity</div><div class="node-amount" style="color:var(--charity);">$0.35</div><div class="node-detail">87.5%</div></div>
+        <div class="flow-node" style="width:180px;border-color:var(--company);"><div class="node-icon">🏢</div><div class="node-title">Platform</div><div class="node-amount" style="color:var(--company);">$0.05</div><div class="node-detail">12.5%</div></div>
+      </div>
+      <div style="width:100%;margin-top:20px;padding:20px;background:var(--surface-2);border-radius:12px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-dim);margin-bottom:12px;font-family:'JetBrains Mono',monospace;">Fee Split</div>
+        <div style="height:32px;border-radius:8px;overflow:hidden;display:flex;background:var(--bg);">
+          <div style="width:87.5%;background:var(--charity);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--bg);">$0.35</div>
+          <div style="width:12.5%;background:var(--company);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--bg);">$0.05</div>
+        </div>
+      </div>
+    </div>`,
+    // 8 — Host: "micro-philanthropy essentially"
+    `<div class="flow-container">
+      <div class="flow-node"><div class="node-icon">👤</div><div class="node-title">User Swipes Card</div><div class="node-detail">Any everyday purchase</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node" style="border-color:var(--accent);"><div class="node-icon">🔄</div><div class="node-title">Micro-Philanthropy</div><div class="node-detail">Spare change → real donations</div></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node" style="border-color:var(--charity);"><div class="node-icon">🌍</div><div class="node-title">User Funds the Giving</div><div class="node-detail">Not the merchant, not the company</div></div>
+    </div>`,
+    // 9 — Founder: "every swipe, aggregate impact is massive"
+    `<div class="flow-container">
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+        <div class="flow-node" style="width:140px;"><div class="node-icon">💳</div><div class="node-title">1 Swipe</div><div class="node-amount">$0.35</div></div>
+        <div class="flow-node" style="width:140px;"><div class="node-icon">📅</div><div class="node-title">1 Month</div><div class="node-amount">~$10.50</div></div>
+        <div class="flow-node" style="width:140px;border-color:var(--accent);"><div class="node-icon">📆</div><div class="node-title">1 Year</div><div class="node-amount" style="color:var(--accent);">~$126</div></div>
+      </div>
+      <div style="margin-top:20px;background:var(--surface-2);border-radius:10px;padding:16px;font-size:13px;color:var(--text-dim);text-align:center;width:100%;">🚀 <strong style="color:var(--accent);">1,000 users</strong> = <strong style="color:var(--charity);">$126,000/year</strong> to charity. The user barely notices, but the aggregate impact is massive.</div>
+    </div>`
+  ];
+  return v[step] || v[0];
+}
+
+function getInfographicVisual(step) {
+  const v = [
+    // 0
+    `<div style="text-align:center;width:100%;">
+      <div class="info-row">
+        <div class="info-card"><div class="info-icon-row"><div class="info-icon-circle" style="background:rgba(61,214,140,0.12);">🎙️</div><div><div style="font-weight:600;font-size:14px;">Product Call</div><div style="font-size:11px;color:var(--text-dim);">Live walkthrough session</div></div></div>
+          <div class="info-row" style="margin:12px 0 0;">
+            <div style="flex:1;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--accent);">4:32</div><div style="font-size:10px;color:var(--text-dim);">DURATION</div></div>
+            <div style="flex:1;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--charity);">2</div><div style="font-size:10px;color:var(--text-dim);">SPEAKERS</div></div>
+            <div style="flex:1;text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--purple);">140</div><div style="font-size:10px;color:var(--text-dim);">WORDS</div></div>
+          </div>
+        </div>
+      </div>
+    </div>`,
+    // 1: setup
+    `<div style="width:100%;">
+      <div class="info-steps">
+        <div class="info-step"><div class="step-num">STEP 1</div><div class="step-icon">📱</div><div class="step-label">Download</div><span class="info-step-connector">→</span></div>
+        <div class="info-step"><div class="step-num">STEP 2</div><div class="step-icon">🔗</div><div class="step-label">Link Bank</div><span class="info-step-connector">→</span></div>
+        <div class="info-step"><div class="step-num">STEP 3</div><div class="step-icon">✅</div><div class="step-label">Done!</div></div>
+      </div>
+      <div class="info-card" style="margin-top:16px;">
+        <div class="info-icon-row"><div class="info-icon-circle" style="background:rgba(164,123,245,0.12);">⏱️</div><div><div style="font-weight:600;">Setup Time</div><div style="font-size:11px;color:var(--text-dim);">From download to ready</div></div></div>
+        <div class="info-big-number" style="color:var(--accent);">60<span style="font-size:20px;color:var(--text-dim);"> sec</span></div>
+        <div class="info-metric-bar"><div class="info-metric-fill" style="width:15%;background:var(--accent);"></div></div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">vs. avg fintech onboarding: ~7 min</div>
+      </div>
+    </div>`,
+    // 2
+    `<div style="text-align:center;width:100%;">
+      <div class="info-card">
+        <div style="font-size:48px;margin-bottom:12px;">🛒</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:4px;">Every Purchase = A Donation</div>
+        <div style="font-size:13px;color:var(--text-dim);">The round-up triggers automatically on every transaction detected by Plaid.</div>
+        <div style="display:flex;justify-content:center;gap:24px;margin-top:16px;">
+          <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);">~30</div><div style="font-size:10px;color:var(--text-dim);">Avg txns/month</div></div>
+          <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--charity);">$7.50</div><div style="font-size:10px;color:var(--text-dim);">Avg monthly giving</div></div>
+          <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--purple);">$90</div><div style="font-size:10px;color:var(--text-dim);">Per year</div></div>
+        </div>
+      </div>
+    </div>`,
+    // 3: round-up
+    `<div style="width:100%;">
+      <div class="info-row">
+        <div class="info-card" style="text-align:center;border-color:var(--border);">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">You Pay</div>
+          <div class="info-big-number" style="color:var(--text);">$9.60</div>
+        </div>
+        <div class="info-card" style="text-align:center;border-color:var(--accent);">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Round-Up</div>
+          <div class="info-big-number" style="color:var(--accent);">$0.40</div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">How it works</div>
+        <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+          <span style="color:var(--text-dim);">$9.60</span>
+          <span style="color:var(--accent);">→ rounds to →</span>
+          <span style="color:var(--text);">$10.00</span>
+          <span style="color:var(--accent);">→ difference →</span>
+          <span style="color:var(--accent);font-weight:700;">$0.40</span>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-dim);padding:10px;background:var(--bg);border-radius:8px;">⚡ Charged separately from your purchase. Merchant sees nothing.</div>
+      </div>
+    </div>`,
+    // 4: merchant
+    `<div style="width:100%;">
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--red);"><div class="cc-icon">🏪</div><div class="cc-title">Merchant</div><div class="cc-detail" style="color:var(--red);">No visibility</div><div class="cc-val" style="color:var(--text);">$9.60</div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Standard transaction only</div></div>
+        <div class="compare-card" style="border-color:var(--accent);"><div class="cc-icon">📱</div><div class="cc-title">RoundUp App</div><div class="cc-detail" style="color:var(--accent);">Full visibility</div><div class="cc-val" style="color:var(--accent);">$0.40</div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Separate ACH debit</div></div>
+      </div>
+      <div class="info-card" style="margin-top:16px;border-left:3px solid var(--accent);">
+        <div style="font-size:13px;line-height:1.6;color:var(--text-dim);">Two independent financial events from one purchase. The merchant's POS system and the app's round-up system never interact directly.</div>
+      </div>
+    </div>`,
+    // 5: split
+    `<div style="width:100%;">
+      <div class="info-card" style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Total Round-Up</div>
+        <div class="info-big-number" style="color:var(--accent);">$0.40</div>
+      </div>
+      <div class="info-row">
+        <div class="info-card" style="text-align:center;border-color:var(--charity);">
+          <div style="font-size:32px;margin-bottom:4px;">💚</div>
+          <div style="font-size:11px;color:var(--text-dim);">CHARITY</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--charity);">$0.35</div>
+          <div class="info-metric-bar"><div class="info-metric-fill" style="width:87.5%;background:var(--charity);"></div></div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">87.5%</div>
+        </div>
+        <div class="info-card" style="text-align:center;border-color:var(--company);">
+          <div style="font-size:32px;margin-bottom:4px;">🏢</div>
+          <div style="font-size:11px;color:var(--text-dim);">PLATFORM</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--company);">$0.05</div>
+          <div class="info-metric-bar"><div class="info-metric-fill" style="width:12.5%;background:var(--company);"></div></div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">12.5%</div>
+        </div>
+      </div>
+    </div>`,
+    // 6 — Host: "how is the 40 cents split?"
+    `<div style="text-align:center;width:100%;"><div class="info-card">
+      <div style="font-size:48px;margin-bottom:12px;">✂️</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:4px;">The Revenue Question</div>
+      <div style="font-size:13px;color:var(--text-dim);">Host asks how the $0.40 round-up is divided between charity and platform operations.</div>
+      <div style="display:flex;justify-content:center;gap:24px;margin-top:16px;">
+        <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:var(--accent);">$0.40</div><div style="font-size:10px;color:var(--text-dim);">TO SPLIT</div></div>
+      </div>
+    </div></div>`,
+    // 7 — Founder: 35c charity, 5c platform
+    `<div style="width:100%;">
+      <div class="info-card" style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Round-Up Split</div>
+        <div class="info-big-number" style="color:var(--accent);">$0.40</div>
+      </div>
+      <div class="info-row">
+        <div class="info-card" style="text-align:center;border-color:var(--charity);">
+          <div style="font-size:32px;margin-bottom:4px;">💚</div>
+          <div style="font-size:11px;color:var(--text-dim);">CHARITY</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--charity);">$0.35</div>
+          <div class="info-metric-bar"><div class="info-metric-fill" style="width:87.5%;background:var(--charity);"></div></div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">87.5%</div>
+        </div>
+        <div class="info-card" style="text-align:center;border-color:var(--company);">
+          <div style="font-size:32px;margin-bottom:4px;">🏢</div>
+          <div style="font-size:11px;color:var(--text-dim);">PLATFORM</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--company);">$0.05</div>
+          <div class="info-metric-bar"><div class="info-metric-fill" style="width:12.5%;background:var(--company);"></div></div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">12.5%</div>
+        </div>
+      </div>
+    </div>`,
+    // 8 — Host: micro-philanthropy
+    `<div style="text-align:center;width:100%;"><div class="info-card">
+      <div style="font-size:48px;margin-bottom:12px;">🔄</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:4px;">Micro-Philanthropy</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">The user funds the donation — not the merchant, not the company.</div>
+      <div style="display:flex;justify-content:center;gap:24px;">
+        <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--charity);">$0.25</div><div style="font-size:10px;color:var(--text-dim);">Avg round-up</div></div>
+        <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);">30</div><div style="font-size:10px;color:var(--text-dim);">Txns/month</div></div>
+        <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--purple);">$90</div><div style="font-size:10px;color:var(--text-dim);">Year of giving</div></div>
+      </div>
+    </div></div>`,
+    // 9 — Founder: aggregate impact
+    `<div style="width:100%;">
+      <div class="info-card" style="text-align:center;border-color:var(--accent);">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Aggregate Impact</div>
+        <div class="info-big-number" style="color:var(--accent);">$126K<span style="font-size:20px;color:var(--text-dim);">/yr</span></div>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:8px;">per 1,000 users to charity</div>
+        <div class="info-metric-bar" style="margin-top:16px;"><div class="info-metric-fill" style="width:87.5%;background:var(--charity);"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:4px;"><span>$0</span><span>$126,000 to charity</span><span>$144,000 total</span></div>
+      </div>
+      <div class="info-card" style="margin-top:12px;text-align:center;">
+        <div style="font-size:13px;color:var(--text-dim);">🚀 Every swipe = a small act of giving. The user barely notices.</div>
+      </div>
+    </div>`
+  ];
+  return v[step] || v[0];
+}
+
+function getNapkinVisual(step) {
+  const v = [
+    // 0
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div class="napkin-blob" style="border-color:var(--accent);color:var(--accent);font-size:16px;">🎙️ RoundUp Giving</div>
+      <div class="napkin-arrow">↓</div>
+      <div style="font-size:13px;color:var(--text-dim);text-align:center;max-width:260px;">A walkthrough of how micro-donations work through automatic purchase round-ups</div>
+      <div class="napkin-note">💡 Click any transcript line to see the napkin sketch for that moment</div>
+    </div></div>`,
+    // 1: setup
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:12px;">USER ONBOARDING</div>
+      <div class="napkin-hflow">
+        <div class="napkin-box"><div class="nb-icon">📱</div><div class="nb-label">Download</div></div>
+        <div class="napkin-connector">- - -→</div>
+        <div class="napkin-box accent"><div class="nb-icon">🔗</div><div class="nb-label">Link Bank</div><div class="nb-detail">via Plaid</div></div>
+        <div class="napkin-connector">- - -→</div>
+        <div class="napkin-box" style="border-color:var(--accent);"><div class="nb-icon">✨</div><div class="nb-label">Active!</div></div>
+      </div>
+      <div class="napkin-note">⏱️ Total time: ~60 seconds. User never shares bank login with the app directly.</div>
+    </div></div>`,
+    // 2
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div class="napkin-blob" style="border-color:var(--text-dim);color:var(--text);">🛒 User makes a purchase</div>
+      <div class="napkin-arrow">↓ what happens next?</div>
+      <div style="display:flex;gap:20px;">
+        <div class="napkin-box"><div class="nb-label">Merchant gets $</div><div class="nb-detail">normal sale</div></div>
+        <div class="napkin-box accent"><div class="nb-label">App rounds up</div><div class="nb-detail">separate charge</div></div>
+      </div>
+      <div class="napkin-note">These are TWO separate events. The merchant never knows about the round-up.</div>
+    </div></div>`,
+    // 3: round-up
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">THE ROUND-UP</div>
+      <div class="napkin-hflow" style="margin-bottom:16px;">
+        <div class="napkin-box"><div class="nb-label">Purchase</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;">$9.60</div></div>
+        <div class="napkin-connector">→ ceil() →</div>
+        <div class="napkin-box"><div class="nb-label">Rounded</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;">$10.00</div></div>
+        <div class="napkin-connector">→ diff →</div>
+        <div class="napkin-box accent"><div class="nb-label">Round-Up</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--accent);margin-top:4px;">$0.40</div></div>
+      </div>
+      <div class="napkin-note">📐 Formula: roundUp = ceil(amount) - amount = $10.00 - $9.60 = $0.40</div>
+    </div></div>`,
+    // 4: merchant
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">MERCHANT vs APP</div>
+      <div style="display:flex;gap:32px;align-items:flex-start;">
+        <div style="flex:1;text-align:center;">
+          <div class="napkin-box" style="width:100%;border-color:var(--red);">
+            <div class="nb-icon">🏪</div>
+            <div class="nb-label" style="color:var(--red);">Merchant</div>
+            <div class="nb-detail">Sees $9.60 only</div>
+            <div style="margin-top:8px;font-size:11px;color:var(--red);">❌ No knowledge</div>
+          </div>
+        </div>
+        <div style="font-size:20px;color:var(--border);margin-top:30px;">≠</div>
+        <div style="flex:1;text-align:center;">
+          <div class="napkin-box" style="width:100%;border-color:var(--accent);">
+            <div class="nb-icon">📱</div>
+            <div class="nb-label" style="color:var(--accent);">App</div>
+            <div class="nb-detail">Charges $0.40</div>
+            <div style="margin-top:8px;font-size:11px;color:var(--accent);">✓ Via Plaid→ACH</div>
+          </div>
+        </div>
+      </div>
+      <div class="napkin-note">These two systems never talk to each other. Completely independent.</div>
+    </div></div>`,
+    // 5: split
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">MONEY SPLIT</div>
+      <div class="napkin-box accent" style="width:100%;margin-bottom:16px;"><div class="nb-label" style="font-size:14px;">💰 $0.40 collected</div></div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;width:100%;">
+        <div style="flex:7;height:32px;background:var(--charity);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);">💚 $0.35 → Charity</div>
+        <div style="flex:1;height:32px;background:var(--company);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--bg);">$0.05</div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;">
+        <div style="font-size:11px;color:var(--charity);">87.5% → charity</div>
+        <div style="font-size:11px;color:var(--company);">12.5% → platform ops</div>
+      </div>
+      <div class="napkin-note">At 30 txns/month: ~$10.50/mo to charity, ~$1.50/mo to platform per user</div>
+    </div></div>`,
+    // 6 — Host: "how is the 40 cents split?"
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div class="napkin-blob" style="border-color:var(--charity);color:var(--charity);">✂️ "How is the $0.40 split?"</div>
+      <div class="napkin-arrow">↓</div>
+      <div class="napkin-box accent" style="width:100%;"><div class="nb-label" style="font-size:14px;">💰 $0.40 → ???</div></div>
+      <div class="napkin-note">Host wants to understand the revenue model — where does each cent go?</div>
+    </div></div>`,
+    // 7 — Founder: split answer
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">THE SPLIT</div>
+      <div class="napkin-box accent" style="width:100%;margin-bottom:12px;"><div class="nb-label" style="font-size:14px;">💰 $0.40 collected</div></div>
+      <div style="display:flex;align-items:center;gap:4px;width:100%;margin-bottom:4px;">
+        <div style="flex:7;height:32px;background:var(--charity);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);">💚 $0.35 → Charity</div>
+        <div style="flex:1;height:32px;background:var(--company);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--bg);">$0.05</div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;">
+        <div style="font-size:11px;color:var(--charity);">87.5% → charity</div>
+        <div style="font-size:11px;color:var(--company);">12.5% → ops</div>
+      </div>
+      <div class="napkin-note">$0.05 keeps the lights on. $0.35 makes the difference.</div>
+    </div></div>`,
+    // 8 — Host: micro-philanthropy
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">MICRO-PHILANTHROPY</div>
+      <div class="napkin-hflow">
+        <div class="napkin-box"><div class="nb-icon">👤</div><div class="nb-label">User</div><div class="nb-detail">funds the giving</div></div>
+        <div class="napkin-connector">→ not →</div>
+        <div class="napkin-box" style="opacity:0.4;"><div class="nb-icon">🏪</div><div class="nb-label">Merchant</div></div>
+        <div class="napkin-connector">→ not →</div>
+        <div class="napkin-box" style="opacity:0.4;"><div class="nb-icon">🏢</div><div class="nb-label">Company</div></div>
+      </div>
+      <div class="napkin-note">The user is the hero. Spare change from every swipe becomes real charity.</div>
+    </div></div>`,
+    // 9 — Founder: aggregate impact
+    `<div class="napkin-board"><div class="napkin-flow">
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px;">SCALE IMPACT</div>
+      <div class="napkin-hflow" style="margin-bottom:12px;">
+        <div class="napkin-box"><div class="nb-label">1 swipe</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);margin-top:4px;">$0.35</div></div>
+        <div class="napkin-connector">×30 →</div>
+        <div class="napkin-box"><div class="nb-label">1 month</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--charity);margin-top:4px;">$10.50</div></div>
+        <div class="napkin-connector">×12 →</div>
+        <div class="napkin-box accent"><div class="nb-label">1 year</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);margin-top:4px;">$126</div></div>
+      </div>
+      <div class="napkin-note">🚀 ×1,000 users = $126K/year to charity. Barely noticed, massively impactful.</div>
+    </div></div>`
+  ];
+  return v[step] || v[0];
+}
+
+function getSankeyVisual(step) {
+  const v = [
+    // 0
+    `<div style="text-align:center;"><div style="font-size:48px;margin-bottom:16px;">📊</div><div style="font-size:18px;font-weight:600;margin-bottom:8px;">Sankey Flow View</div><div style="font-size:13px;color:var(--text-dim);max-width:280px;margin:0 auto;">This view shows money and data flows as proportional stream diagrams.</div></div>`,
+    // 1: data flow
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Data Flow — Onboarding</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text);">User</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:linear-gradient(90deg,var(--accent),var(--charity));"><span class="sankey-val">Credentials →</span></div></div><div class="sankey-end">Plaid</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">Plaid</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:70%;background:linear-gradient(90deg,var(--charity),var(--purple));"><span class="sankey-val">Token →</span></div></div><div class="sankey-end">App</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--purple);">App</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:40%;background:linear-gradient(90deg,var(--purple),var(--accent));"><span class="sankey-val">Ready ✓</span></div></div><div class="sankey-end">User</div></div>
+      <div style="margin-top:16px;font-size:11px;color:var(--text-dim);padding:12px;background:var(--surface-2);border-radius:8px;">🔒 Bank credentials stay with Plaid. App only gets a token + transaction data.</div>
+    </div>`,
+    // 2
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Transaction Detection Flow</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text);">Purchase</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:linear-gradient(90deg,var(--text-dim),var(--company));"><span class="sankey-val">$9.60 →</span></div></div><div class="sankey-end">Merchant</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">Bank</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:60%;background:linear-gradient(90deg,var(--charity),var(--purple));"><span class="sankey-val">Webhook →</span></div></div><div class="sankey-end">Plaid</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--purple);">Plaid</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:40%;background:linear-gradient(90deg,var(--purple),var(--accent));"><span class="sankey-val">Notify →</span></div></div><div class="sankey-end">App</div></div>
+    </div>`,
+    // 3: money flow
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Money Flow — Single Transaction</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text);">Your Bank</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:linear-gradient(90deg,var(--text-dim),var(--company));border-radius:6px 0 0 6px;"><span class="sankey-val">$10.00 total</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-divider"></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--company);">→ Merchant</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:96%;background:var(--company);"><span class="sankey-val">$9.60 (purchase)</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--accent);">→ RoundUp</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:4%;min-width:80px;background:var(--accent);"><span class="sankey-val">$0.40</span></div></div><div class="sankey-end"></div></div>
+    </div>`,
+    // 4: merchant isolation
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Visibility Comparison</div>
+      <div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--red);">🏪 Merchant can see:</div>
+      <div class="sankey-row"><div class="sankey-label">Purchase</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:var(--company);"><span class="sankey-val">$9.60</span></div></div><div class="sankey-end">✓ visible</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="opacity:0.3;">Round-up</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:0%;background:var(--border);min-width:40px;opacity:0.2;"><span class="sankey-val"></span></div></div><div class="sankey-end" style="color:var(--red);">✗ hidden</div></div>
+      <div class="sankey-divider"></div>
+      <div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--accent);">📱 App can see:</div>
+      <div class="sankey-row"><div class="sankey-label">Purchase</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:96%;background:var(--company);opacity:0.5;"><span class="sankey-val">$9.60 (via Plaid)</span></div></div><div class="sankey-end">✓</div></div>
+      <div class="sankey-row"><div class="sankey-label">Round-up</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:4%;min-width:80px;background:var(--accent);"><span class="sankey-val">$0.40</span></div></div><div class="sankey-end">✓</div></div>
+    </div>`,
+    // 5: split
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Revenue Split — Per Transaction</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--accent);">Round-Up</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:var(--accent);"><span class="sankey-val">$0.40 collected</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-divider"></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">→ Charity</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:87.5%;background:var(--charity);"><span class="sankey-val">$0.35 (87.5%)</span></div></div><div class="sankey-end">💚</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--company);">→ Platform</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:12.5%;min-width:70px;background:var(--company);"><span class="sankey-val">$0.05</span></div></div><div class="sankey-end">🏢</div></div>
+      <div class="sankey-divider"></div>
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin:8px 0;">Monthly Estimate (30 txns)</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">→ Charity</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:87.5%;background:var(--charity);opacity:0.7;"><span class="sankey-val">~$10.50/mo</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--company);">→ Platform</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:12.5%;min-width:70px;background:var(--company);opacity:0.7;"><span class="sankey-val">~$1.50</span></div></div><div class="sankey-end"></div></div>
+    </div>`,
+    // 6 — Host: "how is the 40 cents split?"
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Revenue Question</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--accent);">$0.40</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:var(--accent);"><span class="sankey-val">Round-up collected → where does it go?</span></div></div><div class="sankey-end">❓</div></div>
+    </div>`,
+    // 7 — Founder: split
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Revenue Split — Per Transaction</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--accent);">Round-Up</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:var(--accent);"><span class="sankey-val">$0.40 collected</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-divider"></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">→ Charity</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:87.5%;background:var(--charity);"><span class="sankey-val">$0.35 (87.5%)</span></div></div><div class="sankey-end">💚</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--company);">→ Platform</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:12.5%;min-width:70px;background:var(--company);"><span class="sankey-val">$0.05</span></div></div><div class="sankey-end">🏢</div></div>
+    </div>`,
+    // 8 — Host: micro-philanthropy
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Who Funds the Giving?</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--accent);">User</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:var(--accent);"><span class="sankey-val">$0.40 per txn (spare change)</span></div></div><div class="sankey-end">💚</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text-dim);">Merchant</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:0%;min-width:40px;background:var(--border);opacity:0.2;"><span class="sankey-val"></span></div></div><div class="sankey-end" style="color:var(--red);">$0</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text-dim);">Company</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:0%;min-width:40px;background:var(--border);opacity:0.2;"><span class="sankey-val"></span></div></div><div class="sankey-end" style="color:var(--red);">$0</div></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim);padding:10px;background:var(--surface-2);border-radius:8px;">The user is the sole funder. Micro-philanthropy through spare change.</div>
+    </div>`,
+    // 9 — Founder: aggregate impact
+    `<div class="sankey-container">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Scale — 1,000 Users / Year</div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--text);">Total</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:100%;background:linear-gradient(90deg,var(--accent),var(--charity));"><span class="sankey-val">$144,000 round-ups</span></div></div><div class="sankey-end"></div></div>
+      <div class="sankey-divider"></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--charity);">→ Charity</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:87.5%;background:var(--charity);"><span class="sankey-val">$126,000 (87.5%)</span></div></div><div class="sankey-end">💚</div></div>
+      <div class="sankey-row"><div class="sankey-label" style="color:var(--company);">→ Platform</div><div class="sankey-bar-wrap"><div class="sankey-bar" style="width:12.5%;min-width:80px;background:var(--company);"><span class="sankey-val">$18,000</span></div></div><div class="sankey-end">🏢</div></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim);padding:10px;background:var(--surface-2);border-radius:8px;">🚀 Every swipe = small act of giving. Aggregate impact is massive.</div>
+    </div>`
+  ];
+  return v[step] || v[0];
+}
+
+function getCompareVisual(step) {
+  const v = [
+    // 0
+    `<div style="text-align:center;"><div style="font-size:48px;margin-bottom:16px;">⚖️</div><div style="font-size:18px;font-weight:600;margin-bottom:8px;">Comparison View</div><div style="font-size:13px;color:var(--text-dim);max-width:280px;margin:0 auto;">Side-by-side breakdowns that compare elements from the conversation.</div></div>`,
+    // 1: setup compare
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Onboarding: RoundUp vs Traditional</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--accent);"><div class="cc-icon">📱</div><div class="cc-title">RoundUp</div><div class="cc-val" style="color:var(--accent);">60 sec</div><div class="cc-detail">Download → Plaid → Done</div><div style="margin-top:8px;font-size:11px;color:var(--accent);">3 steps</div></div>
+        <div class="compare-card"><div class="cc-icon">🏦</div><div class="cc-title">Traditional Charity</div><div class="cc-val" style="color:var(--text-dim);">5-10 min</div><div class="cc-detail">Website → Form → Verify → Card → Done</div><div style="margin-top:8px;font-size:11px;color:var(--text-dim);">5+ steps</div></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--accent);font-weight:600;">5-10x faster onboarding</div>
+    </div>`,
+    // 2: giving models
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Giving Models Compared</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--accent);"><div class="cc-icon">🔄</div><div class="cc-title">Round-Up (Micro)</div><div class="cc-val" style="color:var(--accent);">$0.01–$0.99</div><div class="cc-detail">Per transaction, automatic</div><div style="margin-top:6px;font-size:10px;color:var(--accent);">✓ Effortless</div></div>
+        <div class="compare-card"><div class="cc-icon">💳</div><div class="cc-title">Recurring</div><div class="cc-val" style="color:var(--text-dim);">$5–$50</div><div class="cc-detail">Monthly fixed, manual setup</div><div style="margin-top:6px;font-size:10px;color:var(--text-dim);">Requires commitment</div></div>
+        <div class="compare-card"><div class="cc-icon">🎁</div><div class="cc-title">One-Time</div><div class="cc-val" style="color:var(--text-dim);">$10–$500</div><div class="cc-detail">Single donation, high friction</div><div style="margin-top:6px;font-size:10px;color:var(--text-dim);">Irregular</div></div>
+        <div class="compare-card"><div class="cc-icon">📦</div><div class="cc-title">Employer Match</div><div class="cc-val" style="color:var(--text-dim);">Varies</div><div class="cc-detail">Depends on company policy</div><div style="margin-top:6px;font-size:10px;color:var(--text-dim);">Limited access</div></div>
+      </div>
+    </div>`,
+    // 3: with/without roundup
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">$9.60 Purchase — With vs Without</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--accent);">
+          <div class="cc-icon">✅</div><div class="cc-title">With RoundUp</div>
+          <div style="text-align:left;margin-top:12px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>Purchase</span><span style="font-family:'JetBrains Mono',monospace;">$9.60</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>Round-up</span><span style="font-family:'JetBrains Mono',monospace;color:var(--accent);">$0.40</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;"><span>You pay</span><span style="font-family:'JetBrains Mono',monospace;">$10.00</span></div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--accent);">$0.35 goes to charity</div>
+        </div>
+        <div class="compare-card">
+          <div class="cc-icon">➖</div><div class="cc-title">Without RoundUp</div>
+          <div style="text-align:left;margin-top:12px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>Purchase</span><span style="font-family:'JetBrains Mono',monospace;">$9.60</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);opacity:0.3;"><span>Round-up</span><span style="font-family:'JetBrains Mono',monospace;">—</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;"><span>You pay</span><span style="font-family:'JetBrains Mono',monospace;">$9.60</span></div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-dim);">$0 goes to charity</div>
+        </div>
+      </div>
+    </div>`,
+    // 4: who sees what
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Visibility Matrix</div>
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="border-bottom:2px solid var(--border);">
+            <th style="text-align:left;padding:10px;color:var(--text-dim);font-size:11px;">DATA POINT</th>
+            <th style="text-align:center;padding:10px;color:var(--company);">🏪 Merchant</th>
+            <th style="text-align:center;padding:10px;color:var(--charity);">🏦 Bank</th>
+            <th style="text-align:center;padding:10px;color:var(--accent);">📱 App</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;">Purchase amount</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;">Round-up charge</td><td style="text-align:center;padding:10px;color:var(--red);">✗</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;">Charity destination</td><td style="text-align:center;padding:10px;color:var(--red);">✗</td><td style="text-align:center;padding:10px;color:var(--red);">✗</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td></tr>
+            <tr><td style="padding:10px;">User identity</td><td style="text-align:center;padding:10px;color:var(--red);">✗</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td><td style="text-align:center;padding:10px;color:var(--accent);">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`,
+    // 5: split compare
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Fee Split vs Industry</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--accent);">
+          <div class="cc-icon">💚</div><div class="cc-title">RoundUp Giving</div>
+          <div class="cc-val" style="color:var(--accent);">87.5%</div><div class="cc-detail">goes to charity</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:87.5%;height:100%;background:var(--accent);border-radius:4px;"></div></div>
+        </div>
+        <div class="compare-card">
+          <div class="cc-icon">🏛️</div><div class="cc-title">GoFundMe</div>
+          <div class="cc-val" style="color:var(--text-dim);">97%</div><div class="cc-detail">goes to campaign</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:97%;height:100%;background:var(--text-dim);border-radius:4px;"></div></div>
+        </div>
+        <div class="compare-card">
+          <div class="cc-icon">🎗️</div><div class="cc-title">Avg Nonprofit</div>
+          <div class="cc-val" style="color:var(--text-dim);">75%</div><div class="cc-detail">to programs</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:75%;height:100%;background:var(--text-dim);border-radius:4px;"></div></div>
+        </div>
+        <div class="compare-card">
+          <div class="cc-icon">📬</div><div class="cc-title">Direct Mail</div>
+          <div class="cc-val" style="color:var(--text-dim);">50%</div><div class="cc-detail">to programs</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:50%;height:100%;background:var(--text-dim);border-radius:4px;"></div></div>
+        </div>
+      </div>
+    </div>`,
+    // 6 — Host: "how is the 40 cents split?"
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Revenue Question</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--charity);"><div class="cc-icon">💚</div><div class="cc-title">Charity</div><div class="cc-val" style="color:var(--charity);">?%</div><div class="cc-detail">How much goes here?</div></div>
+        <div class="compare-card" style="border-color:var(--company);"><div class="cc-icon">🏢</div><div class="cc-title">Platform</div><div class="cc-val" style="color:var(--company);">?%</div><div class="cc-detail">How much stays here?</div></div>
+      </div>
+    </div>`,
+    // 7 — Founder: the split
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Revenue Split — $0.40 Per Transaction</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--charity);">
+          <div class="cc-icon">💚</div><div class="cc-title">Charity</div>
+          <div class="cc-val" style="color:var(--charity);">$0.35</div><div class="cc-detail">87.5% of round-up</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:87.5%;height:100%;background:var(--charity);border-radius:4px;"></div></div>
+        </div>
+        <div class="compare-card" style="border-color:var(--company);">
+          <div class="cc-icon">🏢</div><div class="cc-title">Platform</div>
+          <div class="cc-val" style="color:var(--company);">$0.05</div><div class="cc-detail">12.5% operations</div>
+          <div style="margin-top:8px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="width:12.5%;height:100%;background:var(--company);border-radius:4px;"></div></div>
+        </div>
+      </div>
+    </div>`,
+    // 8 — Host: micro-philanthropy
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Who Funds the Giving?</div>
+      <div class="compare-grid">
+        <div class="compare-card" style="border-color:var(--accent);"><div class="cc-icon">👤</div><div class="cc-title">User</div><div class="cc-val" style="color:var(--accent);">100%</div><div class="cc-detail">Funds every round-up</div></div>
+        <div class="compare-card" style="opacity:0.4;"><div class="cc-icon">🏪</div><div class="cc-title">Merchant</div><div class="cc-val" style="color:var(--text-dim);">0%</div><div class="cc-detail">Unaware of round-up</div></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--accent);font-weight:600;">Micro-philanthropy: the user is the hero</div>
+    </div>`,
+    // 9 — Founder: aggregate impact
+    `<div style="width:100%;">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;">Impact at Scale</div>
+      <div class="compare-grid">
+        <div class="compare-card"><div class="cc-icon">💳</div><div class="cc-title">Per Swipe</div><div class="cc-val" style="color:var(--accent);">$0.35</div><div class="cc-detail">to charity</div></div>
+        <div class="compare-card"><div class="cc-icon">📅</div><div class="cc-title">Per Month</div><div class="cc-val" style="color:var(--charity);">~$10.50</div><div class="cc-detail">per user</div></div>
+        <div class="compare-card"><div class="cc-icon">📆</div><div class="cc-title">Per Year</div><div class="cc-val" style="color:var(--charity);">~$126</div><div class="cc-detail">per user</div></div>
+        <div class="compare-card" style="border-color:var(--accent);"><div class="cc-icon">🚀</div><div class="cc-title">1K Users/Year</div><div class="cc-val" style="color:var(--accent);">$126K</div><div class="cc-detail">to charity</div></div>
+      </div>
+    </div>`
+  ];
+  return v[step] || v[0];
+}
+
+// MODE MAP
+const modeGetters = {
+  flowchart: getFlowchartVisual,
+  infographic: getInfographicVisual,
+  napkin: getNapkinVisual,
+  sankey: getSankeyVisual,
+  compare: getCompareVisual
+};
+
+function setVisualMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.vmode-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === mode));
+  renderVisual();
+  dlog('Visual mode → ' + mode, 'action');
+}
+
+function renderVisual() {
+  const getter = modeGetters[currentMode];
+  if (!getter) return;
+  const vc = document.getElementById('visualContent');
+  vc.classList.add('fading');
+  setTimeout(() => {
+    vc.innerHTML = getter(currentStep);
+    vc.classList.remove('fading');
+  }, 150);
+}
+
+function showVisual(step) {
+  currentStep = step;
+  document.querySelectorAll('.t-line').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.t-line[data-step="'+step+'"]').forEach(el => el.classList.add('active'));
+  // update timeline
+  document.querySelectorAll('.timeline-node').forEach((n,i) => n.classList.toggle('active', i === step));
+  renderVisual();
+  dlog('Transcript step → ' + step + ' (' + currentMode + ')', 'action');
+}
+
+function timelineJump(step) {
+  showVisual(step);
+  document.getElementById('transcript').scrollIntoView({behavior:'smooth'});
+}
+
+// Initialize
+showVisual(0);
+
+// ===== SCROLL-BASED VISUAL UPDATES =====
+const transcriptBody = document.getElementById('transcriptBody');
+const tLines = Array.from(document.querySelectorAll('.t-line[data-step]'));
+
+function detectVisibleStep() {
+  const el = transcriptBody;
+  const maxScroll = el.scrollHeight - el.clientHeight;
+
+  // If content isn't scrollable, stay on step 0
+  if (maxScroll <= 0) {
+    if (currentStep !== 0) showVisual(0);
+    return;
+  }
+
+  // Map scroll position proportionally to steps.
+  // Each step gets an equal slice of the scroll range,
+  // so every dialogue — first, second, second-last, last — is guaranteed its moment.
+  const scrollRatio = Math.min(1, Math.max(0, el.scrollTop / maxScroll));
+  const totalSteps = tLines.length; // 10
+  const lastStep = totalSteps - 1;  // 9
+  let activeStep = Math.min(lastStep, Math.floor(scrollRatio * totalSteps));
+
+  if (activeStep !== currentStep) showVisual(activeStep);
+}
+
+// Normal scroll
+transcriptBody.addEventListener('scroll', detectVisibleStep);
+
+// Wheel catches edges — fires even when scrollTop can't move further
+transcriptBody.addEventListener('wheel', function() {
+  requestAnimationFrame(detectVisibleStep);
+}, {passive: true});
+
+// Touch devices at edges
+transcriptBody.addEventListener('touchmove', function() {
+  requestAnimationFrame(detectVisibleStep);
+}, {passive: true});
+
+// Run once on load so step 0 is correctly detected
+detectVisibleStep();
+
+// ===== QUIZ =====
+const feedbackTexts = [
+  {correct:"Correct! The round-up is a separate post-transaction charge — it never touches the POS. The app detects the purchase via Plaid and initiates an independent charge.",wrong:"Not quite. The round-up doesn't happen at the point of sale or involve the merchant. It's a separate charge initiated by the app after it detects the transaction through Plaid."},
+  {correct:"Correct! Of the $0.40 round-up, $0.35 (87.5%) goes directly to charity. The remaining $0.05 sustains the platform.",wrong:"Not quite. The total round-up is $0.40, but not all of it goes to charity. The split is $0.35 to charity and $0.05 to the platform."},
+  {correct:"Correct! Plaid is the secure bridge between the user's bank and the app. It handles bank authentication and provides transaction data without sharing login credentials.",wrong:"Not quite. Plaid's role is specifically to securely link bank accounts and provide transaction data. It doesn't handle payments or POS systems."}
+];
+
+function answerQuiz(qi, oi, correct) {
+  const card = document.querySelector('[data-quiz="'+qi+'"]');
+  if (card.dataset.answered) return;
+  card.dataset.answered = 'true';
+  const opts = card.querySelectorAll('.quiz-option');
+  opts.forEach((o,i) => { if(i===oi) o.classList.add('selected', correct?'correct':'wrong'); });
+  const fb = document.getElementById('feedback-'+qi);
+  fb.textContent = correct ? feedbackTexts[qi].correct : feedbackTexts[qi].wrong;
+  fb.className = 'quiz-feedback show ' + (correct?'correct':'wrong');
+  quizAnswered[qi] = true;
+  if (correct) quizScore++;
+  updateQuizScore();
+  dlog('Quiz Q'+(qi+1)+': '+(correct?'CORRECT':'WRONG'), correct?'action':'warn');
+}
+
+function updateQuizScore() {
+  const answered = quizAnswered.filter(Boolean).length;
+  const ring = document.getElementById('quizScoreRing');
+  ring.textContent = quizScore + '/' + answered;
+  ring.style.borderColor = quizScore === answered && answered > 0 ? 'var(--accent)' : answered === 3 ? 'var(--company)' : 'var(--border)';
+  ring.style.color = quizScore === answered && answered > 0 ? 'var(--accent)' : 'var(--text)';
+  const sub = document.getElementById('quizScoreSub');
+  if (answered === 3) {
+    sub.textContent = quizScore === 3 ? 'Perfect score! You understood everything.' : quizScore >= 2 ? 'Great job! Review the one you missed.' : 'Review the transcript and try to understand the model better.';
+  }
+}
+
+// ===== Q&A =====
+const presetAnswers = {
+  'What happens if I return a purchase?': 'This wasn\'t addressed in the call, but typically round-up apps would either: (a) not reverse the round-up since it\'s already donated, or (b) credit the amount back and deduct from the next batch. This is an important edge case the product team should clarify in their FAQ.',
+  'Can I pause round-ups temporarily?': 'Not explicitly discussed in the call. However, most round-up apps offer a pause feature. Given this product\'s emphasis on user-friendliness, a pause/resume toggle would be a strong UX addition.',
+  'Is there a maximum daily charge?': 'Not mentioned in the call. A daily or monthly cap is a common feature in round-up apps (e.g., $10/month max). This would be an important trust-building feature to implement.',
+  'Which charities are supported?': 'The founder mentioned "charity" in general terms but didn\'t specify particular organizations. See Suggestion #1 — allowing users to choose their charity would significantly improve engagement.'
+};
+
+function fillQuestion(q) { document.getElementById('askInput').value = q; askQuestion(); }
+
+function askQuestion() {
+  const input = document.getElementById('askInput');
+  const q = input.value.trim();
+  if (!q) return;
+  const threads = document.getElementById('askThreads');
+  threads.innerHTML += '<div class="thread-item"><div class="thread-avatar user">👤</div><div class="thread-content"><div class="thread-name user">You</div><div class="thread-text">'+q+'</div></div></div>';
+  const answer = presetAnswers[q] || 'Based on the transcript, this topic wasn\'t directly covered in the call. This would be a great follow-up question for the founder — consider adding it to your post-call action items.';
+  threads.innerHTML += '<div class="thread-item"><div class="thread-avatar ai">⚡</div><div class="thread-content"><div class="thread-name ai">VisualScript AI</div><div class="thread-text">'+answer+'</div></div></div>';
+  input.value = '';
+  threads.scrollTop = threads.scrollHeight;
+  dlog('Q&A: "'+q.substring(0,40)+'..."', 'info');
+}
+
+// ===== ACTION ITEMS =====
+function toggleAction(el) {
+  el.classList.toggle('done');
+  const text = el.nextElementSibling;
+  text.classList.toggle('done');
+  const name = text.querySelector('h4').textContent;
+  dlog('Action item ' + (el.classList.contains('done')?'completed':'unchecked') + ': '+name.substring(0,30), 'action');
+}
+
+// ===== NAV =====
+function scrollToSection(id) {
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  if(event && event.target) event.target.classList.add('active');
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+  dlog('Navigate → #'+id, 'action');
+}
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('.nav-pill').forEach(p => {
+        const text = p.textContent.toLowerCase();
+        p.classList.toggle('active',
+          (id==='transcript' && text==='transcript') ||
+          (id==='timeline' && text==='timeline') ||
+          (id==='speakers' && text==='speakers') ||
+          (id==='concepts' && text==='concepts') ||
+          (id==='suggestions' && text==='suggestions') ||
+          (id==='actions' && text==='actions') ||
+          (id==='quiz' && text==='quiz') ||
+          (id==='ask' && text==='ask')
+        );
+      });
+    }
+  });
+}, {threshold:0.3});
+
+['transcript','timeline','speakers','concepts','suggestions','actions','quiz','ask'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) observer.observe(el);
+});
+
+dlog('All sections loaded. Ready.', 'info');
+</script>
+</body>
+</html>

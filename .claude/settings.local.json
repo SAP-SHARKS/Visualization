@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv venv)",
+      "Bash(npm install reactflow dagre d3 lucide-react html-to-image)",
+      "Bash(npm run build)"
+    ]
+  }
+}
