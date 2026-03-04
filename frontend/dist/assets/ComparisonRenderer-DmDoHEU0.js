@@ -1,4 +1,4 @@
-import{b as i,j as e}from"./index-DYGlCcJg.js";const l=`
+import{b as i,j as e}from"./index-MrQ7-8-M.js";const l=`
 .cmp-grid{display:grid;gap:20px;width:100%;}
 .cmp-grid.cols-2{grid-template-columns:1fr 1fr;}
 .cmp-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}

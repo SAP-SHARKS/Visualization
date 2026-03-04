@@ -6,6 +6,8 @@ import ChartRouter from '../components/ChartRouter'
 import ChartLoading from '../components/ChartLoading'
 import ChartError from '../components/ChartError'
 import ChartExportButton from '../components/charts/ChartExportButton'
+import useSectionGeneration from '../hooks/useSectionGeneration'
+import { askAI } from '../services/chartAI'
 
 // ==================== CSS ====================
 const PAGE_CSS = `
@@ -330,51 +332,6 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
 
 const SECTIONS = ['transcript', 'timeline', 'speakers', 'concepts', 'suggestions', 'actions', 'quiz', 'ask']
 
-const concepts = [
-  { icon: '🔗', term: 'Plaid', def: "A financial data network that securely connects your bank account to third-party apps. It acts as a bridge — the app never stores your banking credentials.", tag: 'Mentioned in call' },
-  { icon: '💳', term: 'POS (Point of Sale)', def: "The physical or digital system where a purchase transaction occurs. The round-up does NOT happen here — it's a separate, post-transaction charge triggered by Plaid data.", tag: 'Mentioned in call' },
-  { icon: '🔄', term: 'Round-Up Model', def: 'A micro-donation mechanism that rounds each purchase to the nearest dollar and redirects the difference. Your $9.60 purchase triggers a $0.40 round-up charge.', tag: 'Core mechanic' },
-  { icon: '🔔', term: 'Transaction Webhooks', def: 'Real-time notifications from Plaid when a new transaction posts to the linked account. This is how the app detects purchases and calculates round-ups automatically.', tag: 'Not mentioned — technical context' },
-  { icon: '🏦', term: 'ACH Debit', def: "Automated Clearing House — the electronic funds transfer system used to pull the round-up amount from the user's bank. This is the mechanism behind the separate charge.", tag: 'Not mentioned — technical context' },
-  { icon: '📊', term: 'Unit Economics', def: "At $0.05 per transaction, the platform needs volume to be viable. With 30 transactions/user/month, that's $1.50/user — scale is critical to sustainability.", tag: 'Not mentioned — business context' },
-]
-
-const suggestions = [
-  { title: 'Let Users Choose Their Charity', desc: "Allow users to select from a curated list of charities or causes. This increases emotional investment and retention — people are more likely to keep the app if they feel connected to where their money goes.", badge: 'User Experience', cls: 'badge-ux' },
-  { title: 'Show Real-Time Impact Dashboard', desc: 'Add a dashboard showing total donated, meals provided, trees planted, etc. Gamification of micro-giving (streaks, milestones) could significantly boost engagement.', badge: 'User Experience', cls: 'badge-ux' },
-  { title: 'Batch Round-Ups Weekly', desc: 'Instead of charging per-transaction, batch round-ups into a single weekly ACH debit. This reduces per-transaction fees, lowers bank dispute risk, and feels less intrusive to users.', badge: 'Technical', cls: 'badge-tech' },
-  { title: 'Add a "Boost" Option', desc: 'Let users multiply their round-up (2x, 5x, 10x) for specific purchases or causes. This creates a premium tier path without changing the core free model.', badge: 'Business Model', cls: 'badge-biz' },
-  { title: 'Clarify the Fee in Onboarding', desc: "The 5-cent platform fee wasn't clearly framed in the call. During onboarding, show the split transparently — \"87.5% to charity, 12.5% keeps us running\" builds trust from day one.", badge: 'Business Model', cls: 'badge-biz' },
-]
-
-const actionItems = [
-  { title: 'Clarify refund policy for round-ups', desc: 'Not addressed in call — what happens when a user returns a purchase?', priority: 'HIGH', cls: 'priority-high' },
-  { title: 'Document the Plaid integration security model', desc: 'Users will ask about data safety — prepare a clear answer for FAQ.', priority: 'HIGH', cls: 'priority-high' },
-  { title: 'Define monthly cap on round-ups', desc: 'Consider implementing a configurable monthly maximum to build user trust.', priority: 'MEDIUM', cls: 'priority-med' },
-  { title: 'List supported charities or categories', desc: 'Founder mentioned "charity" generically — need to specify which orgs or let users choose.', priority: 'MEDIUM', cls: 'priority-med' },
-  { title: 'Build impact dashboard mockup', desc: 'Show users their cumulative giving impact with real metrics.', priority: 'LOW', cls: 'priority-low' },
-]
-
-const quizData = [
-  { q: 'Where does the round-up charge happen?', opts: ['At the point of sale (POS)', 'As a separate post-transaction charge via the app', "Added to the merchant's total"], correct: 1, fb: { correct: "Correct! The round-up is a separate post-transaction charge — it never touches the POS. The app detects the purchase via Plaid and initiates an independent charge.", wrong: "Not quite. The round-up doesn't happen at the point of sale or involve the merchant. It's a separate charge initiated by the app after it detects the transaction through Plaid." } },
-  { q: 'If you buy something for $9.60, how much goes to charity?', opts: ['$0.40', '$0.35', '$0.05'], correct: 1, fb: { correct: 'Correct! Of the $0.40 round-up, $0.35 (87.5%) goes directly to charity. The remaining $0.05 sustains the platform.', wrong: "Not quite. The total round-up is $0.40, but not all of it goes to charity. The split is $0.35 to charity and $0.05 to the platform." } },
-  { q: 'What role does Plaid play in this product?', opts: ['It processes the charity payment', 'It manages the POS system', "It securely links the user's bank account to the app"], correct: 2, fb: { correct: "Correct! Plaid is the secure bridge between the user's bank and the app. It handles bank authentication and provides transaction data without sharing login credentials.", wrong: "Not quite. Plaid's role is specifically to securely link bank accounts and provide transaction data. It doesn't handle payments or POS systems." } },
-]
-
-const presetAnswers = {
-  'What happens if I return a purchase?': "This wasn't addressed in the call, but typically round-up apps would either: (a) not reverse the round-up since it's already donated, or (b) credit the amount back and deduct from the next batch. This is an important edge case the product team should clarify in their FAQ.",
-  'Can I pause round-ups temporarily?': "Not explicitly discussed in the call. However, most round-up apps offer a pause feature. Given this product's emphasis on user-friendliness, a pause/resume toggle would be a strong UX addition.",
-  'Is there a maximum daily charge?': 'Not mentioned in the call. A daily or monthly cap is a common feature in round-up apps (e.g., $10/month max). This would be an important trust-building feature to implement.',
-  'Which charities are supported?': "The founder mentioned \"charity\" in general terms but didn't specify particular organizations. See Suggestion #1 — allowing users to choose their charity would significantly improve engagement.",
-}
-
-const suggestedQs = [
-  'What happens if I return a purchase?',
-  'Can I pause round-ups temporarily?',
-  'Is there a maximum daily charge?',
-  'Which charities are supported?',
-]
-
 // ==================== COMPONENT ====================
 export default function VisualizePage() {
   const location = useLocation()
@@ -389,6 +346,14 @@ export default function VisualizePage() {
   const { title, content, graphData } = state || {}
   const lines = graphData?.lines || []
   const speakerEntries = Object.entries(graphData?.speakers || {})
+
+  // AI-generated section data (concepts, suggestions, actionItems, quizData, suggestedQs)
+  const { sections, loading: sectionsLoading, error: sectionsError } = useSectionGeneration(content)
+  const concepts = sections?.concepts || []
+  const suggestions = sections?.suggestions || []
+  const actionItems = sections?.actionItems || []
+  const quizData = sections?.quizData || []
+  const suggestedQs = sections?.suggestedQs || []
 
   // Visual mode tabs — mapped to AI chart types
   const MODES = [
@@ -413,10 +378,7 @@ export default function VisualizePage() {
   const [quizScore, setQuizScore] = useState(0)
   const [actionsDone, setActionsDone] = useState({})
   const [askInput, setAskInput] = useState('')
-  const [threads, setThreads] = useState([
-    { type: 'user', text: 'Is my banking data stored by the app?' },
-    { type: 'ai', text: "Based on the call, the app uses Plaid to connect to your bank. Plaid acts as a secure intermediary — your banking credentials are handled by Plaid, not stored directly by the app. The app receives transaction data (amounts, merchants) but not your login details." },
-  ])
+  const [threads, setThreads] = useState([])
 
   const transcriptRef = useRef(null)
   const sectionRefs = useRef({})
@@ -489,18 +451,26 @@ export default function VisualizePage() {
     setActionsDone(prev => ({ ...prev, [i]: !prev[i] }))
   }
 
-  function askQuestion(q) {
-    const text = q || askInput.trim()
-    if (!text) return
-    const answer = presetAnswers[text] || "Based on the transcript, this topic wasn't directly covered in the call. This would be a great follow-up question for the founder — consider adding it to your post-call action items."
-    setThreads(prev => [...prev, { type: 'user', text }, { type: 'ai', text: answer }])
+  async function askQuestion(q) {
+    const question = q || askInput.trim()
+    if (!question) return
     setAskInput('')
+    setThreads(prev => [...prev, { type: 'user', text: question }, { type: 'ai', text: 'Thinking...' }])
+
+    const { answer, error: err } = await askAI(content, question)
+    const responseText = err ? `Sorry, something went wrong: ${err}` : answer
+
+    setThreads(prev => {
+      const updated = [...prev]
+      updated[updated.length - 1] = { type: 'ai', text: responseText }
+      return updated
+    })
   }
 
   if (!state?.graphData) return null
 
   const totalAnswered = Object.keys(quizAnswered).length
-  const scoreColor = quizScore === totalAnswered && totalAnswered > 0 ? 'var(--accent)' : totalAnswered === 3 ? 'var(--company)' : 'var(--border)'
+  const scoreColor = quizScore === totalAnswered && totalAnswered > 0 ? 'var(--accent)' : totalAnswered === quizData.length ? 'var(--company)' : 'var(--border)'
 
   return (
     <>
@@ -637,7 +607,11 @@ export default function VisualizePage() {
         <div className="section-title">Key Concepts Explained</div>
         <div className="section-subtitle">Terms and ideas from the call — plus additional context you need to fully understand the model.</div>
         <div className="concepts-grid">
-          {concepts.map((c, i) => (
+          {sectionsLoading ? (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : concepts.length === 0 ? (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No concepts extracted</div>
+          ) : concepts.map((c, i) => (
             <div className="concept-card" key={i}>
               <div className="concept-icon">{c.icon}</div>
               <div className="concept-term">{c.term}</div>
@@ -656,7 +630,11 @@ export default function VisualizePage() {
         <div className="section-title">Suggestions for the Product</div>
         <div className="section-subtitle">Actionable ideas surfaced from analyzing the call content.</div>
         <div className="suggestions-list">
-          {suggestions.map((s, i) => (
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : suggestions.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No suggestions generated</div>
+          ) : suggestions.map((s, i) => (
             <div className="suggestion-item" key={i}>
               <div className="suggestion-number">{String(i + 1).padStart(2, '0')}</div>
               <div className="suggestion-content">
@@ -677,7 +655,11 @@ export default function VisualizePage() {
         <div className="section-title">Action Items</div>
         <div className="section-subtitle">Tasks extracted from the call that need follow-up.</div>
         <div className="action-items-list">
-          {actionItems.map((a, i) => (
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : actionItems.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No action items extracted</div>
+          ) : actionItems.map((a, i) => (
             <div className="action-item" key={i}>
               <div className={`action-check${actionsDone[i] ? ' done' : ''}`} onClick={() => toggleActionDone(i)}>
                 {actionsDone[i] && '✓'}
@@ -707,15 +689,19 @@ export default function VisualizePage() {
           <div className="quiz-score-info">
             <div className="qsi-title">Your Score</div>
             <div className="qsi-sub">
-              {totalAnswered === 3
-                ? (quizScore === 3 ? 'Perfect score! You understood everything.' : quizScore >= 2 ? 'Great job! Review the one you missed.' : 'Review the transcript and try to understand the model better.')
+              {totalAnswered === quizData.length
+                ? (quizScore === quizData.length ? 'Perfect score! You understood everything.' : quizScore >= quizData.length - 1 ? 'Great job! Review the one you missed.' : 'Review the transcript and try to understand the model better.')
                 : 'Answer all questions to see your result'}
             </div>
           </div>
         </div>
 
         <div className="quiz-container">
-          {quizData.map((qd, qi) => {
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Generating quiz questions...</div>
+          ) : quizData.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No quiz questions generated</div>
+          ) : quizData.map((qd, qi) => {
             const answered = quizAnswered[qi]
             return (
               <div className="quiz-card" key={qi}>
@@ -764,7 +750,7 @@ export default function VisualizePage() {
             <button className="ask-btn" onClick={() => askQuestion()}>Ask</button>
           </div>
           <div className="suggested-questions">
-            {suggestedQs.map(q => (
+            {suggestedQs.length > 0 && suggestedQs.map(q => (
               <button key={q} className="sq-chip" onClick={() => askQuestion(q)}>{q}</button>
             ))}
           </div>
