@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { generateChart } from '../services/chartAI'
-import { getCache, setCache, setErrorCache } from '../utils/chartCache'
+import { generateChartClaude } from '../services/chartAI'
+import { getCacheClaude, setCacheClaude, setErrorCacheClaude } from '../utils/chartCacheClaude'
 
 const ALL_TYPES = ['flowchart', 'infographic', 'mindmap', 'timeline', 'comparison']
-const CONCURRENCY = 3
+const CONCURRENCY = 5
 
 /**
- * Background hook that pre-generates charts for ALL chart types for every dialogue line.
+ * Background hook that pre-generates charts using Claude API for all chart types.
  * Generates multiple chart types in parallel (up to CONCURRENCY at a time).
  */
-export default function useBackgroundPregen(lines) {
+export default function useBackgroundPregenClaude(lines) {
   const abortRef = useRef(null)
   const [totalDone, setTotalDone] = useState(0)
   const [totalNeeded, setTotalNeeded] = useState(0)
@@ -25,7 +25,7 @@ export default function useBackgroundPregen(lines) {
     for (let i = 0; i < lines.length; i++) {
       const text = lines[i].speaker + ': ' + lines[i].text
       for (const type of ALL_TYPES) {
-        if (!getCache(text, type)) {
+        if (!getCacheClaude(text, type)) {
           queue.push({ index: i, type, text })
         }
       }
@@ -47,19 +47,19 @@ export default function useBackgroundPregen(lines) {
           if (idx >= queue.length) return
           const item = queue[idx]
 
-          if (getCache(item.text, item.type)) {
+          if (getCacheClaude(item.text, item.type)) {
             setTotalDone(prev => prev + 1)
             continue
           }
 
-          const { data, error } = await generateChart(item.text, item.type)
+          const { data, error } = await generateChartClaude(item.text, item.type)
 
           if (thisRun.aborted) return
 
           if (data) {
-            setCache(item.text, item.type, data)
+            setCacheClaude(item.text, item.type, data)
           } else if (error) {
-            setErrorCache(item.text, item.type, error)
+            setErrorCacheClaude(item.text, item.type, error)
           }
 
           setTotalDone(prev => prev + 1)

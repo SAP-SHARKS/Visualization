@@ -1,5 +1,12 @@
 {
+  "functions": {
+    "api/generate-chart.js": { "maxDuration": 60 },
+    "api/generate-chart-claude.js": { "maxDuration": 60 },
+    "api/generate-sections.js": { "maxDuration": 60 },
+    "api/ask-question.js": { "maxDuration": 30 }
+  },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

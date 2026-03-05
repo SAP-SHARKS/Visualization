@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         : SYSTEM_PROMPT + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No explanation. No code fences.'
 
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 25000)
+      const timeout = setTimeout(() => controller.abort(), 50000)
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',

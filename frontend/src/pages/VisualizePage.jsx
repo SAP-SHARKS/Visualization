@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import useMultiChartGeneration from '../hooks/useMultiChartGeneration'
+import useMultiChartGenerationClaude from '../hooks/useMultiChartGenerationClaude'
 import useBackgroundPregen from '../hooks/useBackgroundPregen'
+import useBackgroundPregenClaude from '../hooks/useBackgroundPregenClaude'
 import ChartRouter from '../components/ChartRouter'
 import ChartLoading from '../components/ChartLoading'
 import ChartError from '../components/ChartError'
@@ -366,10 +368,16 @@ export default function VisualizePage() {
   const [currentMode, setCurrentMode] = useState(0)
   const forcedType = MODES[currentMode].type
 
-  // AI chart generation — one chart per dialogue line with forced type
+  // Napkin.ai chart generation
   const { charts, loading: chartLoadingSet, errors: chartErrors, progress, retryLine } = useMultiChartGeneration(lines, forcedType)
-  // Background pre-generation for ALL chart types (runs once on mount)
   const { totalDone, totalNeeded } = useBackgroundPregen(lines)
+
+  // Claude chart generation (parallel)
+  const { charts: claudeCharts, loading: claudeLoadingSet, errors: claudeErrors, progress: claudeProgress, retryLine: claudeRetryLine } = useMultiChartGenerationClaude(lines, forcedType)
+  const { totalDone: claudeTotalDone, totalNeeded: claudeTotalNeeded } = useBackgroundPregenClaude(lines)
+
+  // Toggle: 'napkin' or 'claude'
+  const [chartSource, setChartSource] = useState('napkin')
   const chartExportRef = useRef(null)
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -515,29 +523,62 @@ export default function VisualizePage() {
 
           <div className="visual-panel" style={{ position: 'relative' }}>
             <div className="panel-header"><div className="dot" style={{ background: 'var(--purple)' }}></div>VISUAL BREAKDOWN</div>
-            <div className="visual-modes">
-              {MODES.map((m, i) => (
-                <button key={m.type} className={'vmode-btn' + (currentMode === i ? ' active' : '')} onClick={() => setCurrentMode(i)}>
-                  {m.label}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+              <div className="visual-modes">
+                {MODES.map((m, i) => (
+                  <button key={m.type} className={'vmode-btn' + (currentMode === i ? ' active' : '')} onClick={() => setCurrentMode(i)}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(14,17,23,0.8)', borderRadius: '10px', padding: '3px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <button
+                  onClick={() => setChartSource('napkin')}
+                  style={{
+                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    background: chartSource === 'napkin' ? 'linear-gradient(135deg, #a78bfa, #818cf8)' : 'transparent',
+                    color: chartSource === 'napkin' ? '#fff' : '#6b7280',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Napkin.ai
                 </button>
-              ))}
+                <button
+                  onClick={() => setChartSource('claude')}
+                  style={{
+                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    background: chartSource === 'claude' ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'transparent',
+                    color: chartSource === 'claude' ? '#fff' : '#6b7280',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Claude AI
+                </button>
+              </div>
             </div>
             <div className="visual-content" ref={chartExportRef}>
               {(() => {
-                const chart = charts.get(currentStep)
-                const isLoading = chartLoadingSet.has(currentStep)
-                const error = chartErrors.get(currentStep)
-                const line = lines[currentStep]
+                const activeCharts = chartSource === 'claude' ? claudeCharts : charts
+                const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
+                const activeErrors = chartSource === 'claude' ? claudeErrors : chartErrors
+                const activeProgress = chartSource === 'claude' ? claudeProgress : progress
+                const activeRetry = chartSource === 'claude' ? claudeRetryLine : retryLine
+
+                const chart = activeCharts.get(currentStep)
+                const isLoading = activeLoading.has(currentStep)
+                const error = activeErrors.get(currentStep)
 
                 return (
                   <>
                     <div className="visual-chart-area">
                       {isLoading && <ChartLoading />}
-                      {error && !isLoading && <ChartError error={error} onRetry={() => retryLine(currentStep)} />}
+                      {error && !isLoading && <ChartError error={error} onRetry={() => activeRetry(currentStep)} />}
                       {chart && !isLoading && !error && <ChartRouter data={chart} />}
                       {!chart && !isLoading && !error && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a5060', fontSize: '13px', fontFamily: "'JetBrains Mono', monospace" }}>
-                          {currentStep >= progress ? 'Generating...' : 'Waiting...'}
+                          {currentStep >= activeProgress ? 'Generating...' : 'Waiting...'}
                         </div>
                       )}
                     </div>
@@ -545,7 +586,11 @@ export default function VisualizePage() {
                 )
               })()}
             </div>
-            {charts.get(currentStep) && !chartLoadingSet.has(currentStep) && <ChartExportButton targetRef={chartExportRef} filename={(title || 'chart') + '-' + (currentStep + 1)} />}
+            {(() => {
+              const activeCharts = chartSource === 'claude' ? claudeCharts : charts
+              const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
+              return activeCharts.get(currentStep) && !activeLoading.has(currentStep) && <ChartExportButton targetRef={chartExportRef} filename={(title || 'chart') + '-' + (currentStep + 1)} />
+            })()}
           </div>
         </div>
       </div>

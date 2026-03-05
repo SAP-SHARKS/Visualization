@@ -11,8 +11,10 @@
  */
 export async function generateChart(text, forcedType) {
   try {
+    const startTime = Date.now()
+
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 20000)
+    const timeout = setTimeout(() => controller.abort(), 60000)
 
     const res = await fetch('/api/generate-chart', {
       method: 'POST',
@@ -34,6 +36,54 @@ export async function generateChart(text, forcedType) {
       return { error: 'Invalid chart data received from API' }
     }
 
+    const elapsedMs = Date.now() - startTime
+    data._generationTimeMs = elapsedMs
+
+    return { data }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' }
+    }
+    return { error: err.message || 'Network error. Check your connection.' }
+  }
+}
+
+/**
+ * Generate chart data from text input using Claude API.
+ * @param {string} text - The input text to analyze
+ * @param {string} [forcedType] - Optional chart type to force
+ * @returns {Promise<{data?: object, error?: string}>}
+ */
+export async function generateChartClaude(text, forcedType) {
+  try {
+    const startTime = Date.now()
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000)
+
+    const res = await fetch('/api/generate-chart-claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, forcedType }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      return { error: errBody.error || `Server error (${res.status})` }
+    }
+
+    const data = await res.json()
+
+    if (!data || !data.type) {
+      return { error: 'Invalid chart data received from API' }
+    }
+
+    const elapsedMs = Date.now() - startTime
+    data._generationTimeMs = elapsedMs
+
     return { data }
   } catch (err) {
     if (err.name === 'AbortError') {
@@ -51,7 +101,7 @@ export async function generateChart(text, forcedType) {
 export async function generateSections(text) {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
+    const timeout = setTimeout(() => controller.abort(), 60000)
 
     const res = await fetch('/api/generate-sections', {
       method: 'POST',

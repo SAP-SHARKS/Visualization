@@ -32,7 +32,141 @@ function apiMiddleware(envVars) {
           return
         }
 
-        // Load API key from env (passed via loadEnv)
+        const napkinKey = envVars.NAPKIN_API_KEY
+        if (!napkinKey) {
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'NAPKIN_API_KEY not set in .env.local' }))
+          return
+        }
+
+        const NAPKIN_BASE = 'https://api.napkin.ai'
+        const DEFAULT_STYLE = 'CDQPRVVJCSTPRBBCD5Q6AWR' // Vibrant Strokes
+
+        try {
+          // Build Napkin request
+          const napkinBody = {
+            format: 'svg',
+            content: text.trim(),
+            style_id: DEFAULT_STYLE,
+            number_of_visuals: 1,
+          }
+          if (forcedType) napkinBody.visual_query = forcedType
+
+          // Step 1: Create visual request
+          const createRes = await fetch(NAPKIN_BASE + '/v1/visual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + napkinKey },
+            body: JSON.stringify(napkinBody),
+          })
+
+          if (!createRes.ok) {
+            const errData = await createRes.json().catch(() => ({}))
+            res.writeHead(502, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: errData.message || errData.error || ('Napkin API error (' + createRes.status + ')') }))
+            return
+          }
+
+          const createData = await createRes.json()
+          const requestId = createData.id
+          if (!requestId) {
+            res.writeHead(502, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'No request ID from Napkin' }))
+            return
+          }
+
+          // Step 2: Poll for completion
+          let delay = 2000
+          let elapsed = 0
+          const maxWait = 45000
+          let statusData = null
+
+          while (elapsed < maxWait) {
+            await new Promise(r => setTimeout(r, delay))
+            elapsed += delay
+
+            const statusRes = await fetch(NAPKIN_BASE + '/v1/visual/' + requestId + '/status', {
+              headers: { 'Authorization': 'Bearer ' + napkinKey },
+            })
+
+            if (statusRes.status === 410) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: 'Napkin request expired' }))
+              return
+            }
+
+            if (!statusRes.ok) { delay = Math.min(delay * 2, 8000); continue }
+
+            statusData = await statusRes.json()
+            if (statusData.status === 'completed') break
+            if (statusData.status === 'failed') {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: 'Napkin generation failed' }))
+              return
+            }
+            delay = Math.min(delay * 2, 8000)
+          }
+
+          if (!statusData || statusData.status !== 'completed') {
+            res.writeHead(504, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Napkin generation timed out' }))
+            return
+          }
+
+          const files = statusData.generated_files || []
+          if (files.length === 0) {
+            res.writeHead(502, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'No files generated' }))
+            return
+          }
+
+          // Step 3: Download SVG and convert to base64 data URL
+          const fileRes = await fetch(files[0].url, {
+            headers: { 'Authorization': 'Bearer ' + napkinKey },
+          })
+
+          if (!fileRes.ok) {
+            res.writeHead(502, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Failed to download visual' }))
+            return
+          }
+
+          const svgText = await fileRes.text()
+          const base64 = Buffer.from(svgText).toString('base64')
+          const imageUrl = 'data:image/svg+xml;base64,' + base64
+
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ type: 'napkin-image', title: 'Generated Visual', imageUrl }))
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Failed to generate visual: ' + err.message }))
+        }
+      })
+
+      // /api/generate-chart-claude — generate chart using Claude API
+      server.middlewares.use('/api/generate-chart-claude', async (req, res) => {
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+          res.end()
+          return
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        let body = ''
+        for await (const chunk of req) body += chunk
+        let parsed
+        try { parsed = JSON.parse(body) } catch { parsed = {} }
+
+        const { text, forcedType } = parsed
+        if (!text) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Text is required' }))
+          return
+        }
+
         const apiKey = envVars.ANTHROPIC_API_KEY
         if (!apiKey) {
           res.writeHead(500, { 'Content-Type': 'application/json' })
@@ -40,21 +174,17 @@ function apiMiddleware(envVars) {
           return
         }
 
-        const SYSTEM_PROMPT = [
-          'You are a data visualization expert. Analyze the given text and produce a structured JSON object for rendering a chart.',
-          '',
-          'CHART TYPE SELECTION RULES:',
+        const CHART_PROMPT = [
+          'You are a data visualization expert. You will receive a SINGLE dialogue line from a conversation. Analyze ONLY that one line and produce a small, focused JSON chart about what that specific line discusses. Do NOT try to chart the entire conversation — only the single line given.',
+          '', 'CHART TYPE SELECTION RULES:',
           '- Steps, processes, workflows, "how to", sequences, cause-and-effect → flowchart',
           '- Dates, years, historical events, chronological progression, evolution → timeline',
           '- "X vs Y", pros/cons, trade-offs, comparing 2+ options/products/ideas → comparison',
           '- Statistics, key metrics, facts, data points about a single topic → infographic',
           '- Hierarchical ideas, topic breakdown, categories with subtopics, brainstorming → mindmap',
-          '',
-          'If multiple types fit, prefer: flowchart > comparison > timeline > infographic > mindmap',
-          '',
-          'IMPORTANT: Return ONLY valid JSON. No markdown fences. No explanation. No text before or after the JSON.',
-          '',
-          'JSON schemas:',
+          '', 'If multiple types fit, prefer: flowchart > comparison > timeline > infographic > mindmap',
+          '', 'IMPORTANT: Return ONLY valid JSON. No markdown fences. No explanation.',
+          '', 'JSON schemas:',
           'FLOWCHART: {"type":"flowchart","title":"string","nodes":[{"id":"string","label":"string","description":"string","nodeType":"start|process|decision|end"}],"edges":[{"from":"id","to":"id","label":"string","edgeType":"default|yes|no"}]}',
           'TIMELINE: {"type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"emoji"}]}',
           'COMPARISON: {"type":"comparison","title":"string","items":[{"name":"string","description":"string","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string|number"}]}]}',
@@ -69,10 +199,10 @@ function apiMiddleware(envVars) {
 
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const sysPrompt = attempt === 0 ? SYSTEM_PROMPT : SYSTEM_PROMPT + '\nCRITICAL: Return ONLY valid JSON.'
+            const sysPrompt = attempt === 0 ? CHART_PROMPT : CHART_PROMPT + '\nCRITICAL: Return ONLY valid JSON.'
 
             const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 15000)
+            const timeout = setTimeout(() => controller.abort(), 50000)
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
@@ -181,7 +311,7 @@ function apiMiddleware(envVars) {
             const sysPrompt = attempt === 0 ? SECTIONS_PROMPT : SECTIONS_PROMPT + '\nCRITICAL: Return ONLY valid JSON.'
 
             const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 25000)
+            const timeout = setTimeout(() => controller.abort(), 50000)
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
@@ -321,6 +451,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
     },
-    envPrefix: ['VITE_', 'ANTHROPIC_'],
+    envPrefix: ['VITE_', 'ANTHROPIC_', 'NAPKIN_'],
   }
 })

@@ -26,7 +26,7 @@ function MindmapRenderer({ data }) {
 
     const container = containerRef.current
     const width = container.clientWidth || 500
-    const height = Math.max(350, width * 0.6)
+    const height = Math.min(container.clientHeight || 400, Math.max(300, width * 0.55))
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
@@ -103,13 +103,13 @@ function MindmapRenderer({ data }) {
   }, [data])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', overflow: 'auto' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <svg
         ref={svgRef}
         style={{
           display: 'block',
           margin: '0 auto',
-          overflow: 'visible',
+          overflow: 'hidden',
         }}
       />
     </div>

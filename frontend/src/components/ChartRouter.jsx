@@ -47,6 +47,16 @@ function ChartRouter({ data }) {
         return <InfographicRenderer data={data} />
       case 'mindmap':
         return <MindmapRenderer data={data} />
+      case 'napkin-image':
+        return (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+            <img
+              src={data.imageUrl}
+              alt={data.title || 'Generated Visual'}
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }}
+            />
+          </div>
+        )
       default:
         return <FallbackRenderer data={data} />
     }
@@ -58,6 +68,18 @@ function ChartRouter({ data }) {
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {renderChart()}
         </div>
+        {data._generationTimeMs != null && (
+          <div style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            color: '#6b7280',
+            fontFamily: "'JetBrains Mono', monospace",
+            textAlign: 'right',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            Generated in {data._generationTimeMs.toLocaleString()}ms
+          </div>
+        )}
       </div>
     </Suspense>
   )
