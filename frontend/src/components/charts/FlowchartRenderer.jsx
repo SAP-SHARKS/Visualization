@@ -2,18 +2,28 @@ import { useMemo, useCallback, memo } from 'react'
 import ReactFlow, { Background, Controls, useNodesState, useEdgesState } from 'reactflow'
 import dagre from 'dagre'
 import 'reactflow/dist/style.css'
+import { useTheme } from '../../context/ThemeContext'
 
 const NODE_WIDTH = 220
 const NODE_HEIGHT = 80
 
-const nodeColors = {
+const nodeColorsDark = {
   start: { bg: 'rgba(61,214,140,0.15)', border: '#3dd68c', text: '#3dd68c' },
   process: { bg: 'rgba(96,165,250,0.15)', border: '#60a5fa', text: '#60a5fa' },
   decision: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', text: '#f59e0b' },
   end: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', text: '#ef4444' },
 }
 
+const nodeColorsLight = {
+  start: { bg: 'rgba(53,88,114,0.08)', border: '#355872', text: '#355872' },
+  process: { bg: 'rgba(37,99,235,0.08)', border: '#2563eb', text: '#2563eb' },
+  decision: { bg: 'rgba(217,119,6,0.08)', border: '#d97706', text: '#d97706' },
+  end: { bg: 'rgba(220,38,38,0.08)', border: '#dc2626', text: '#dc2626' },
+}
+
 function CustomNode({ data }) {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+  const nodeColors = isLight ? nodeColorsLight : nodeColorsDark
   const colors = nodeColors[data.nodeType] || nodeColors.process
   const isDecision = data.nodeType === 'decision'
 
@@ -31,7 +41,7 @@ function CustomNode({ data }) {
       <div style={{
         fontSize: '13px',
         fontWeight: 600,
-        color: '#e8eaf0',
+        color: isLight ? '#1a2d3d' : '#e8eaf0',
         marginBottom: data.description ? '4px' : 0,
       }}>
         {data.label}
@@ -39,7 +49,7 @@ function CustomNode({ data }) {
       {data.description && (
         <div style={{
           fontSize: '11px',
-          color: '#6b7280',
+          color: isLight ? '#7AAACE' : '#6b7280',
           lineHeight: 1.4,
         }}>
           {data.description}
@@ -50,7 +60,7 @@ function CustomNode({ data }) {
         top: '-8px',
         right: '-8px',
         background: colors.border,
-        color: '#06080c',
+        color: isLight ? '#F7F8F0' : '#06080c',
         fontSize: '8px',
         fontWeight: 700,
         padding: '2px 6px',
@@ -93,6 +103,9 @@ function getLayoutedElements(nodes, edges) {
 }
 
 function FlowchartRenderer({ data }) {
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
+
   const { initialNodes, initialEdges } = useMemo(() => {
     const rfNodes = (data.nodes || []).map((n) => ({
       id: n.id,
@@ -108,23 +121,23 @@ function FlowchartRenderer({ data }) {
       label: e.label || '',
       animated: true,
       style: {
-        stroke: e.edgeType === 'yes' ? '#3dd68c' : e.edgeType === 'no' ? '#ef4444' : '#4a5060',
+        stroke: e.edgeType === 'yes' ? (isLight ? '#355872' : '#3dd68c') : e.edgeType === 'no' ? (isLight ? '#dc2626' : '#ef4444') : (isLight ? '#9CD5FF' : '#4a5060'),
         strokeWidth: 2,
       },
       labelStyle: {
-        fill: '#9ca3af',
+        fill: isLight ? '#7AAACE' : '#9ca3af',
         fontSize: 11,
         fontFamily: "'JetBrains Mono', monospace",
       },
       labelBgStyle: {
-        fill: '#0e1117',
+        fill: isLight ? '#ffffff' : '#0e1117',
         fillOpacity: 0.9,
       },
     }))
 
     const { nodes: ln, edges: le } = getLayoutedElements(rfNodes, rfEdges)
     return { initialNodes: ln, initialEdges: le }
-  }, [data])
+  }, [data, isLight])
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
@@ -152,7 +165,7 @@ function FlowchartRenderer({ data }) {
         panOnScroll={false}
         preventScrolling={false}
       >
-        <Background color="#1a1f2e" gap={20} size={1} />
+        <Background color={isLight ? '#dde5db' : '#1a1f2e'} gap={20} size={1} />
       </ReactFlow>
     </div>
   )

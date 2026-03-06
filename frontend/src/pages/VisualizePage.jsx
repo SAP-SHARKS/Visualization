@@ -30,6 +30,23 @@ const PAGE_CSS = `
   --gradient-accent: linear-gradient(135deg, #3dd68c, #5bf5dc);
   --gradient-surface: linear-gradient(135deg, rgba(14,17,23,0.9), rgba(21,25,33,0.9));
 }
+[data-theme="light"] {
+  --bg: #F7F8F0;
+  --surface: #ffffff;
+  --surface-2: #eef1e8;
+  --border: rgba(53,88,114,0.1);
+  --text: #1a2d3d;
+  --text-dim: #7AAACE;
+  --accent: #355872;
+  --accent-glow: rgba(53,88,114,0.1);
+  --charity: #2563eb;
+  --company: #d97706;
+  --red: #dc2626;
+  --purple: #7c3aed;
+  --teal: #7AAACE;
+  --gradient-accent: linear-gradient(135deg, #355872, #7AAACE);
+  --gradient-surface: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(238,241,232,0.95));
+}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden;position:relative;}
 body::before{content:'';position:fixed;top:-30%;left:-15%;width:60%;height:60%;background:radial-gradient(circle,rgba(61,214,140,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
@@ -328,6 +345,128 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
   .sankey-label{width:50px;font-size:9px;}
   .sankey-bar{font-size:9px;}
 }
+
+/* ===== LIGHT MODE OVERRIDES ===== */
+[data-theme="light"] body{background:#F7F8F0;color:#1a2d3d;}
+[data-theme="light"] body::before{background:radial-gradient(circle,rgba(156,213,255,0.1) 0%,transparent 65%);}
+[data-theme="light"] body::after{background:radial-gradient(circle,rgba(122,170,206,0.08) 0%,transparent 65%);}
+[data-theme="light"] .app-header{background:rgba(255,255,255,0.92);border-bottom-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .app-header::after{background:linear-gradient(90deg,transparent,rgba(53,88,114,0.15),transparent);}
+[data-theme="light"] .logo{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .logo span{color:#7AAACE;-webkit-text-fill-color:#7AAACE;}
+[data-theme="light"] .nav-pills{background:rgba(255,255,255,0.8);border-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .nav-pill{color:#7AAACE;}
+[data-theme="light"] .nav-pill:hover{color:#1a2d3d;}
+[data-theme="light"] .nav-pill.active{background:linear-gradient(135deg,#355872,#7AAACE);color:#F7F8F0;box-shadow:0 2px 12px rgba(53,88,114,0.25);}
+[data-theme="light"] .section-label{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .section-title{background:linear-gradient(135deg,#1a2d3d 30%,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .stat-card{background:#ffffff;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .stat-card::before{background:linear-gradient(90deg,transparent,#7AAACE,transparent);}
+[data-theme="light"] .stat-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 32px rgba(53,88,114,0.08);}
+[data-theme="light"] .stat-value{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .transcript-panel{background:#ffffff;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .transcript-panel:hover{box-shadow:0 4px 24px rgba(53,88,114,0.08);}
+[data-theme="light"] .visual-panel{background:#ffffff;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .visual-panel:hover{box-shadow:0 4px 24px rgba(53,88,114,0.08);}
+[data-theme="light"] .panel-header{border-bottom-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .panel-header .dot{background:#355872;box-shadow:0 0 8px rgba(53,88,114,0.2);}
+[data-theme="light"] .t-line:hover{background:rgba(156,213,255,0.1);}
+[data-theme="light"] .t-line.active{background:linear-gradient(135deg,rgba(53,88,114,0.06),rgba(122,170,206,0.06));border-left-color:#355872;box-shadow:0 2px 12px rgba(53,88,114,0.04);}
+[data-theme="light"] .t-line .speaker.host{color:#2563eb;}
+[data-theme="light"] .t-line .speaker.guest{color:#d97706;}
+[data-theme="light"] .visual-modes{background:rgba(255,255,255,0.7);border-bottom-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .vmode-btn{color:#7AAACE;}
+[data-theme="light"] .vmode-btn:hover{color:#1a2d3d;border-color:rgba(53,88,114,0.2);background:rgba(53,88,114,0.04);}
+[data-theme="light"] .vmode-btn.active{background:linear-gradient(135deg,#355872,#7AAACE);color:#F7F8F0;box-shadow:0 2px 12px rgba(53,88,114,0.25);}
+[data-theme="light"] .vdl-step{color:#1a2d3d;background:rgba(53,88,114,0.06);}
+[data-theme="light"] .flow-node{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .flow-node::before{background:linear-gradient(90deg,transparent,#7AAACE,transparent);}
+[data-theme="light"] .flow-node:hover{border-color:rgba(53,88,114,0.25);box-shadow:0 8px 32px rgba(53,88,114,0.08);}
+[data-theme="light"] .flow-node .node-amount{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .flow-arrow{background:linear-gradient(to bottom,rgba(53,88,114,0.15),#355872);}
+[data-theme="light"] .flow-arrow::after{border-top-color:#355872;}
+[data-theme="light"] .info-card{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .info-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 4px 20px rgba(53,88,114,0.08);}
+[data-theme="light"] .info-card .info-big-number{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .info-metric-bar{background:rgba(53,88,114,0.06);}
+[data-theme="light"] .info-step{background:#eef1e8;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .info-step .step-num{color:#355872;}
+[data-theme="light"] .info-step-connector{color:#355872;}
+[data-theme="light"] .napkin-board{background:rgba(255,255,255,0.6);border-color:rgba(53,88,114,0.12);}
+[data-theme="light"] .napkin-board::before{color:#7AAACE;}
+[data-theme="light"] .napkin-blob{background:rgba(53,88,114,0.04);}
+[data-theme="light"] .napkin-note{background:rgba(53,88,114,0.04);border-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .napkin-box{border-color:rgba(53,88,114,0.12);background:rgba(255,255,255,0.5);}
+[data-theme="light"] .napkin-box.accent{border-color:#355872;color:#355872;}
+[data-theme="light"] .napkin-connector{color:#355872;}
+[data-theme="light"] .sankey-bar-wrap{background:rgba(53,88,114,0.04);}
+[data-theme="light"] .compare-card{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .compare-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 24px rgba(53,88,114,0.08);}
+[data-theme="light"] .compare-card .cc-val{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .timeline-dot{border-color:rgba(53,88,114,0.15);background:#F7F8F0;}
+[data-theme="light"] .timeline-node.active .timeline-dot{border-color:#355872;background:#355872;box-shadow:0 0 16px rgba(53,88,114,0.2);}
+[data-theme="light"] .timeline-node:hover .timeline-dot{border-color:#355872;box-shadow:0 0 8px rgba(53,88,114,0.1);}
+[data-theme="light"] .timeline-node.active .timeline-label{color:#355872;}
+[data-theme="light"] .timeline-line{background:rgba(53,88,114,0.08);}
+[data-theme="light"] .timeline-node.active .timeline-line{background:linear-gradient(90deg,#355872,rgba(53,88,114,0.1));}
+[data-theme="light"] .speaker-bar-track{background:rgba(53,88,114,0.04);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .speaker-bar-fill{color:#F7F8F0;}
+[data-theme="light"] .speaker-stat{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .speaker-stat:hover{border-color:rgba(53,88,114,0.2);}
+[data-theme="light"] .concept-card{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .concept-card::before{background:linear-gradient(90deg,#355872,#7AAACE);}
+[data-theme="light"] .concept-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 12px 40px rgba(53,88,114,0.06);}
+[data-theme="light"] .concept-card:nth-child(1) .concept-icon{background:rgba(53,88,114,0.1);}
+[data-theme="light"] .concept-card:nth-child(2) .concept-icon{background:rgba(37,99,235,0.1);}
+[data-theme="light"] .concept-card:nth-child(3) .concept-icon{background:rgba(217,119,6,0.1);}
+[data-theme="light"] .concept-card:nth-child(4) .concept-icon{background:rgba(124,58,237,0.1);}
+[data-theme="light"] .concept-card:nth-child(5) .concept-icon{background:rgba(220,38,38,0.1);}
+[data-theme="light"] .concept-card:nth-child(6) .concept-icon{background:rgba(122,170,206,0.12);}
+[data-theme="light"] .concept-tag{background:rgba(53,88,114,0.06);color:#355872;border-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .suggestion-item{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .suggestion-item::before{background:linear-gradient(to bottom,#7c3aed,rgba(124,58,237,0.3));}
+[data-theme="light"] .suggestion-item:hover{border-color:rgba(124,58,237,0.2);box-shadow:0 4px 24px rgba(124,58,237,0.06);}
+[data-theme="light"] .suggestion-number{background:linear-gradient(135deg,#7c3aed,#a78bfa);-webkit-background-clip:text;}
+[data-theme="light"] .badge-ux{background:rgba(124,58,237,0.1);color:#7c3aed;}
+[data-theme="light"] .badge-biz{background:rgba(53,88,114,0.1);color:#355872;}
+[data-theme="light"] .badge-tech{background:rgba(37,99,235,0.1);color:#2563eb;}
+[data-theme="light"] .quiz-card{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .quiz-card:hover{border-color:rgba(53,88,114,0.15);box-shadow:0 4px 20px rgba(53,88,114,0.06);}
+[data-theme="light"] .quiz-number{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .quiz-option{background:rgba(247,248,240,0.6);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .quiz-option:hover{border-color:rgba(53,88,114,0.25);background:rgba(53,88,114,0.04);}
+[data-theme="light"] .quiz-option.selected.correct{border-color:#16a34a;background:rgba(22,163,74,0.06);}
+[data-theme="light"] .quiz-option.selected.wrong{border-color:#dc2626;background:rgba(220,38,38,0.06);}
+[data-theme="light"] .option-letter{background:#F7F8F0;border-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .quiz-option:hover .option-letter{border-color:rgba(53,88,114,0.3);color:#1a2d3d;}
+[data-theme="light"] .quiz-feedback.correct{background:rgba(22,163,74,0.06);color:#16a34a;border-color:rgba(22,163,74,0.2);}
+[data-theme="light"] .quiz-feedback.wrong{background:rgba(220,38,38,0.06);color:#dc2626;border-color:rgba(220,38,38,0.2);}
+[data-theme="light"] .quiz-score-bar{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .quiz-score-ring{border-color:rgba(53,88,114,0.1);box-shadow:0 0 20px rgba(53,88,114,0.06);}
+[data-theme="light"] .ask-container{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .ask-input-area{border-bottom-color:rgba(53,88,114,0.08);background:rgba(247,248,240,0.5);}
+[data-theme="light"] .ask-input{background:rgba(255,255,255,0.8);border-color:rgba(53,88,114,0.1);color:#1a2d3d;}
+[data-theme="light"] .ask-input:focus{border-color:rgba(53,88,114,0.4);box-shadow:0 0 0 3px rgba(53,88,114,0.06);}
+[data-theme="light"] .ask-input::placeholder{color:#9CD5FF;}
+[data-theme="light"] .ask-btn{background:linear-gradient(135deg,#355872,#7AAACE);color:#F7F8F0;}
+[data-theme="light"] .ask-btn:hover{box-shadow:0 4px 20px rgba(53,88,114,0.25);}
+[data-theme="light"] .thread-avatar.user{background:rgba(37,99,235,0.1);}
+[data-theme="light"] .thread-avatar.ai{background:rgba(53,88,114,0.1);}
+[data-theme="light"] .thread-name.user{color:#2563eb;}
+[data-theme="light"] .thread-name.ai{color:#1a2d3d;}
+[data-theme="light"] .sq-chip{background:rgba(255,255,255,0.6);border-color:rgba(53,88,114,0.1);color:#7AAACE;}
+[data-theme="light"] .sq-chip:hover{border-color:rgba(53,88,114,0.3);color:#1a2d3d;background:rgba(53,88,114,0.04);}
+[data-theme="light"] .action-item{background:var(--gradient-surface);border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .action-item:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 4px 20px rgba(53,88,114,0.06);}
+[data-theme="light"] .action-check{border-color:rgba(53,88,114,0.15);}
+[data-theme="light"] .action-check:hover{border-color:rgba(53,88,114,0.4);}
+[data-theme="light"] .action-check.done{background:linear-gradient(135deg,#355872,#7AAACE);box-shadow:0 2px 8px rgba(53,88,114,0.25);}
+[data-theme="light"] .priority-high{background:rgba(220,38,38,0.08);color:#dc2626;}
+[data-theme="light"] .priority-med{background:rgba(217,119,6,0.08);color:#d97706;}
+[data-theme="light"] .priority-low{background:rgba(37,99,235,0.08);color:#2563eb;}
+[data-theme="light"] .section-divider hr{border-top-color:rgba(53,88,114,0.08);background:linear-gradient(90deg,transparent,rgba(53,88,114,0.1),transparent);}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(53,88,114,0.15);}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:rgba(53,88,114,0.3);}
 `
 
 // ==================== CHART GENERATION (AI-powered) ====================
@@ -531,14 +670,14 @@ export default function VisualizePage() {
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: '4px', background: 'rgba(14,17,23,0.8)', borderRadius: '10px', padding: '3px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--surface)', borderRadius: '10px', padding: '3px', border: '1px solid var(--border)' }}>
                 <button
                   onClick={() => setChartSource('napkin')}
                   style={{
                     padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
                     fontFamily: "'DM Sans', sans-serif",
                     background: chartSource === 'napkin' ? 'linear-gradient(135deg, #a78bfa, #818cf8)' : 'transparent',
-                    color: chartSource === 'napkin' ? '#fff' : '#6b7280',
+                    color: chartSource === 'napkin' ? '#fff' : 'var(--text-dim)',
                     transition: 'all 0.2s',
                   }}
                 >
@@ -550,7 +689,7 @@ export default function VisualizePage() {
                     padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
                     fontFamily: "'DM Sans', sans-serif",
                     background: chartSource === 'claude' ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'transparent',
-                    color: chartSource === 'claude' ? '#fff' : '#6b7280',
+                    color: chartSource === 'claude' ? '#fff' : 'var(--text-dim)',
                     transition: 'all 0.2s',
                   }}
                 >
@@ -577,7 +716,7 @@ export default function VisualizePage() {
                       {error && !isLoading && <ChartError error={error} onRetry={() => activeRetry(currentStep)} />}
                       {chart && !isLoading && !error && <ChartRouter data={chart} />}
                       {!chart && !isLoading && !error && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a5060', fontSize: '13px', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-dim)', fontSize: '13px', fontFamily: "'JetBrains Mono', monospace" }}>
                           {currentStep >= activeProgress ? 'Generating...' : 'Waiting...'}
                         </div>
                       )}
@@ -653,9 +792,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Terms and ideas from the call — plus additional context you need to fully understand the model.</div>
         <div className="concepts-grid">
           {sectionsLoading ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : concepts.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No concepts extracted</div>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No concepts extracted</div>
           ) : concepts.map((c, i) => (
             <div className="concept-card" key={i}>
               <div className="concept-icon">{c.icon}</div>
@@ -676,9 +815,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Actionable ideas surfaced from analyzing the call content.</div>
         <div className="suggestions-list">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : suggestions.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No suggestions generated</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No suggestions generated</div>
           ) : suggestions.map((s, i) => (
             <div className="suggestion-item" key={i}>
               <div className="suggestion-number">{String(i + 1).padStart(2, '0')}</div>
@@ -701,9 +840,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Tasks extracted from the call that need follow-up.</div>
         <div className="action-items-list">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : actionItems.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No action items extracted</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No action items extracted</div>
           ) : actionItems.map((a, i) => (
             <div className="action-item" key={i}>
               <div className={`action-check${actionsDone[i] ? ' done' : ''}`} onClick={() => toggleActionDone(i)}>
@@ -743,9 +882,9 @@ export default function VisualizePage() {
 
         <div className="quiz-container">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Generating quiz questions...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Generating quiz questions...</div>
           ) : quizData.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No quiz questions generated</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No quiz questions generated</div>
           ) : quizData.map((qd, qi) => {
             const answered = quizAnswered[qi]
             return (

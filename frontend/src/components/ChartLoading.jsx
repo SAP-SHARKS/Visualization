@@ -13,6 +13,10 @@ const LOADING_CSS = `
 .chart-skeleton-bar:nth-child(2){width:70%;}
 .chart-skeleton-bar:nth-child(3){width:90%;}
 .chart-skeleton-bar:nth-child(4){width:60%;}
+[data-theme="light"] .chart-loading-spinner{border-color:rgba(53,88,114,0.1);border-top-color:#355872;}
+[data-theme="light"] .chart-loading-text{color:#7AAACE;}
+[data-theme="light"] .chart-loading-sub{color:#9CD5FF;}
+[data-theme="light"] .chart-skeleton-bar{background:linear-gradient(90deg,rgba(53,88,114,0.04),rgba(53,88,114,0.08),rgba(53,88,114,0.04));background-size:200% 100%;}
 `
 
 function ChartLoading() {

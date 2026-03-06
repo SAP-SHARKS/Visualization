@@ -12,17 +12,17 @@ function FallbackRenderer({ data }) {
   return (
     <div style={{
       padding: '24px',
-      background: 'rgba(14,17,23,0.9)',
+      background: 'var(--gradient-surface)',
       borderRadius: '14px',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border)',
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: '12px',
-      color: '#6b7280',
+      color: 'var(--text-dim)',
       whiteSpace: 'pre-wrap',
       overflow: 'auto',
       maxHeight: '400px',
     }}>
-      <div style={{ color: '#f59e0b', marginBottom: '8px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+      <div style={{ color: 'var(--company)', marginBottom: '8px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
         Unknown chart type: {data?.type}
       </div>
       {JSON.stringify(data, null, 2)}
@@ -72,10 +72,10 @@ function ChartRouter({ data }) {
           <div style={{
             padding: '6px 12px',
             fontSize: '11px',
-            color: '#6b7280',
+            color: 'var(--text-dim)',
             fontFamily: "'JetBrains Mono', monospace",
             textAlign: 'right',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid var(--border)',
           }}>
             Generated in {data._generationTimeMs.toLocaleString()}ms
           </div>

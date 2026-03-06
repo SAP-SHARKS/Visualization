@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import parseDialogue from '../utils/parseDialogue'
+import SpeechRecorder from '../components/SpeechRecorder'
 
 const UPLOAD_CSS = `
 .upload-page {
@@ -266,11 +267,107 @@ const UPLOAD_CSS = `
   .upload-divider { margin-bottom: 10px; }
   .upload-submit { padding: 12px 24px; font-size: 13px; }
 }
+
+[data-theme="light"] .upload-page {
+  background: #F7F8F0;
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-page::before {
+  background: radial-gradient(circle, rgba(156,213,255,0.12) 0%, transparent 65%);
+}
+[data-theme="light"] .upload-page::after {
+  background: radial-gradient(circle, rgba(122,170,206,0.1) 0%, transparent 65%);
+}
+[data-theme="light"] .upload-header {
+  background: rgba(255,255,255,0.92);
+  border-bottom-color: rgba(53,88,114,0.1);
+}
+[data-theme="light"] .upload-header .logo {
+  background: linear-gradient(135deg, #355872, #7AAACE);
+  -webkit-background-clip: text;
+}
+[data-theme="light"] .upload-header .logo-sub {
+  color: #7AAACE;
+  -webkit-text-fill-color: #7AAACE;
+}
+[data-theme="light"] .upload-hero h1 {
+  background: linear-gradient(135deg, #1a2d3d 30%, #7AAACE);
+  -webkit-background-clip: text;
+}
+[data-theme="light"] .upload-hero p {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-hero-icon {
+  background: linear-gradient(135deg, rgba(53,88,114,0.1), rgba(122,170,206,0.1));
+  border-color: rgba(53,88,114,0.15);
+}
+[data-theme="light"] .upload-dropzone {
+  border-color: rgba(53,88,114,0.25);
+  background: rgba(255,255,255,0.7);
+}
+[data-theme="light"] .upload-dropzone:hover {
+  border-color: rgba(53,88,114,0.5);
+  background: rgba(156,213,255,0.08);
+  box-shadow: 0 8px 32px rgba(53,88,114,0.1);
+}
+[data-theme="light"] .upload-dropzone.active {
+  border-color: #355872;
+  background: rgba(156,213,255,0.1);
+}
+[data-theme="light"] .upload-dropzone .drop-text {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-dropzone .drop-text strong {
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-divider span {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-divider::before,
+[data-theme="light"] .upload-divider::after {
+  background: linear-gradient(90deg, transparent, rgba(53,88,114,0.15), transparent);
+}
+[data-theme="light"] .upload-form-group label {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-input {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(53,88,114,0.12);
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-input:focus {
+  border-color: rgba(53,88,114,0.4);
+  box-shadow: 0 0 0 3px rgba(53,88,114,0.08);
+}
+[data-theme="light"] .upload-input::placeholder { color: #9CD5FF; }
+[data-theme="light"] .upload-textarea {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(53,88,114,0.12);
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-textarea:focus {
+  border-color: rgba(53,88,114,0.4);
+  box-shadow: 0 0 0 3px rgba(53,88,114,0.08);
+}
+[data-theme="light"] .upload-textarea::placeholder { color: #9CD5FF; }
+[data-theme="light"] .upload-submit {
+  background: linear-gradient(135deg, #355872, #7AAACE);
+  color: #F7F8F0;
+}
+[data-theme="light"] .upload-submit:hover {
+  box-shadow: 0 8px 32px rgba(53,88,114,0.3);
+}
+[data-theme="light"] .upload-error {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.2);
+  color: #dc2626;
+}
 `
 
 export default function UploadPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [partialTranscript, setPartialTranscript] = useState('')
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
@@ -311,13 +408,25 @@ export default function UploadPage() {
       setError('Title and dialogue content are required')
       return
     }
-    const data = parseDialogue(content)
+    const finalContent = (content + ' ' + partialTranscript).trim()
+    const data = parseDialogue(finalContent)
     if (data.lines.length === 0) {
       setError('No dialogue lines detected. Check the format: Speaker Name: Dialogue text')
       return
     }
-    navigate('/visualize', { state: { title, content, graphData: data } })
+    navigate('/visualize', { state: { title, content: finalContent, graphData: data } })
   }
+
+  const handleTranscriptUpdate = (text) => {
+    setPartialTranscript(text)
+  }
+
+  const handleTranscriptFinalize = (text) => {
+    setContent((prev) => (prev + ' ' + text).trim())
+    setPartialTranscript('')
+  }
+
+  const displayContent = (content + (content && partialTranscript ? ' ' : '') + partialTranscript).trim()
 
   return (
     <div className="upload-page">
@@ -369,11 +478,20 @@ export default function UploadPage() {
           </div>
 
           <div className="upload-form-group grow">
-            <label>Dialogue Content</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '6px' }}>
+              <label style={{ marginBottom: 0 }}>Dialogue Content</label>
+              <SpeechRecorder
+                onTranscriptUpdate={handleTranscriptUpdate}
+                onTranscriptFinalize={handleTranscriptFinalize}
+              />
+            </div>
             <textarea
               className="upload-textarea"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              value={displayContent}
+              onChange={(e) => {
+                setContent(e.target.value)
+                setPartialTranscript('')
+              }}
               placeholder={`Host: So walk me through the product — how does a user get started?\nFounder: First, you download the app. Then through Plaid, the app links directly to your bank account.`}
             />
           </div>

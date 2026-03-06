@@ -37,6 +37,18 @@ const CMP_CSS = `
 @media(max-width:500px){
   .cmp-grid.cols-2,.cmp-grid.cols-3,.cmp-grid.cols-4{grid-template-columns:1fr;}
 }
+[data-theme="light"] .cmp-card{background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(238,241,232,0.95));border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .cmp-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 32px rgba(53,88,114,0.06);}
+[data-theme="light"] .cmp-name{color:#1a2d3d;}
+[data-theme="light"] .cmp-desc{color:#7AAACE;}
+[data-theme="light"] .cmp-section-label.pros{color:#16a34a;}
+[data-theme="light"] .cmp-section-label.cons{color:#dc2626;}
+[data-theme="light"] .cmp-list li{color:#5a7a8f;}
+[data-theme="light"] .cmp-list.pros li::before{color:#16a34a;}
+[data-theme="light"] .cmp-list.cons li::before{color:#dc2626;}
+[data-theme="light"] .cmp-stats{border-top-color:rgba(53,88,114,0.06);}
+[data-theme="light"] .cmp-stat-label{color:#7AAACE;}
+[data-theme="light"] .cmp-stat-value{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
 `
 
 function ComparisonRenderer({ data }) {

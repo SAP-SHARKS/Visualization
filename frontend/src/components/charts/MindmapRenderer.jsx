@@ -1,7 +1,8 @@
 import { useEffect, useRef, memo } from 'react'
 import * as d3 from 'd3'
 
-const DEPTH_COLORS = ['#3dd68c', '#60a5fa', '#f59e0b', '#a78bfa', '#ef4444']
+const DEPTH_COLORS_DARK = ['#3dd68c', '#60a5fa', '#f59e0b', '#a78bfa', '#ef4444']
+const DEPTH_COLORS_LIGHT = ['#355872', '#2563eb', '#d97706', '#7c3aed', '#dc2626']
 
 function buildHierarchy(root) {
   if (!root) return { name: 'Root', children: [] }
@@ -23,6 +24,9 @@ function MindmapRenderer({ data }) {
 
   useEffect(() => {
     if (!svgRef.current || !data.root) return
+
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+    const DEPTH_COLORS = isLight ? DEPTH_COLORS_LIGHT : DEPTH_COLORS_DARK
 
     const container = containerRef.current
     const width = container.clientWidth || 500
@@ -51,7 +55,7 @@ function MindmapRenderer({ data }) {
       )
       .attr('fill', 'none')
       .attr('stroke', d => DEPTH_COLORS[Math.min(d.source.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke-opacity', 0.4)
+      .attr('stroke-opacity', isLight ? 0.5 : 0.4)
       .attr('stroke-width', d => Math.max(1, 3 - d.source.depth))
       .style('opacity', 0)
       .transition()
@@ -77,7 +81,7 @@ function MindmapRenderer({ data }) {
     node.append('circle')
       .attr('r', d => d.depth === 0 ? 10 : d.children ? 7 : 5)
       .attr('fill', d => DEPTH_COLORS[Math.min(d.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke', '#06080c')
+      .attr('stroke', isLight ? '#F7F8F0' : '#06080c')
       .attr('stroke-width', 2)
 
     // Glow for root
@@ -95,7 +99,9 @@ function MindmapRenderer({ data }) {
       .attr('x', d => d.depth === 0 ? 0 : d.children ? 0 : 12)
       .attr('text-anchor', d => d.depth === 0 ? 'middle' : d.children ? 'middle' : 'start')
       .text(d => d.data.name)
-      .attr('fill', d => d.depth === 0 ? '#e8eaf0' : d.depth === 1 ? '#c8cad0' : '#9ca3af')
+      .attr('fill', d => isLight
+        ? (d.depth === 0 ? '#1a2d3d' : d.depth === 1 ? '#3d5a6f' : '#7AAACE')
+        : (d.depth === 0 ? '#e8eaf0' : d.depth === 1 ? '#c8cad0' : '#9ca3af'))
       .attr('font-size', d => d.depth === 0 ? 14 : d.depth === 1 ? 12 : 11)
       .attr('font-weight', d => d.depth <= 1 ? 600 : 400)
       .attr('font-family', "'DM Sans', sans-serif")

@@ -7,6 +7,10 @@ const ERROR_CSS = `
 .chart-error-msg{font-size:12px;color:#ef4444;max-width:350px;line-height:1.6;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:12px 16px;}
 .chart-error-retry{padding:10px 24px;background:linear-gradient(135deg,#3dd68c,#2bc47a);color:#06080c;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s cubic-bezier(0.4,0,0.2,1);}
 .chart-error-retry:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(61,214,140,0.3);}
+[data-theme="light"] .chart-error-title{color:#1a2d3d;}
+[data-theme="light"] .chart-error-msg{color:#dc2626;background:rgba(220,38,38,0.04);border-color:rgba(220,38,38,0.15);}
+[data-theme="light"] .chart-error-retry{background:linear-gradient(135deg,#355872,#7AAACE);color:#F7F8F0;}
+[data-theme="light"] .chart-error-retry:hover{box-shadow:0 4px 16px rgba(53,88,114,0.25);}
 `
 
 function ChartError({ error, onRetry }) {

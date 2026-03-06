@@ -30,6 +30,14 @@ const TIMELINE_CSS = `
   .tl-card{width:calc(100% - 48px);margin-left:40px;}
   .tl-dot{left:20px;top:20px;}
 }
+[data-theme="light"] .tl-line{background:linear-gradient(to bottom,transparent,rgba(53,88,114,0.25),rgba(53,88,114,0.25),transparent);}
+[data-theme="light"] .tl-card{background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(238,241,232,0.95));border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .tl-card::before{background:linear-gradient(90deg,transparent,#7AAACE,transparent);}
+[data-theme="light"] .tl-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 24px rgba(53,88,114,0.06);}
+[data-theme="light"] .tl-dot{background:#355872;border-color:#F7F8F0;box-shadow:0 0 12px rgba(53,88,114,0.2);}
+[data-theme="light"] .tl-date{color:#355872;}
+[data-theme="light"] .tl-title{color:#1a2d3d;}
+[data-theme="light"] .tl-desc{color:#7AAACE;}
 `
 
 function TimelineRenderer({ data }) {

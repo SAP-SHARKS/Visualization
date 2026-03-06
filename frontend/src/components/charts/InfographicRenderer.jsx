@@ -51,6 +51,14 @@ const INFO_CSS = `
   .infog-grid{grid-template-columns:1fr;}
   .infog-value{font-size:22px;}
 }
+[data-theme="light"] .infog-title{background:linear-gradient(135deg,#1a2d3d 30%,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .infog-subtitle{color:#7AAACE;}
+[data-theme="light"] .infog-card{background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(238,241,232,0.95));border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .infog-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 24px rgba(53,88,114,0.06);}
+[data-theme="light"] .infog-value{background:linear-gradient(135deg,#355872,#7AAACE);-webkit-background-clip:text;}
+[data-theme="light"] .infog-heading{color:#1a2d3d;}
+[data-theme="light"] .infog-desc{color:#7AAACE;}
+[data-theme="light"] .infog-footer{color:#7AAACE;border-top-color:rgba(53,88,114,0.06);}
 `
 
 function InfographicRenderer({ data }) {
