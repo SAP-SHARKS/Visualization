@@ -18,19 +18,19 @@ const CMP_CSS = `
 .cmp-card:nth-child(4)::before{background:linear-gradient(90deg,#a78bfa,#c4b5fd);}
 .cmp-card:hover{border-color:rgba(61,214,140,0.2);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,0.3);}
 .cmp-card:hover::before{opacity:1;}
-.cmp-name{font-size:18px;font-weight:700;margin-bottom:6px;color:#e8eaf0;}
-.cmp-desc{font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:16px;}
-.cmp-section-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;}
+.cmp-name{font-size:20px;font-weight:700;margin-bottom:8px;color:#e8eaf0;}
+.cmp-desc{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:16px;}
+.cmp-section-label{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;}
 .cmp-section-label.pros{color:#3dd68c;}
 .cmp-section-label.cons{color:#ef4444;}
 .cmp-list{list-style:none;padding:0;margin:0 0 16px;}
-.cmp-list li{font-size:12px;color:#9ca3af;padding:4px 0 4px 16px;position:relative;line-height:1.5;}
-.cmp-list.pros li::before{content:'\\2713';position:absolute;left:0;color:#3dd68c;font-weight:700;font-size:11px;}
-.cmp-list.cons li::before{content:'\\2717';position:absolute;left:0;color:#ef4444;font-weight:700;font-size:11px;}
+.cmp-list li{font-size:14px;color:#9ca3af;padding:4px 0 4px 18px;position:relative;line-height:1.5;}
+.cmp-list.pros li::before{content:'\\2713';position:absolute;left:0;color:#3dd68c;font-weight:700;font-size:13px;}
+.cmp-list.cons li::before{content:'\\2717';position:absolute;left:0;color:#ef4444;font-weight:700;font-size:13px;}
 .cmp-stats{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);}
 .cmp-stat{display:flex;justify-content:space-between;align-items:center;}
-.cmp-stat-label{font-size:11px;color:#6b7280;}
-.cmp-stat-value{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.cmp-stat-label{font-size:13px;color:#6b7280;}
+.cmp-stat-value{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 @media(max-width:700px){
   .cmp-grid.cols-3,.cmp-grid.cols-4{grid-template-columns:1fr 1fr;}
 }

@@ -142,7 +142,7 @@ function apiMiddleware(envVars) {
         }
       })
 
-      // /api/generate-chart-claude — generate chart using Claude API
+      // /api/generate-chart-claude — chart generation using Claude API
       server.middlewares.use('/api/generate-chart-claude', async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
@@ -160,7 +160,7 @@ function apiMiddleware(envVars) {
         let parsed
         try { parsed = JSON.parse(body) } catch { parsed = {} }
 
-        const { text, forcedType } = parsed
+        const { text, currentChart, existingTypes } = parsed
         if (!text) {
           res.writeHead(400, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: 'Text is required' }))
@@ -174,35 +174,24 @@ function apiMiddleware(envVars) {
           return
         }
 
-        const CHART_PROMPT = [
-          'You are a data visualization expert. You will receive a SINGLE dialogue line from a conversation. Analyze ONLY that one line and produce a small, focused JSON chart about what that specific line discusses. Do NOT try to chart the entire conversation — only the single line given.',
-          '', 'CHART TYPE SELECTION RULES:',
-          '- Steps, processes, workflows, "how to", sequences, cause-and-effect → flowchart',
-          '- Dates, years, historical events, chronological progression, evolution → timeline',
-          '- "X vs Y", pros/cons, trade-offs, comparing 2+ options/products/ideas → comparison',
-          '- Statistics, key metrics, facts, data points about a single topic → infographic',
-          '- Hierarchical ideas, topic breakdown, categories with subtopics, brainstorming → mindmap',
-          '', 'If multiple types fit, prefer: flowchart > comparison > timeline > infographic > mindmap',
-          '', 'IMPORTANT: Return ONLY valid JSON. No markdown fences. No explanation.',
-          '', 'JSON schemas:',
-          'FLOWCHART: {"type":"flowchart","title":"string","nodes":[{"id":"string","label":"string","description":"string","nodeType":"start|process|decision|end"}],"edges":[{"from":"id","to":"id","label":"string","edgeType":"default|yes|no"}]}',
-          'TIMELINE: {"type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"emoji"}]}',
-          'COMPARISON: {"type":"comparison","title":"string","items":[{"name":"string","description":"string","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string|number"}]}]}',
-          'INFOGRAPHIC: {"type":"infographic","title":"string","subtitle":"string","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"string"}',
-          'MINDMAP: {"type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]}}',
-        ].join('\n')
+        const CHART_SYSTEM = 'You are a real-time data visualization engine. Generate the best chart for the given text.\n\nYOUR DECISIONS:\n\n1. NEW — return {"action":"new", ...fullChartJSON} when:\n   - There is no current chart, OR the topic changed from the current chart\n   - This is the DEFAULT action — always generate a chart\n\n2. UPDATE — return {"action":"update", ...fullChartJSON} when:\n   - A current chart is provided AND the new text adds MORE DETAIL to the SAME topic\n   - Return the COMPLETE updated chart including ALL previous data plus additions\n\n3. SKIP — return {"action":"skip"} ONLY when:\n   - The text is truly just filler with zero informational content (greetings, etc.)\n\nCHART TYPE SELECTION — pick the BEST match, DO NOT default to infographic:\n- Any process, workflow, steps, how-to, sequence, cause-effect, decision tree → FLOWCHART\n- Comparing 2+ things, pros/cons, trade-offs, "X vs Y", options → COMPARISON\n- Dates, years, history, chronological events, evolution over time → TIMELINE\n- Topic breakdown, categories, subtopics, "types of", hierarchy → MINDMAP\n- ONLY use infographic when there are specific numbers, percentages, statistics, or quantitative metrics\n\nANTI-INFOGRAPHIC RULE: If there are NO specific numbers/percentages in the text, do NOT use infographic.\n\nVARIETY RULE: If the user message shows previously generated chart types, STRONGLY prefer a DIFFERENT type. Most topics can be visualized multiple ways — choose the best UNUSED type. Only repeat a type if the content absolutely demands it.\n\nIMPORTANT:\n- ALWAYS generate a chart when the text has any informational content\n- Return ONLY valid JSON. No markdown fences. No explanation.\n- Keep charts focused (3-6 items max)\n\n=== FLOWCHART ===\n{"action":"new|update","type":"flowchart","title":"string","nodes":[{"id":"string","label":"string","description":"optional","nodeType":"start|process|decision|end"}],"edges":[{"from":"id","to":"id","label":"optional","edgeType":"default|yes|no"}]}\nRules: 3-6 nodes. First=start, last=end.\n\n=== TIMELINE ===\n{"action":"new|update","type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"optional emoji"}]}\nRules: 3-6 events in chronological order.\n\n=== COMPARISON ===\n{"action":"new|update","type":"comparison","title":"string","items":[{"name":"string","description":"optional","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string or number"}]}]}\nRules: 2-4 items.\n\n=== INFOGRAPHIC ===\n{"action":"new|update","type":"infographic","title":"string","subtitle":"optional","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"optional"}\nRules: 3-5 sections.\n\n=== MINDMAP ===\n{"action":"new|update","type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]}}\nRules: Root has 2-4 children, each with 1-3 sub-children.'
 
         let userMessage = text.trim()
-        if (forcedType) {
-          userMessage = '[FORCED CHART TYPE: ' + forcedType + '] Generate ONLY a "' + forcedType + '" type chart.\n\n' + userMessage
+
+        if (existingTypes && existingTypes.length > 0) {
+          userMessage = '[CHARTS ALREADY GENERATED: ' + existingTypes.join(', ') + ']\nTry a DIFFERENT chart type if the content allows it.\n\n' + userMessage
+        }
+
+        if (currentChart && currentChart.type) {
+          userMessage = '[CURRENT CHART DISPLAYED]\n' + JSON.stringify(currentChart) + '\n\n[NEW TRANSCRIPT]\n' + userMessage
         }
 
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const sysPrompt = attempt === 0 ? CHART_PROMPT : CHART_PROMPT + '\nCRITICAL: Return ONLY valid JSON.'
+            const sysPrompt = attempt === 0 ? CHART_SYSTEM : CHART_SYSTEM + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No code fences.'
 
             const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 50000)
+            const timeout = setTimeout(() => controller.abort(), 30000)
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
@@ -213,7 +202,7 @@ function apiMiddleware(envVars) {
               },
               body: JSON.stringify({
                 model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
+                max_tokens: 2048,
                 system: sysPrompt,
                 messages: [{ role: 'user', content: userMessage }],
               }),
@@ -235,7 +224,17 @@ function apiMiddleware(envVars) {
             }
 
             const chartData = JSON.parse(jsonStr)
+
+            // Claude decided to skip
+            if (chartData && (chartData.skip || chartData.action === 'skip')) {
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ action: 'skip' }))
+              return
+            }
+
             if (!chartData || !chartData.type) throw new Error('Missing type')
+
+            if (!chartData.action) chartData.action = 'new'
 
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify(chartData))
@@ -246,12 +245,14 @@ function apiMiddleware(envVars) {
               res.end(JSON.stringify({ error: 'Request timed out' }))
               return
             }
-            if (attempt === 0) continue
+            if (attempt === 0 && (err instanceof SyntaxError || (err.message && err.message.includes('type')))) continue
             res.writeHead(500, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ error: err.message }))
+            res.end(JSON.stringify({ error: 'Failed to generate chart: ' + err.message }))
             return
           }
         }
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Failed to generate valid chart data after retry' }))
       })
 
       // /api/generate-sections — extract section data from transcript

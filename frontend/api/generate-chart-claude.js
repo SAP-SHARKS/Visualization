@@ -1,89 +1,53 @@
-const SYSTEM_PROMPT = `You are a data visualization expert. You will receive a SINGLE dialogue line from a conversation. Analyze ONLY that one line and produce a small, focused JSON chart about what that specific line discusses. Do NOT try to chart the entire conversation — only the single line given.
+const SYSTEM_PROMPT = `You are a real-time data visualization engine. Generate the best chart for the given text.
 
-CHART TYPE SELECTION RULES:
-- Steps, processes, workflows, "how to", sequences, cause-and-effect → flowchart
-- Dates, years, historical events, chronological progression, evolution → timeline
-- "X vs Y", pros/cons, trade-offs, comparing 2+ options/products/ideas → comparison
-- Statistics, key metrics, facts, data points about a single topic → infographic
-- Hierarchical ideas, topic breakdown, categories with subtopics, brainstorming → mindmap
+YOUR DECISIONS:
 
-If multiple types fit, prefer: flowchart > comparison > timeline > infographic > mindmap
+1. NEW — return {"action":"new", ...fullChartJSON} when:
+   - There is no current chart, OR the topic changed from the current chart
+   - This is the DEFAULT action — always generate a chart
 
-IMPORTANT: Return ONLY valid JSON. No markdown fences. No explanation. No text before or after the JSON.
+2. UPDATE — return {"action":"update", ...fullChartJSON} when:
+   - A current chart is provided AND the new text adds MORE DETAIL to the SAME topic
+   - Return the COMPLETE updated chart including ALL previous data plus additions
 
-Here are the exact JSON schemas you must follow:
+3. SKIP — return {"action":"skip"} ONLY when:
+   - The text is truly just filler with zero informational content (greetings, etc.)
+
+CHART TYPE SELECTION — pick the BEST match, DO NOT default to infographic:
+- Any process, workflow, steps, how-to, sequence, cause-effect, decision tree → FLOWCHART
+- Comparing 2+ things, pros/cons, trade-offs, "X vs Y", options → COMPARISON
+- Dates, years, history, chronological events, evolution over time → TIMELINE
+- Topic breakdown, categories, subtopics, "types of", hierarchy → MINDMAP
+- ONLY use infographic when there are specific numbers, percentages, statistics, or quantitative metrics
+
+ANTI-INFOGRAPHIC RULE: If there are NO specific numbers/percentages in the text, do NOT use infographic.
+
+VARIETY RULE: If the user message shows previously generated chart types, STRONGLY prefer a DIFFERENT type. Most topics can be visualized multiple ways — choose the best UNUSED type. Only repeat a type if the content absolutely demands it.
+
+IMPORTANT:
+- ALWAYS generate a chart when the text has any informational content
+- Return ONLY valid JSON. No markdown fences. No explanation.
+- Keep charts focused (3-6 items max)
 
 === FLOWCHART ===
-{
-  "type": "flowchart",
-  "title": "string",
-  "nodes": [
-    { "id": "string", "label": "string", "description": "string (optional)", "nodeType": "start | process | decision | end" }
-  ],
-  "edges": [
-    { "from": "node_id", "to": "node_id", "label": "string (optional)", "edgeType": "default | yes | no (optional)" }
-  ]
-}
-Rules: First node should be "start", last should be "end". Use "decision" for branching points. Generate 3-5 nodes max.
+{"action":"new|update","type":"flowchart","title":"string","nodes":[{"id":"string","label":"string","description":"optional","nodeType":"start|process|decision|end"}],"edges":[{"from":"id","to":"id","label":"optional","edgeType":"default|yes|no"}]}
+Rules: 3-6 nodes. First=start, last=end.
 
 === TIMELINE ===
-{
-  "type": "timeline",
-  "title": "string",
-  "events": [
-    { "date": "string", "title": "string", "description": "string", "icon": "string (optional emoji)" }
-  ]
-}
-Rules: Events must be in chronological order. Generate 3-5 events max.
+{"action":"new|update","type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"optional emoji"}]}
+Rules: 3-6 events in chronological order.
 
 === COMPARISON ===
-{
-  "type": "comparison",
-  "title": "string",
-  "items": [
-    {
-      "name": "string",
-      "description": "string (optional)",
-      "pros": ["string"],
-      "cons": ["string"],
-      "stats": [{ "label": "string", "value": "string or number" }]
-    }
-  ]
-}
-Rules: Generate 2-4 items. Include pros and cons when applicable. Stats are optional.
+{"action":"new|update","type":"comparison","title":"string","items":[{"name":"string","description":"optional","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string or number"}]}]}
+Rules: 2-4 items.
 
 === INFOGRAPHIC ===
-{
-  "type": "infographic",
-  "title": "string",
-  "subtitle": "string (optional)",
-  "sections": [
-    {
-      "heading": "string",
-      "value": "string (the key stat or number)",
-      "description": "string",
-      "icon": "chart | users | globe | rocket | shield | zap | heart | star | target | clock"
-    }
-  ],
-  "footer": "string (optional)"
-}
-Rules: Generate 3-4 sections max. Values should be concise numbers or short stats.
+{"action":"new|update","type":"infographic","title":"string","subtitle":"optional","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"optional"}
+Rules: 3-5 sections.
 
 === MINDMAP ===
-{
-  "type": "mindmap",
-  "title": "string",
-  "root": {
-    "label": "string",
-    "children": [
-      {
-        "label": "string",
-        "children": [{ "label": "string" }]
-      }
-    ]
-  }
-}
-Rules: Root has 2-4 children. Each child can have 1-3 sub-children. Keep labels short (2-5 words).`
+{"action":"new|update","type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]}}
+Rules: Root has 2-4 children, each with 1-3 sub-children.`
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -96,24 +60,29 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' })
 
-  const { text, forcedType } = req.body || {}
+  const { text, currentChart, existingTypes } = req.body || {}
   if (!text || typeof text !== 'string' || !text.trim()) {
     return res.status(400).json({ error: 'Text input is required' })
   }
 
   let userMessage = text.trim()
-  if (forcedType) {
-    userMessage = `[FORCED CHART TYPE: ${forcedType}] The user has requested a ${forcedType} chart. Generate ONLY a "${forcedType}" type chart regardless of text content.\n\n${userMessage}`
+
+  if (existingTypes && existingTypes.length > 0) {
+    userMessage = `[CHARTS ALREADY GENERATED: ${existingTypes.join(', ')}]\nTry a DIFFERENT chart type if the content allows it.\n\n${userMessage}`
+  }
+
+  if (currentChart && currentChart.type) {
+    userMessage = `[CURRENT CHART DISPLAYED]\n${JSON.stringify(currentChart)}\n\n[NEW TRANSCRIPT]\n${userMessage}`
   }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const systemPrompt = attempt === 0
         ? SYSTEM_PROMPT
-        : SYSTEM_PROMPT + '\n\nCRITICAL: Your previous response was not valid JSON. You MUST return ONLY valid JSON. No markdown. No explanation. No code fences. Just the raw JSON object.'
+        : SYSTEM_PROMPT + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No code fences.'
 
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 50000)
+      const timeout = setTimeout(() => controller.abort(), 30000)
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -124,7 +93,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: 2048,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],
         }),
@@ -150,9 +119,17 @@ export default async function handler(req, res) {
 
       const chartData = JSON.parse(jsonStr)
 
+      // Claude decided to skip
+      if (chartData && (chartData.skip || chartData.action === 'skip')) {
+        return res.status(200).json({ action: 'skip' })
+      }
+
       if (!chartData || !chartData.type) {
         throw new Error('Missing type field in response')
       }
+
+      // Ensure action field exists (default to "new")
+      if (!chartData.action) chartData.action = 'new'
 
       return res.status(200).json(chartData)
     } catch (err) {

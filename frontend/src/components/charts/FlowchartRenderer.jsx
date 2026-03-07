@@ -4,8 +4,8 @@ import dagre from 'dagre'
 import 'reactflow/dist/style.css'
 import { useTheme } from '../../context/ThemeContext'
 
-const NODE_WIDTH = 220
-const NODE_HEIGHT = 80
+const NODE_WIDTH = 260
+const NODE_HEIGHT = 90
 
 const nodeColorsDark = {
   start: { bg: 'rgba(61,214,140,0.15)', border: '#3dd68c', text: '#3dd68c' },
@@ -32,14 +32,14 @@ function CustomNode({ data }) {
       background: colors.bg,
       border: `2px solid ${colors.border}`,
       borderRadius: isDecision ? '4px' : '14px',
-      padding: '14px 20px',
+      padding: '16px 24px',
       minWidth: `${NODE_WIDTH - 20}px`,
       textAlign: 'center',
       transform: isDecision ? 'rotate(0deg)' : 'none',
       fontFamily: "'DM Sans', sans-serif",
     }}>
       <div style={{
-        fontSize: '13px',
+        fontSize: '15px',
         fontWeight: 600,
         color: isLight ? '#1a2d3d' : '#e8eaf0',
         marginBottom: data.description ? '4px' : 0,
@@ -48,7 +48,7 @@ function CustomNode({ data }) {
       </div>
       {data.description && (
         <div style={{
-          fontSize: '11px',
+          fontSize: '13px',
           color: isLight ? '#7AAACE' : '#6b7280',
           lineHeight: 1.4,
         }}>
@@ -61,7 +61,7 @@ function CustomNode({ data }) {
         right: '-8px',
         background: colors.border,
         color: isLight ? '#F7F8F0' : '#06080c',
-        fontSize: '8px',
+        fontSize: '9px',
         fontWeight: 700,
         padding: '2px 6px',
         borderRadius: '4px',
@@ -126,7 +126,7 @@ function FlowchartRenderer({ data }) {
       },
       labelStyle: {
         fill: isLight ? '#7AAACE' : '#9ca3af',
-        fontSize: 11,
+        fontSize: 13,
         fontFamily: "'JetBrains Mono', monospace",
       },
       labelBgStyle: {
@@ -142,12 +142,16 @@ function FlowchartRenderer({ data }) {
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
 
+  // Calculate container height based on node count so fitView doesn't over-shrink
+  const nodeCount = (data.nodes || []).length
+  const containerHeight = Math.max(400, nodeCount * (NODE_HEIGHT + 60))
+
   const onInit = useCallback((instance) => {
-    setTimeout(() => instance.fitView({ padding: 0.2 }), 100)
+    setTimeout(() => instance.fitView({ padding: 0.15 }), 100)
   }, [])
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: 0 }}>
+    <div style={{ width: '100%', height: `${containerHeight}px` }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -156,6 +160,8 @@ function FlowchartRenderer({ data }) {
         onInit={onInit}
         nodeTypes={nodeTypes}
         fitView
+        minZoom={0.8}
+        maxZoom={1.2}
         proOptions={{ hideAttribution: true }}
         style={{ background: 'transparent' }}
         nodesDraggable={false}

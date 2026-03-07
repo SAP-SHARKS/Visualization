@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import parseDialogue from '../utils/parseDialogue'
 import SpeechRecorder from '../components/SpeechRecorder'
 
@@ -254,6 +254,45 @@ const UPLOAD_CSS = `
   margin-bottom: 10px;
   flex-shrink: 0;
 }
+.go-live-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  text-decoration: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(239,68,68,0.25);
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  animation: livePulse 2.5s ease-in-out infinite;
+}
+.go-live-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(239,68,68,0.4);
+}
+.go-live-btn .live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff;
+  animation: dotBlink 1.2s infinite;
+}
+[data-theme="light"] .go-live-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+@keyframes livePulse {
+  0%,100% { box-shadow: 0 2px 12px rgba(239,68,68,0.25); }
+  50% { box-shadow: 0 2px 20px rgba(239,68,68,0.45); }
+}
+@keyframes dotBlink {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
 @media(max-width:640px) {
   .upload-header { padding: 10px 16px; }
   .upload-container { padding: 12px 16px 16px; }
@@ -432,6 +471,10 @@ export default function UploadPage() {
     <div className="upload-page">
       <header className="upload-header">
         <div className="logo">VisualScript <span className="logo-sub">Smart Transcription</span></div>
+        <Link to="/live" className="go-live-btn">
+          <span className="live-dot" />
+          Go Live
+        </Link>
       </header>
 
       <div className="upload-container">

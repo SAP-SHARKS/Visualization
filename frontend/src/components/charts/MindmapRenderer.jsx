@@ -18,9 +18,22 @@ function buildHierarchy(root) {
   return convert(root)
 }
 
+function countNodes(node) {
+  if (!node) return 0
+  let count = 1
+  if (node.children) {
+    for (const child of node.children) count += countNodes(child)
+  }
+  return count
+}
+
 function MindmapRenderer({ data }) {
   const svgRef = useRef(null)
   const containerRef = useRef(null)
+
+  // Calculate dynamic height based on total node count
+  const totalNodes = countNodes(data.root)
+  const containerHeight = Math.max(400, totalNodes * 45)
 
   useEffect(() => {
     if (!svgRef.current || !data.root) return
@@ -30,7 +43,7 @@ function MindmapRenderer({ data }) {
 
     const container = containerRef.current
     const width = container.clientWidth || 500
-    const height = Math.min(container.clientHeight || 400, Math.max(300, width * 0.55))
+    const height = containerHeight
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
@@ -79,7 +92,7 @@ function MindmapRenderer({ data }) {
 
     // Node circles
     node.append('circle')
-      .attr('r', d => d.depth === 0 ? 10 : d.children ? 7 : 5)
+      .attr('r', d => d.depth === 0 ? 12 : d.children ? 8 : 6)
       .attr('fill', d => DEPTH_COLORS[Math.min(d.depth, DEPTH_COLORS.length - 1)])
       .attr('stroke', isLight ? '#F7F8F0' : '#06080c')
       .attr('stroke-width', 2)
@@ -87,7 +100,7 @@ function MindmapRenderer({ data }) {
     // Glow for root
     node.filter(d => d.depth === 0)
       .append('circle')
-      .attr('r', 16)
+      .attr('r', 18)
       .attr('fill', 'none')
       .attr('stroke', DEPTH_COLORS[0])
       .attr('stroke-opacity', 0.2)
@@ -102,20 +115,19 @@ function MindmapRenderer({ data }) {
       .attr('fill', d => isLight
         ? (d.depth === 0 ? '#1a2d3d' : d.depth === 1 ? '#3d5a6f' : '#7AAACE')
         : (d.depth === 0 ? '#e8eaf0' : d.depth === 1 ? '#c8cad0' : '#9ca3af'))
-      .attr('font-size', d => d.depth === 0 ? 14 : d.depth === 1 ? 12 : 11)
+      .attr('font-size', d => d.depth === 0 ? 17 : d.depth === 1 ? 14 : 13)
       .attr('font-weight', d => d.depth <= 1 ? 600 : 400)
       .attr('font-family', "'DM Sans', sans-serif")
 
-  }, [data])
+  }, [data, containerHeight])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ width: '100%', height: `${containerHeight}px` }}>
       <svg
         ref={svgRef}
         style={{
           display: 'block',
           margin: '0 auto',
-          overflow: 'hidden',
         }}
       />
     </div>

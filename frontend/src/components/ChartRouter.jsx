@@ -64,8 +64,8 @@ function ChartRouter({ data }) {
 
   return (
     <Suspense fallback={<ChartLoading />}>
-      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: '380px' }}>
+        <div style={{ flex: 1, minHeight: 0 }}>
           {renderChart()}
         </div>
         {data._generationTimeMs != null && (

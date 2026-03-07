@@ -20,10 +20,10 @@ const TIMELINE_CSS = `
 .tl-card:hover{border-color:rgba(61,214,140,0.25);transform:translateY(-2px);box-shadow:0 8px 24px rgba(61,214,140,0.06);}
 .tl-card:hover::before{opacity:1;}
 .tl-dot{position:absolute;left:50%;top:28px;width:14px;height:14px;border-radius:50%;background:#3dd68c;border:3px solid #06080c;transform:translateX(-50%);z-index:2;box-shadow:0 0 12px rgba(61,214,140,0.3);}
-.tl-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3dd68c;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
-.tl-title{font-size:15px;font-weight:600;color:#e8eaf0;margin-bottom:4px;}
-.tl-desc{font-size:12px;color:#6b7280;line-height:1.6;}
-.tl-icon{font-size:20px;margin-bottom:8px;}
+.tl-date{font-family:'JetBrains Mono',monospace;font-size:13px;color:#3dd68c;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
+.tl-title{font-size:17px;font-weight:600;color:#e8eaf0;margin-bottom:6px;}
+.tl-desc{font-size:14px;color:#6b7280;line-height:1.6;}
+.tl-icon{font-size:24px;margin-bottom:8px;}
 @media(max-width:600px){
   .tl-line{left:20px;}
   .tl-event,.tl-event:nth-child(even){flex-direction:row!important;}

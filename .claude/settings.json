@@ -7,7 +7,9 @@
       "Bash(py -c \"import fastapi, websockets, dotenv; print\\(''All imports OK''\\)\")",
       "Bash(curl -s http://localhost:3001/)",
       "Bash(py -c \"import websockets; help\\(websockets.connect\\)\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)",
+      "Bash(npm run dev)",
+      "Bash(python3 server.py)"
     ]
   }
 }
