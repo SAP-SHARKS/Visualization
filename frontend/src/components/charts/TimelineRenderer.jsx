@@ -22,7 +22,7 @@ const TIMELINE_CSS = `
 .tl-dot{position:absolute;left:50%;top:28px;width:14px;height:14px;border-radius:50%;background:#3dd68c;border:3px solid #06080c;transform:translateX(-50%);z-index:2;box-shadow:0 0 12px rgba(61,214,140,0.3);}
 .tl-date{font-family:'JetBrains Mono',monospace;font-size:13px;color:#3dd68c;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
 .tl-title{font-size:17px;font-weight:600;color:#e8eaf0;margin-bottom:6px;}
-.tl-desc{font-size:14px;color:#6b7280;line-height:1.6;}
+.tl-desc{font-size:14px;color:#9ca3af;line-height:1.6;}
 .tl-icon{font-size:24px;margin-bottom:8px;}
 @media(max-width:600px){
   .tl-line{left:20px;}
@@ -30,14 +30,14 @@ const TIMELINE_CSS = `
   .tl-card{width:calc(100% - 48px);margin-left:40px;}
   .tl-dot{left:20px;top:20px;}
 }
-[data-theme="light"] .tl-line{background:linear-gradient(to bottom,transparent,rgba(53,88,114,0.25),rgba(53,88,114,0.25),transparent);}
-[data-theme="light"] .tl-card{background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(238,241,232,0.95));border-color:rgba(53,88,114,0.08);}
-[data-theme="light"] .tl-card::before{background:linear-gradient(90deg,transparent,#7AAACE,transparent);}
-[data-theme="light"] .tl-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 24px rgba(53,88,114,0.06);}
-[data-theme="light"] .tl-dot{background:#355872;border-color:#F7F8F0;box-shadow:0 0 12px rgba(53,88,114,0.2);}
-[data-theme="light"] .tl-date{color:#355872;}
-[data-theme="light"] .tl-title{color:#1a2d3d;}
-[data-theme="light"] .tl-desc{color:#7AAACE;}
+[data-theme="light"] .tl-line{background:linear-gradient(to bottom,transparent,rgba(99,102,241,0.3),rgba(99,102,241,0.3),transparent);}
+[data-theme="light"] .tl-card{background:linear-gradient(135deg,#ffffff,#f8fafc);border-color:rgba(99,102,241,0.1);box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+[data-theme="light"] .tl-card::before{background:linear-gradient(90deg,transparent,#6366f1,transparent);}
+[data-theme="light"] .tl-card:hover{border-color:rgba(99,102,241,0.3);box-shadow:0 8px 24px rgba(99,102,241,0.1);}
+[data-theme="light"] .tl-dot{background:#6366f1;border-color:#ffffff;box-shadow:0 0 12px rgba(99,102,241,0.35);}
+[data-theme="light"] .tl-date{color:#6366f1;}
+[data-theme="light"] .tl-title{color:#0f172a;}
+[data-theme="light"] .tl-desc{color:#64748b;}
 `
 
 function TimelineRenderer({ data }) {

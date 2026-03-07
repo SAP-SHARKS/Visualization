@@ -1,8 +1,9 @@
 import { useEffect, useRef, memo } from 'react'
 import * as d3 from 'd3'
+import { useTheme } from '../../context/ThemeContext'
 
 const DEPTH_COLORS_DARK = ['#3dd68c', '#60a5fa', '#f59e0b', '#a78bfa', '#ef4444']
-const DEPTH_COLORS_LIGHT = ['#355872', '#2563eb', '#d97706', '#7c3aed', '#dc2626']
+const DEPTH_COLORS_LIGHT = ['#6366f1', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444']
 
 function buildHierarchy(root) {
   if (!root) return { name: 'Root', children: [] }
@@ -30,6 +31,8 @@ function countNodes(node) {
 function MindmapRenderer({ data }) {
   const svgRef = useRef(null)
   const containerRef = useRef(null)
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
 
   // Calculate dynamic height based on total node count
   const totalNodes = countNodes(data.root)
@@ -37,8 +40,6 @@ function MindmapRenderer({ data }) {
 
   useEffect(() => {
     if (!svgRef.current || !data.root) return
-
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light'
     const DEPTH_COLORS = isLight ? DEPTH_COLORS_LIGHT : DEPTH_COLORS_DARK
 
     const container = containerRef.current
@@ -47,10 +48,9 @@ function MindmapRenderer({ data }) {
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
-    svg.attr('width', width).attr('height', height)
 
     const g = svg.append('g')
-      .attr('transform', `translate(${80}, ${height / 2})`)
+      .attr('transform', `translate(${80}, ${30})`)
 
     const hierarchy = d3.hierarchy(buildHierarchy(data.root))
     const treeLayout = d3.tree().size([height - 60, width - 200])
@@ -68,7 +68,7 @@ function MindmapRenderer({ data }) {
       )
       .attr('fill', 'none')
       .attr('stroke', d => DEPTH_COLORS[Math.min(d.source.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke-opacity', isLight ? 0.5 : 0.4)
+      .attr('stroke-opacity', isLight ? 0.6 : 0.55)
       .attr('stroke-width', d => Math.max(1, 3 - d.source.depth))
       .style('opacity', 0)
       .transition()
@@ -94,7 +94,7 @@ function MindmapRenderer({ data }) {
     node.append('circle')
       .attr('r', d => d.depth === 0 ? 12 : d.children ? 8 : 6)
       .attr('fill', d => DEPTH_COLORS[Math.min(d.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke', isLight ? '#F7F8F0' : '#06080c')
+      .attr('stroke', isLight ? '#ffffff' : '#06080c')
       .attr('stroke-width', 2)
 
     // Glow for root
@@ -113,13 +113,22 @@ function MindmapRenderer({ data }) {
       .attr('text-anchor', d => d.depth === 0 ? 'middle' : d.children ? 'middle' : 'start')
       .text(d => d.data.name)
       .attr('fill', d => isLight
-        ? (d.depth === 0 ? '#1a2d3d' : d.depth === 1 ? '#3d5a6f' : '#7AAACE')
-        : (d.depth === 0 ? '#e8eaf0' : d.depth === 1 ? '#c8cad0' : '#9ca3af'))
+        ? (d.depth === 0 ? '#0f172a' : d.depth === 1 ? '#1e293b' : '#334155')
+        : (d.depth === 0 ? '#f1f5f9' : d.depth === 1 ? '#e2e8f0' : '#cbd5e1'))
       .attr('font-size', d => d.depth === 0 ? 17 : d.depth === 1 ? 14 : 13)
       .attr('font-weight', d => d.depth <= 1 ? 600 : 400)
       .attr('font-family', "'DM Sans', sans-serif")
 
-  }, [data, containerHeight])
+    // Auto-fit SVG to content using viewBox
+    const bbox = g.node().getBBox()
+    const pad = 24
+    svg
+      .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`)
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+
+  }, [data, containerHeight, isLight])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: `${containerHeight}px` }}>
