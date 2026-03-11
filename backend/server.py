@@ -52,9 +52,11 @@ async def websocket_endpoint(websocket: WebSocket):
         params = "&".join([
             "model=nova-2",
             "language=en-US",
+            "encoding=linear16",
+            "sample_rate=16000",
+            "channels=1",
             "smart_format=true",
             "interim_results=true",
-            "utterance_end_ms=800",
             "vad_events=true",
             "endpointing=150",
         ])
@@ -62,7 +64,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Connect directly to Deepgram's WebSocket API
         headers = {"Authorization": f"Token {deepgram_api_key}"}
-        dg_ws = await websockets.connect(url, extra_headers=headers)
+        dg_ws = await websockets.connect(url, additional_headers=headers, compression=None)
 
         logger.info("Connected to Deepgram")
         await websocket.send_text(json.dumps({"type": "system", "message": "Deepgram connected and ready."}))

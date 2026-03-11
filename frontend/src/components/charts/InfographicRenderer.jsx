@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useRef, useEffect } from 'react'
 import {
   BarChart3, Users, Globe, Rocket, Shield, Zap, Heart, Star, Target, Clock
 } from 'lucide-react'
@@ -31,14 +31,11 @@ const INFO_CSS = `
 .infog-title{font-family:'DM Serif Display',serif;font-size:26px;background:linear-gradient(135deg,#e8eaf0 30%,#8a90a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
 .infog-subtitle{font-size:15px;color:#9ca3af;max-width:400px;margin:0 auto;}
 .infog-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
-.infog-card{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:22px;transition:all .3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;opacity:0;animation:infogFade .5s ease forwards;}
-.infog-card:nth-child(1){animation-delay:0.1s;}
-.infog-card:nth-child(2){animation-delay:0.15s;}
-.infog-card:nth-child(3){animation-delay:0.2s;}
-.infog-card:nth-child(4){animation-delay:0.25s;}
-.infog-card:nth-child(5){animation-delay:0.3s;}
-.infog-card:nth-child(6){animation-delay:0.35s;}
-@keyframes infogFade{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+.infog-card{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:22px;transition:all .3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;}
+.infog-card.infog-enter{animation:infogScaleIn .5s cubic-bezier(0.16,1,0.3,1) forwards;}
+@keyframes infogScaleIn{from{opacity:0;transform:scale(0.9);}to{opacity:1;transform:scale(1);}}
+.infog-card.infog-flash{animation:infogFlash .6s ease;}
+@keyframes infogFlash{0%{box-shadow:inset 0 0 0 2px rgba(61,214,140,0.4);}100%{box-shadow:none;}}
 .infog-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .3s;}
 .infog-card:hover{border-color:rgba(61,214,140,0.2);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
 .infog-card:hover::before{opacity:1;}
@@ -64,6 +61,29 @@ const INFO_CSS = `
 function InfographicRenderer({ data }) {
   const sections = data.sections || []
 
+  // Track previous sections for diff
+  const prevRef = useRef({ headings: new Set(), values: {} })
+  const prev = prevRef.current
+
+  const newSections = new Set()
+  const updatedSections = new Set()
+
+  sections.forEach((s) => {
+    const key = s.heading
+    if (!prev.headings.has(key)) {
+      newSections.add(key)
+    } else if (prev.values[key] !== s.value) {
+      updatedSections.add(key)
+    }
+  })
+
+  useEffect(() => {
+    prevRef.current = {
+      headings: new Set(sections.map(s => s.heading)),
+      values: Object.fromEntries(sections.map(s => [s.heading, s.value])),
+    }
+  }, [sections])
+
   return (
     <>
       <style>{INFO_CSS}</style>
@@ -78,11 +98,13 @@ function InfographicRenderer({ data }) {
             const iconKey = (section.icon || 'chart').toLowerCase()
             const IconComponent = ICON_MAP[iconKey] || BarChart3
             const colorScheme = ICON_COLORS[i % ICON_COLORS.length]
+            const isNew = newSections.has(section.heading)
+            const isUpdated = updatedSections.has(section.heading)
 
             return (
               <div
-                className="infog-card"
-                key={i}
+                className={`infog-card${isNew ? ' infog-enter' : isUpdated ? ' infog-flash' : ''}`}
+                key={section.heading}
                 style={{ '--card-color': colorScheme.color }}
               >
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${colorScheme.color}, transparent)` }} className="infog-card-line"></div>

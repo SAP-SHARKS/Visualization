@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import parseDialogue from '../utils/parseDialogue'
-import SpeechRecorder from '../components/SpeechRecorder'
 
 const UPLOAD_CSS = `
 .upload-page {
@@ -406,7 +405,6 @@ const UPLOAD_CSS = `
 export default function UploadPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [partialTranscript, setPartialTranscript] = useState('')
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
@@ -447,25 +445,13 @@ export default function UploadPage() {
       setError('Title and dialogue content are required')
       return
     }
-    const finalContent = (content + ' ' + partialTranscript).trim()
-    const data = parseDialogue(finalContent)
+    const data = parseDialogue(content.trim())
     if (data.lines.length === 0) {
       setError('No dialogue lines detected. Check the format: Speaker Name: Dialogue text')
       return
     }
-    navigate('/visualize', { state: { title, content: finalContent, graphData: data } })
+    navigate('/visualize', { state: { title, content: content.trim(), graphData: data } })
   }
-
-  const handleTranscriptUpdate = (text) => {
-    setPartialTranscript(text)
-  }
-
-  const handleTranscriptFinalize = (text) => {
-    setContent((prev) => (prev + ' ' + text).trim())
-    setPartialTranscript('')
-  }
-
-  const displayContent = (content + (content && partialTranscript ? ' ' : '') + partialTranscript).trim()
 
   return (
     <div className="upload-page">
@@ -521,20 +507,11 @@ export default function UploadPage() {
           </div>
 
           <div className="upload-form-group grow">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '6px' }}>
-              <label style={{ marginBottom: 0 }}>Dialogue Content</label>
-              <SpeechRecorder
-                onTranscriptUpdate={handleTranscriptUpdate}
-                onTranscriptFinalize={handleTranscriptFinalize}
-              />
-            </div>
+            <label>Dialogue Content</label>
             <textarea
               className="upload-textarea"
-              value={displayContent}
-              onChange={(e) => {
-                setContent(e.target.value)
-                setPartialTranscript('')
-              }}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               placeholder={`Host: So walk me through the product — how does a user get started?\nFounder: First, you download the app. Then through Plaid, the app links directly to your bank account.`}
             />
           </div>

@@ -2,11 +2,11 @@ import { memo, lazy, Suspense } from 'react'
 import ChartLoading from './ChartLoading'
 
 // Lazy-load renderers to reduce initial bundle size
-const FlowchartRenderer = lazy(() => import('./charts/FlowchartRenderer'))
 const TimelineRenderer = lazy(() => import('./charts/TimelineRenderer'))
 const ComparisonRenderer = lazy(() => import('./charts/ComparisonRenderer'))
 const InfographicRenderer = lazy(() => import('./charts/InfographicRenderer'))
 const MindmapRenderer = lazy(() => import('./charts/MindmapRenderer'))
+const MermaidRenderer = lazy(() => import('./charts/MermaidRenderer'))
 
 function FallbackRenderer({ data }) {
   return (
@@ -38,7 +38,9 @@ function ChartRouter({ data }) {
   const renderChart = () => {
     switch (data.type) {
       case 'flowchart':
-        return <FlowchartRenderer data={data} />
+      case 'mermaid_flowchart':
+      case 'mermaid_sequence':
+        return <MermaidRenderer data={data} />
       case 'timeline':
         return <TimelineRenderer data={data} />
       case 'comparison':
@@ -64,8 +66,8 @@ function ChartRouter({ data }) {
 
   return (
     <Suspense fallback={<ChartLoading />}>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: '380px' }}>
-        <div style={{ flex: 1, minHeight: 0 }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: '100%', minHeight: '380px' }}>
           {renderChart()}
         </div>
         {data._generationTimeMs != null && (

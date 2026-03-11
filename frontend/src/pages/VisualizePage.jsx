@@ -1,15 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import useMultiChartGeneration from '../hooks/useMultiChartGeneration'
-import useMultiChartGenerationClaude from '../hooks/useMultiChartGenerationClaude'
-import useBackgroundPregen from '../hooks/useBackgroundPregen'
-import useBackgroundPregenClaude from '../hooks/useBackgroundPregenClaude'
 import ChartRouter from '../components/ChartRouter'
-import ChartLoading from '../components/ChartLoading'
-import ChartError from '../components/ChartError'
-import ChartExportButton from '../components/charts/ChartExportButton'
 import useSectionGeneration from '../hooks/useSectionGeneration'
-import { askAI } from '../services/chartAI'
+import { askAI, generateTranscriptVisuals, generateNapkinVisual } from '../services/chartAI'
+import { saveUploadSession } from '../services/sessionStorage'
 
 // ==================== CSS ====================
 const PAGE_CSS = `
@@ -106,6 +100,50 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
 .visual-chart-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto;}
 .visual-chart-area>div{flex:1;min-height:0;max-height:100%;}
 .dialogue-progress-inline{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);background:rgba(61,214,140,0.06);padding:3px 8px;border-radius:4px;}
+
+.dual-panel-layout{display:flex;gap:0;height:calc(100vh - 120px);min-height:600px;border-radius:20px;overflow:hidden;border:1px solid var(--border);background:var(--surface);}
+.dual-visual-panel{display:flex;flex-direction:column;overflow:hidden;flex:1;min-width:0;border-right:1px solid var(--border);}
+.dual-transcript-panel{display:flex;flex-direction:column;overflow:hidden;width:340px;flex-shrink:0;}
+.dual-visual-feed{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;display:flex;flex-direction:column;gap:24px;scroll-behavior:smooth;}
+.dual-visual-feed::-webkit-scrollbar{width:4px;}
+.dual-visual-feed::-webkit-scrollbar-track{background:transparent;}
+.dual-visual-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+.ai-visuals-feed{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:16px;}
+.ai-visual-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.04);animation:fadeUp .6s ease forwards;transition:border-color .3s ease,box-shadow .3s ease;}
+.ai-visual-card:hover{border-color:rgba(61,214,140,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.15);}
+.ai-visual-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:16px 16px 0 0;background:var(--surface);}
+.ai-visual-card-title{font-size:15px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ai-visual-card-type{font-size:10px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);background:var(--accent-glow);padding:3px 10px;border-radius:10px;flex-shrink:0;}
+.ai-visual-card-body{padding:16px;min-height:350px;position:relative;}
+.ai-visual-card-body > div{min-height:350px;width:100%;}
+.ai-visual-card-transcript{border-top:1px solid var(--border);max-height:0;overflow:hidden;transition:max-height 0.3s ease;}
+.ai-visual-card-transcript.open{max-height:300px;}
+.ai-visual-card-transcript-toggle{padding:8px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);transition:color .2s;background:none;border-left:none;border-right:none;border-bottom:none;width:100%;text-align:left;}
+.ai-visual-card-transcript-toggle:hover{color:var(--accent);}
+.ai-visual-card-transcript-toggle .arrow{transition:transform .2s;font-size:10px;}
+.ai-visual-card-transcript-toggle .arrow.open{transform:rotate(90deg);}
+.ai-visual-card-transcript-content{padding:12px 18px;overflow-y:auto;max-height:260px;font-size:12px;line-height:1.7;color:var(--text-dim);font-family:'DM Sans',sans-serif;}
+.ai-visuals-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 24px;color:var(--text-dim);font-size:14px;font-family:'JetBrains Mono',monospace;}
+.ai-visuals-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-visuals-error{text-align:center;color:var(--red);padding:40px;font-size:13px;}
+.source-toggle-vis{display:flex;align-items:center;background:var(--surface-2);border-radius:8px;padding:2px;gap:2px;flex-shrink:0;}
+.source-toggle-vis-btn{padding:4px 12px;border-radius:6px;border:none;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;transition:all .2s;background:transparent;color:var(--text-dim);}
+.source-toggle-vis-btn.active{background:var(--accent);color:#06080c;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+[data-theme="light"] .source-toggle-vis-btn.active{color:#ffffff;}
+.napkin-img-container{width:100%;min-height:350px;display:flex;align-items:center;justify-content:center;padding:16px;}
+.napkin-img-container img{max-width:100%;object-fit:contain;border-radius:8px;}
+.napkin-loading-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:350px;color:var(--text-dim);font-size:13px;}
+.napkin-error-msg{display:flex;align-items:center;justify-content:center;min-height:350px;color:var(--text-dim);font-size:13px;text-align:center;padding:24px;}
+@media(max-width:900px){.ai-visuals-feed{grid-template-columns:1fr;}.dual-panel-layout{flex-direction:column;height:auto;min-height:0;}.dual-transcript-panel{width:100%;height:400px;border-top:1px solid var(--border);}.dual-visual-panel{border-right:none;height:500px;}.dual-visual-feed{padding:12px;}}
+@media(max-width:600px){.dual-transcript-panel{height:350px;}.dual-visual-panel{height:400px;}}
+[data-theme="light"] .dual-panel-layout{border-color:rgba(53,88,114,0.1);background:#ffffff;}
+[data-theme="light"] .dual-visual-panel{border-right-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .ai-visual-card{background:#ffffff;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .ai-visual-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 32px rgba(53,88,114,0.08);}
+[data-theme="light"] .ai-visual-card-header{background:#ffffff;}
+[data-theme="light"] .ai-visual-card-type{color:#355872;background:rgba(53,88,114,0.08);}
 
 .flow-container{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;}
 .flow-node{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:16px;padding:20px 28px;text-align:center;width:280px;position:relative;transition:all .4s cubic-bezier(0.4,0,0.2,1);overflow:hidden;}
@@ -473,6 +511,71 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
 
 const SECTIONS = ['transcript', 'timeline', 'speakers', 'concepts', 'suggestions', 'actions', 'quiz', 'ask']
 
+// ==================== AI Visual Card Component ====================
+function AIVisualCard({ item, showClaude }) {
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
+
+  return (
+    <div className="ai-visual-card">
+      <div className="ai-visual-card-header">
+        <span className="ai-visual-card-title">
+          {item.claudeChart?.title || item.topicSummary || 'Visual'}
+        </span>
+        <span className="ai-visual-card-type">
+          {item.claudeChart?.type?.replace('_', ' ') || 'chart'}
+        </span>
+      </div>
+
+      <div className="ai-visual-card-body">
+        <div data-chart-id={item.id}>
+          {showClaude ? (
+            <ChartRouter data={item.claudeChart} />
+          ) : (
+            item.napkinLoading ? (
+              <div className="napkin-loading-indicator">
+                <div className="ai-visuals-spinner" />
+                <span>Generating Napkin AI visual...</span>
+              </div>
+            ) : item.napkinError ? (
+              <div className="napkin-error-msg">
+                <span>Napkin AI: {item.napkinError}</span>
+              </div>
+            ) : item.napkinImage ? (
+              <div className="napkin-img-container">
+                <img
+                  src={item.napkinImage}
+                  alt={item.claudeChart?.title || 'Napkin Visual'}
+                />
+              </div>
+            ) : (
+              <div className="napkin-error-msg">
+                <span>No Napkin visual available</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {item.transformedTranscript && (
+        <>
+          <button
+            className="ai-visual-card-transcript-toggle"
+            onClick={() => setTranscriptOpen(o => !o)}
+          >
+            <span className={`arrow${transcriptOpen ? ' open' : ''}`}>&#9654;</span>
+            <span>View Transcript Context</span>
+          </button>
+          <div className={`ai-visual-card-transcript${transcriptOpen ? ' open' : ''}`}>
+            <div className="ai-visual-card-transcript-content">
+              {item.transformedTranscript}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ==================== COMPONENT ====================
 export default function VisualizePage() {
   const location = useLocation()
@@ -496,28 +599,12 @@ export default function VisualizePage() {
   const quizData = sections?.quizData || []
   const suggestedQs = sections?.suggestedQs || []
 
-  // Visual mode tabs — mapped to AI chart types
-  const MODES = [
-    { label: 'Flowchart', type: 'flowchart' },
-    { label: 'Infographic', type: 'infographic' },
-    { label: 'Napkin', type: 'mindmap' },
-    { label: 'Sankey', type: 'timeline' },
-    { label: 'Compare', type: 'comparison' },
-  ]
-  const [currentMode, setCurrentMode] = useState(0)
-  const forcedType = MODES[currentMode].type
-
-  // Napkin.ai chart generation
-  const { charts, loading: chartLoadingSet, errors: chartErrors, progress, retryLine } = useMultiChartGeneration(lines, forcedType)
-  const { totalDone, totalNeeded } = useBackgroundPregen(lines)
-
-  // Claude chart generation (parallel)
-  const { charts: claudeCharts, loading: claudeLoadingSet, errors: claudeErrors, progress: claudeProgress, retryLine: claudeRetryLine } = useMultiChartGenerationClaude(lines, forcedType)
-  const { totalDone: claudeTotalDone, totalNeeded: claudeTotalNeeded } = useBackgroundPregenClaude(lines)
-
-  // Toggle: 'napkin' or 'claude'
-  const [chartSource, setChartSource] = useState('napkin')
-  const chartExportRef = useRef(null)
+  // AI Visuals feed — generated from complete transcript
+  // Each item: { id, claudeChart, napkinImage, napkinLoading, napkinError, transformedTranscript, topicSummary }
+  const [chartFeed, setChartFeed] = useState([])
+  const [visualsLoading, setVisualsLoading] = useState(false)
+  const [visualsError, setVisualsError] = useState(null)
+  const [viewSource, setViewSource] = useState('claude')
 
   const [currentStep, setCurrentStep] = useState(0)
   const [activeNav, setActiveNav] = useState('transcript')
@@ -526,6 +613,10 @@ export default function VisualizePage() {
   const [actionsDone, setActionsDone] = useState({})
   const [askInput, setAskInput] = useState('')
   const [threads, setThreads] = useState([])
+
+  // Supabase save state
+  const [sessionSaved, setSessionSaved] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   const transcriptRef = useRef(null)
   const sectionRefs = useRef({})
@@ -544,6 +635,81 @@ export default function VisualizePage() {
       if (el) el.remove()
     }
   }, [])
+
+  // Generate AI visuals from complete transcript
+  useEffect(() => {
+    if (!content || chartFeed.length > 0 || visualsLoading) return
+
+    let cancelled = false
+    setVisualsLoading(true)
+    setVisualsError(null)
+
+    generateTranscriptVisuals(content).then(({ charts, error }) => {
+      if (cancelled) return
+      if (error) {
+        setVisualsError(error)
+        setVisualsLoading(false)
+        return
+      }
+
+      // Build feed items from Claude charts
+      const feed = charts.map((chart, idx) => ({
+        id: idx + 1,
+        claudeChart: chart,
+        topicSummary: chart.topicSummary || chart.title,
+        transformedTranscript: chart.transformedTranscript || null,
+        napkinImage: null,
+        napkinLoading: true,
+        napkinError: null,
+      }))
+      setChartFeed(feed)
+      setVisualsLoading(false)
+
+      // Fire Napkin AI generation in parallel for each chart
+      feed.forEach((item) => {
+        const text = item.transformedTranscript || item.topicSummary || ''
+        if (!text.trim()) {
+          setChartFeed(prev => prev.map(f =>
+            f.id === item.id ? { ...f, napkinLoading: false, napkinError: 'No text for visual' } : f
+          ))
+          return
+        }
+
+        generateNapkinVisual(text, item.claudeChart?.napkinVisualType || null).then(({ imageUrl, error: napErr }) => {
+          if (cancelled) return
+          setChartFeed(prev => prev.map(f =>
+            f.id === item.id
+              ? { ...f, napkinImage: imageUrl || null, napkinLoading: false, napkinError: napErr || (imageUrl ? null : 'No image returned') }
+              : f
+          ))
+        })
+      })
+    })
+
+    return () => { cancelled = true }
+  }, [content])
+
+  // Auto-save to Supabase when charts and sections are both ready
+  useEffect(() => {
+    if (sessionSaved || !content) return
+    if (visualsLoading || sectionsLoading) return
+    if (chartFeed.length === 0 && !visualsError) return
+
+    setSessionSaved(true)
+    saveUploadSession({
+      title: title || 'Untitled',
+      transcript: content,
+      chartFeed,
+      sections: sections || null,
+    }).then(({ sessionId, error }) => {
+      if (error) {
+        setSaveError(error)
+        if (error !== 'Supabase not configured') {
+          console.error('Session save failed:', error)
+        }
+      }
+    })
+  }, [chartFeed, sections, visualsLoading, sectionsLoading, sessionSaved, content, title, visualsError])
 
   // Scroll-based transcript line highlighting
   useEffect(() => {
@@ -633,7 +799,7 @@ export default function VisualizePage() {
         </nav>
       </header>
 
-      {/* HERO + TRANSCRIPT */}
+      {/* HERO + TRANSCRIPT & AI VISUALS SIDE BY SIDE */}
       <div className="section" id="transcript" ref={el => sectionRefs.current.transcript = el}>
         <div className="section-label">Call Summary</div>
         <div className="section-title">{title}</div>
@@ -646,90 +812,69 @@ export default function VisualizePage() {
           <div className="stat-card"><div className="stat-value">{graphData.exchanges}</div><div className="stat-label">Exchanges</div></div>
         </div>
 
-        <div className="transcript-layout">
-          <div className="transcript-panel">
-            <div className="panel-header"><div className="dot"></div>CALL TRANSCRIPT</div>
-            <div className="transcript-body" ref={transcriptRef}>
-              {lines.map((line, i) => (
-                <div key={i} className={`t-line${i === currentStep ? ' active' : ''}`} data-step={i} onClick={() => setCurrentStep(i)}>
-                  <span className={`speaker ${line.role}`}>{line.speaker}</span>
-                  {line.timestamp && <span className="timestamp">{line.timestamp}</span>}
-                  {line.text}
+        <div className="dual-panel-layout">
+          {/* Left: AI Visuals scrollable feed */}
+          <div className="dual-visual-panel">
+            <div className="panel-header">
+              <div className="dot"></div>
+              AI Visuals
+              <div style={{ flex: 1 }} />
+              <div className="source-toggle-vis">
+                <button
+                  className={`source-toggle-vis-btn${viewSource === 'claude' ? ' active' : ''}`}
+                  onClick={() => setViewSource('claude')}
+                >
+                  Claude
+                </button>
+                <button
+                  className={`source-toggle-vis-btn${viewSource === 'napkin' ? ' active' : ''}`}
+                  onClick={() => setViewSource('napkin')}
+                >
+                  Napkin AI
+                </button>
+              </div>
+            </div>
+
+            <div className="dual-visual-feed">
+              {visualsLoading && (
+                <div className="ai-visuals-loading">
+                  <div className="ai-visuals-spinner" />
+                  <span>Analyzing transcript...</span>
                 </div>
+              )}
+
+              {visualsError && !visualsLoading && (
+                <div className="ai-visuals-error">
+                  Failed to generate visuals: {visualsError}
+                </div>
+              )}
+
+              {!visualsLoading && !visualsError && chartFeed.length === 0 && (
+                <div className="ai-visuals-loading">
+                  <span>Visuals will appear here</span>
+                </div>
+              )}
+
+              {chartFeed.map((item) => (
+                <AIVisualCard
+                  key={item.id}
+                  item={item}
+                  showClaude={viewSource === 'claude'}
+                />
               ))}
             </div>
           </div>
 
-          <div className="visual-panel" style={{ position: 'relative' }}>
-            <div className="panel-header"><div className="dot" style={{ background: 'var(--purple)' }}></div>VISUAL BREAKDOWN</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
-              <div className="visual-modes">
-                {MODES.map((m, i) => (
-                  <button key={m.type} className={'vmode-btn' + (currentMode === i ? ' active' : '')} onClick={() => setCurrentMode(i)}>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '4px', background: 'var(--surface)', borderRadius: '10px', padding: '3px', border: '1px solid var(--border)' }}>
-                <button
-                  onClick={() => setChartSource('napkin')}
-                  style={{
-                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                    background: chartSource === 'napkin' ? 'linear-gradient(135deg, #a78bfa, #818cf8)' : 'transparent',
-                    color: chartSource === 'napkin' ? '#fff' : 'var(--text-dim)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Napkin.ai
-                </button>
-                <button
-                  onClick={() => setChartSource('claude')}
-                  style={{
-                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                    background: chartSource === 'claude' ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'transparent',
-                    color: chartSource === 'claude' ? '#fff' : 'var(--text-dim)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Claude AI
-                </button>
-              </div>
+          {/* Right: Transcript scrollable panel */}
+          <div className="dual-transcript-panel">
+            <div className="panel-header"><div className="dot"></div>Transcript</div>
+            <div className="transcript-body" ref={transcriptRef}>
+              {lines.map((line, i) => (
+                <div key={i} className={`t-line${i === currentStep ? ' active' : ''}`} data-step={i} onClick={() => setCurrentStep(i)}>
+                  {line.text}
+                </div>
+              ))}
             </div>
-            <div className="visual-content" ref={chartExportRef}>
-              {(() => {
-                const activeCharts = chartSource === 'claude' ? claudeCharts : charts
-                const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
-                const activeErrors = chartSource === 'claude' ? claudeErrors : chartErrors
-                const activeProgress = chartSource === 'claude' ? claudeProgress : progress
-                const activeRetry = chartSource === 'claude' ? claudeRetryLine : retryLine
-
-                const chart = activeCharts.get(currentStep)
-                const isLoading = activeLoading.has(currentStep)
-                const error = activeErrors.get(currentStep)
-
-                return (
-                  <>
-                    <div className="visual-chart-area">
-                      {isLoading && <ChartLoading />}
-                      {error && !isLoading && <ChartError error={error} onRetry={() => activeRetry(currentStep)} />}
-                      {chart && !isLoading && !error && <ChartRouter data={chart} />}
-                      {!chart && !isLoading && !error && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-dim)', fontSize: '13px', fontFamily: "'JetBrains Mono', monospace" }}>
-                          {currentStep >= activeProgress ? 'Generating...' : 'Waiting...'}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )
-              })()}
-            </div>
-            {(() => {
-              const activeCharts = chartSource === 'claude' ? claudeCharts : charts
-              const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
-              return activeCharts.get(currentStep) && !activeLoading.has(currentStep) && <ChartExportButton targetRef={chartExportRef} filename={(title || 'chart') + '-' + (currentStep + 1)} />
-            })()}
           </div>
         </div>
       </div>

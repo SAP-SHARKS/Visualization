@@ -46,7 +46,7 @@ function apiMiddleware(envVars) {
           // Build Napkin request
           const napkinBody = {
             format: 'svg',
-            content: text.trim(),
+            content: '[IMPORTANT: All text in the visual MUST be in English.]\n\n' + text.trim(),
             style_id: DEFAULT_STYLE,
             number_of_visuals: 1,
           }
@@ -142,7 +142,7 @@ function apiMiddleware(envVars) {
         }
       })
 
-      // /api/generate-chart-claude — chart generation using Claude API
+      // /api/generate-chart-claude — evolving chart generation using Claude API
       server.middlewares.use('/api/generate-chart-claude', async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
@@ -160,10 +160,19 @@ function apiMiddleware(envVars) {
         let parsed
         try { parsed = JSON.parse(body) } catch { parsed = {} }
 
-        const { text, currentChart, existingTypes } = parsed
-        if (!text) {
+        const { newSentences, allTopicSentences, currentChart, topicSummary, existingTypes } = parsed
+
+        // Support both new format (newSentences) and legacy (text)
+        let sentences = newSentences
+        let allSentences = allTopicSentences
+        if (!sentences && parsed.text) {
+          sentences = [parsed.text]
+          allSentences = [parsed.text]
+        }
+
+        if (!sentences || !Array.isArray(sentences) || sentences.length === 0) {
           res.writeHead(400, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'Text is required' }))
+          res.end(JSON.stringify({ error: 'newSentences array is required' }))
           return
         }
 
@@ -174,17 +183,226 @@ function apiMiddleware(envVars) {
           return
         }
 
-        const CHART_SYSTEM = 'You are a real-time data visualization engine. Generate the best chart for the given text.\n\nYOUR DECISIONS:\n\n1. NEW — return {"action":"new", ...fullChartJSON} when:\n   - There is no current chart, OR the topic changed from the current chart\n   - This is the DEFAULT action — always generate a chart\n\n2. UPDATE — return {"action":"update", ...fullChartJSON} when:\n   - A current chart is provided AND the new text adds MORE DETAIL to the SAME topic\n   - Return the COMPLETE updated chart including ALL previous data plus additions\n\n3. SKIP — return {"action":"skip"} ONLY when:\n   - The text is truly just filler with zero informational content (greetings, etc.)\n\nCHART TYPE SELECTION — pick the BEST match, DO NOT default to infographic:\n- Any process, workflow, steps, how-to, sequence, cause-effect, decision tree → FLOWCHART\n- Comparing 2+ things, pros/cons, trade-offs, "X vs Y", options → COMPARISON\n- Dates, years, history, chronological events, evolution over time → TIMELINE\n- Topic breakdown, categories, subtopics, "types of", hierarchy → MINDMAP\n- ONLY use infographic when there are specific numbers, percentages, statistics, or quantitative metrics\n\nANTI-INFOGRAPHIC RULE: If there are NO specific numbers/percentages in the text, do NOT use infographic.\n\nVARIETY RULE: If the user message shows previously generated chart types, STRONGLY prefer a DIFFERENT type. Most topics can be visualized multiple ways — choose the best UNUSED type. Only repeat a type if the content absolutely demands it.\n\nIMPORTANT:\n- ALWAYS generate a chart when the text has any informational content\n- Return ONLY valid JSON. No markdown fences. No explanation.\n- Keep charts focused (3-6 items max)\n\n=== FLOWCHART ===\n{"action":"new|update","type":"flowchart","title":"string","nodes":[{"id":"string","label":"string","description":"optional","nodeType":"start|process|decision|end"}],"edges":[{"from":"id","to":"id","label":"optional","edgeType":"default|yes|no"}]}\nRules: 3-6 nodes. First=start, last=end.\n\n=== TIMELINE ===\n{"action":"new|update","type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"optional emoji"}]}\nRules: 3-6 events in chronological order.\n\n=== COMPARISON ===\n{"action":"new|update","type":"comparison","title":"string","items":[{"name":"string","description":"optional","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string or number"}]}]}\nRules: 2-4 items.\n\n=== INFOGRAPHIC ===\n{"action":"new|update","type":"infographic","title":"string","subtitle":"optional","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"optional"}\nRules: 3-5 sections.\n\n=== MINDMAP ===\n{"action":"new|update","type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]}}\nRules: Root has 2-4 children, each with 1-3 sub-children.'
+        const CHART_SYSTEM = `You are a real-time data visualization engine for live MEETINGS.
+You create charts ONLY for substantive, chart-worthy content that helps someone understand key discussion points at a glance.
 
-        let userMessage = text.trim()
+You receive transcript sentences from a live meeting. Your job:
+
+1. decide if the content is worth visualizing
+2. if yes, decide UPDATE or NEW
+3. generate the chart
+
+=== THREE ACTIONS ===
+
+1. SKIP — return {"action":"skip"}
+
+SKIP ONLY for pure filler with ZERO informational content:
+
+* greetings or introductions ("hi everyone", "thanks for joining")
+* small talk
+* meeting logistics ("can you hear me", "let me share my screen")
+* pure conversational filler ("as I was saying", "good point")
+
+If the sentence contains ANY idea, concept, plan, fact, or explanation, do NOT skip.
+
+2. UPDATE — expand the current chart.
+
+Return:
+{"action":"update","topicSummary":"2-6 words", ...fullChartJSON}
+
+Use UPDATE when the speaker continues discussing the SAME topic.
+
+Typical UPDATE situations:
+
+* adding another step in a process
+* expanding an existing node
+* adding another example
+* adding detail to an existing concept
+* continuing the same explanation
+
+The chart should grow naturally as the topic is explained.
+
+Do NOT remove previous nodes when updating.
+
+3. NEW — create a fresh chart.
+
+Return:
+{"action":"new","topicSummary":"2-6 words", ...fullChartJSON}
+
+Use NEW only when the discussion clearly shifts.
+
+Examples of when NEW is appropriate:
+
+* a different topic is introduced
+* the speaker starts explaining a different system
+* the discussion moves from process → comparison
+* the meeting shifts to planning, risks, costs, or metrics
+* explicit transitions appear ("next topic", "moving on")
+
+Minor clarifications or examples should NOT trigger NEW.
+
+=== TOPIC CONTINUITY RULE ===
+
+Meetings usually explain one topic over multiple sentences.
+
+While the speaker continues discussing the same idea,
+keep updating the existing chart.
+
+Create a NEW chart only when the explanation changes direction.
+
+=== SUBTOPIC GUIDELINE ===
+
+Not every subtopic needs a new chart.
+
+Create NEW only if the subtopic would be confusing inside the current chart.
+
+Example:
+
+Topic: API authentication workflow
+
+Sentence: "Client sends login request" → NEW chart
+
+Sentence: "Server validates credentials" → UPDATE
+
+Sentence: "JWT token is generated" → UPDATE
+
+Sentence: "Token expires after 15 minutes" → UPDATE
+
+But if the speaker says:
+
+"We should compare OAuth and API keys"
+
+→ NEW comparison chart
+
+=== CHART SIZE GUIDELINES ===
+
+Charts can grow to a reasonable size before creating a new one.
+
+flowchart → up to 10 nodes
+timeline → up to 8 events
+mindmap → up to 8 branches
+sequence → up to 12 interactions
+comparison → 3-4 items
+infographic → 4-8 metrics
+
+If the chart becomes too crowded, create a NEW continuation chart.
+
+=== CHART TYPE SELECTION (for NEW charts) ===
+
+Choose the best visual format.
+
+Process, workflow, steps, architecture → mermaid_flowchart
+Interactions between systems or people → mermaid_sequence
+Dates, milestones, roadmap → timeline
+Pros/cons or comparisons → comparison
+Topic breakdown or brainstorming → mindmap
+ONLY when 3+ numbers or percentages appear → infographic
+
+=== ANTI-INFOGRAPHIC RULE ===
+
+If fewer than 3 numbers or percentages appear in the transcript, do NOT use infographic.
+
+=== CHART QUALITY ===
+
+Each chart should be understandable within 5 seconds.
+
+Rules:
+
+* use real terms from the transcript
+* avoid generic labels like "Step 1"
+* keep the structure clean and readable
+* avoid unnecessary complexity
+
+=== TRANSFORMED TRANSCRIPT ===
+
+Every NEW and UPDATE response MUST include "transformedTranscript".
+
+This is a clean, cumulative summary of ALL transcript content covered by this chart.
+
+Rules:
+
+* ALWAYS write in English, regardless of the transcript language
+* remove filler words
+* merge repeated ideas
+* preserve important facts and numbers
+* write clearly and professionally
+
+CRITICAL — UPDATE behavior:
+When returning an UPDATE, the transformedTranscript must contain ALL information from the CURRENT chart's transformedTranscript PLUS the new sentences.
+Do NOT discard or summarize away previous content. APPEND and merge new information into the existing text.
+The transformedTranscript should grow as the chart grows — it is the complete written record of everything this chart covers.
+
+=== NAPKIN VISUAL TYPE ===
+
+Every NEW and UPDATE response MUST include "napkinVisualType".
+This tells Napkin AI what kind of visual to generate.
+
+Mapping:
+mermaid_flowchart → "flowchart"
+mermaid_sequence → "sequence diagram"
+timeline → "timeline"
+comparison → "comparison table"
+mindmap → "mind map"
+infographic → "infographic"
+
+=== LANGUAGE RULE ===
+
+ALL output MUST be in English — titles, labels, mermaidCode, topicSummary, transformedTranscript.
+Even if the transcript is in another language, translate everything to English.
+
+=== JSON SCHEMAS ===
+
+MERMAID FLOWCHART:
+{"action":"new|update","topicSummary":"string","type":"mermaid_flowchart","title":"string","mermaidCode":"graph TD\\n  A[Start] --> B{Decision}\\n  B -->|Yes| C[Process]\\n  B -->|No| D[End]","transformedTranscript":"string","napkinVisualType":"flowchart"}
+
+MERMAID SEQUENCE:
+{"action":"new|update","topicSummary":"string","type":"mermaid_sequence","title":"string","mermaidCode":"sequenceDiagram\\n  participant A as User\\n  participant B as Server\\n  A->>B: Request\\n  B-->>A: Response","transformedTranscript":"string","napkinVisualType":"sequence diagram"}
+
+TIMELINE:
+{"action":"new|update","topicSummary":"string","type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"optional emoji"}],"transformedTranscript":"string","napkinVisualType":"timeline"}
+
+COMPARISON:
+{"action":"new|update","topicSummary":"string","type":"comparison","title":"string","items":[{"name":"string","description":"optional","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string"}]}],"transformedTranscript":"string","napkinVisualType":"comparison table"}
+
+INFOGRAPHIC:
+{"action":"new|update","topicSummary":"string","type":"infographic","title":"string","subtitle":"optional","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"optional","transformedTranscript":"string","napkinVisualType":"infographic"}
+
+MINDMAP:
+{"action":"new|update","topicSummary":"string","type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]},"transformedTranscript":"string","napkinVisualType":"mind map"}
+
+Return ONLY valid JSON.
+No markdown.
+No explanation.
+
+=== DECISION PROCESS ===
+
+1. If the content is pure filler → SKIP
+2. If the speaker continues the same explanation → UPDATE
+3. If the discussion clearly shifts topic → NEW`
+
+        // Build structured user message
+        let userMessage = ''
 
         if (existingTypes && existingTypes.length > 0) {
-          userMessage = '[CHARTS ALREADY GENERATED: ' + existingTypes.join(', ') + ']\nTry a DIFFERENT chart type if the content allows it.\n\n' + userMessage
+          userMessage += '[CHARTS ALREADY GENERATED: ' + existingTypes.join(', ') + ']\nStrongly prefer a DIFFERENT chart type.\n\n'
         }
 
         if (currentChart && currentChart.type) {
-          userMessage = '[CURRENT CHART DISPLAYED]\n' + JSON.stringify(currentChart) + '\n\n[NEW TRANSCRIPT]\n' + userMessage
+          userMessage += '[CURRENT CHART]\n' + JSON.stringify(currentChart) + '\n'
+          if (topicSummary) {
+            userMessage += '[CURRENT TOPIC SUMMARY: ' + topicSummary + ']\n'
+          }
+          userMessage += '\n'
+        } else {
+          userMessage += '[NO CHART EXISTS YET — you MUST return action:"new"]\n\n'
         }
+
+        if (allSentences && allSentences.length > 0) {
+          userMessage += '[PREVIOUS TRANSCRIPT SENTENCES]\n' + allSentences.join('\n') + '\n\n'
+        }
+
+        userMessage += '[NEW SENTENCES TO PROCESS]\n' + sentences.join('\n') + '\n\n'
+        userMessage += 'DECISION:\n1. If the content is pure filler → SKIP\n2. If the speaker continues the same explanation → UPDATE\n3. If the discussion clearly shifts topic → NEW'
 
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
@@ -225,7 +443,6 @@ function apiMiddleware(envVars) {
 
             const chartData = JSON.parse(jsonStr)
 
-            // Claude decided to skip
             if (chartData && (chartData.skip || chartData.action === 'skip')) {
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ action: 'skip' }))
@@ -438,6 +655,218 @@ function apiMiddleware(envVars) {
           res.writeHead(500, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: err.message }))
         }
+      })
+
+      // /api/generate-transcript-visuals — analyze complete transcript and generate multiple charts
+      server.middlewares.use('/api/generate-transcript-visuals', async (req, res) => {
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+          res.end()
+          return
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        let body = ''
+        for await (const chunk of req) body += chunk
+        let parsed
+        try { parsed = JSON.parse(body) } catch { parsed = {} }
+
+        const { text } = parsed
+        if (!text || typeof text !== 'string' || !text.trim()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Transcript text is required' }))
+          return
+        }
+
+        const apiKey = envVars.ANTHROPIC_API_KEY
+        if (!apiKey) {
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'ANTHROPIC_API_KEY not set in .env.local' }))
+          return
+        }
+
+        const VISUALS_SYSTEM = `You are an expert data visualization engine. You receive a COMPLETE transcript and must analyze it to produce multiple meaningful charts that together help a reader fully understand the transcript at a glance.
+
+=== YOUR TASK ===
+
+1. Read the entire transcript carefully
+2. Identify 1-8 KEY TOPICS or themes discussed (don't create charts for greetings, filler, or meta-conversation)
+3. For each topic, create the BEST chart type to visualize it
+4. Return an array of chart objects
+
+=== CHART TYPE SELECTION ===
+
+Pick the BEST match for each topic:
+
+Process, workflow, steps, how-to, cause-effect, architecture → mermaid_flowchart
+People or system interactions, request/response → mermaid_sequence
+Dates, milestones, roadmap, chronological events → timeline
+Comparisons, pros/cons, trade-offs → comparison
+Topic breakdown, brainstorming, categories → mindmap
+When 3+ numbers or percentages appear → infographic
+
+=== ONE CHART PER TOPIC ===
+
+Each chart MUST cover a DIFFERENT topic or theme from the transcript.
+
+NEVER create multiple charts for the same topic.
+Do NOT split one topic into "process view", "component view", "timeline view", etc.
+Pick the ONE best chart type for each topic and move on.
+
+If the transcript only discusses 1-2 topics, return only 1-2 charts. Do NOT inflate the count.
+
+=== VARIETY RULE ===
+
+Use DIFFERENT chart types across charts when the topics naturally call for it. Do NOT force variety by splitting one topic into multiple chart types.
+
+=== CHART SIZE LIMITS ===
+
+flowchart → 5-9 nodes
+timeline → 4-7 events
+mindmap → 4-6 branches
+comparison → 3-4 items
+sequence → 5-9 steps
+infographic → 6-8 metrics
+
+=== CHART QUALITY ===
+
+Each chart must be a standalone summary of its topic.
+Someone should understand the topic within 5 seconds.
+
+Rules:
+- Use real terms, systems, and concepts from the transcript
+- Avoid placeholders like "Step 1", "Item A"
+- Prefer meaningful descriptive labels
+- Each chart needs a clear, descriptive title
+
+=== TRANSFORMED TRANSCRIPT ===
+
+Each chart MUST include a "transformedTranscript" field.
+This is a clean, well-structured rewrite of the relevant transcript portion.
+
+Rules:
+- ALWAYS write in English, regardless of the transcript language
+- Remove filler words, repetition, and conversational noise
+- Consolidate related ideas
+- Preserve key facts, names, numbers, and technical details
+- Write in clear professional prose
+- Optimized for generating visuals (this text will be sent to Napkin AI)
+- 2-5 sentences typically sufficient
+
+=== NAPKIN VISUAL TYPE ===
+
+Each chart MUST include a "napkinVisualType" field.
+This tells Napkin AI what kind of visual to generate.
+
+Mapping:
+mermaid_flowchart → "flowchart"
+mermaid_sequence → "sequence diagram"
+timeline → "timeline"
+comparison → "comparison table"
+mindmap → "mind map"
+infographic → "infographic"
+
+=== LANGUAGE RULE ===
+
+ALL output MUST be in English — titles, labels, mermaidCode, topicSummary, transformedTranscript.
+Even if the transcript is in another language, translate everything to English.
+
+=== JSON SCHEMAS ===
+
+MERMAID FLOWCHART:
+{"type":"mermaid_flowchart","title":"string","mermaidCode":"graph TD\\n  A[Start] --> B{Decision}\\n  B -->|Yes| C[Process]\\n  B -->|No| D[End]","transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"flowchart"}
+
+MERMAID SEQUENCE:
+{"type":"mermaid_sequence","title":"string","mermaidCode":"sequenceDiagram\\n  participant A as User\\n  participant B as Server\\n  A->>B: Request\\n  B-->>A: Response","transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"sequence diagram"}
+
+TIMELINE:
+{"type":"timeline","title":"string","events":[{"date":"string","title":"string","description":"string","icon":"optional emoji"}],"transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"timeline"}
+
+COMPARISON:
+{"type":"comparison","title":"string","items":[{"name":"string","description":"optional","pros":["string"],"cons":["string"],"stats":[{"label":"string","value":"string or number"}]}],"transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"comparison table"}
+
+INFOGRAPHIC:
+{"type":"infographic","title":"string","subtitle":"optional","sections":[{"heading":"string","value":"string","description":"string","icon":"chart|users|globe|rocket|shield|zap|heart|star|target|clock"}],"footer":"optional","transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"infographic"}
+
+MINDMAP:
+{"type":"mindmap","title":"string","root":{"label":"string","children":[{"label":"string","children":[{"label":"string"}]}]},"transformedTranscript":"string","topicSummary":"2-6 words","napkinVisualType":"mind map"}
+
+=== OUTPUT FORMAT ===
+
+Return a JSON object with a "charts" array:
+{"charts": [ ...chart objects... ]}
+
+Return ONLY valid JSON. No markdown. No explanation. No code fences.`
+
+        const userMessage = 'Here is the complete transcript to analyze and visualize:\n\n' + text.trim() + '\n\nAnalyze this transcript. Create exactly ONE chart per distinct topic discussed. If only 1-2 topics exist, return only 1-2 charts. Do NOT create multiple charts for the same topic. Return {"charts": [...]}'
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const sysPrompt = attempt === 0 ? VISUALS_SYSTEM : VISUALS_SYSTEM + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No code fences.'
+
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 60000)
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+              },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 8192,
+                system: sysPrompt,
+                messages: [{ role: 'user', content: userMessage }],
+              }),
+              signal: controller.signal,
+            })
+            clearTimeout(timeout)
+
+            if (!response.ok) {
+              const errData = await response.json().catch(() => ({}))
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: (errData.error && errData.error.message) || ('Claude API error (' + response.status + ')') }))
+              return
+            }
+
+            const data = await response.json()
+            let jsonStr = (data.content && data.content[0] && data.content[0].text || '').trim()
+            if (jsonStr.startsWith('```')) {
+              jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+            }
+
+            const result = JSON.parse(jsonStr)
+
+            if (!result || !Array.isArray(result.charts) || result.charts.length === 0) {
+              throw new Error('Invalid response: expected {charts: [...]}')
+            }
+
+            const validCharts = result.charts.filter(c => c && c.type && c.title)
+            if (validCharts.length === 0) throw new Error('No valid charts in response')
+
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ charts: validCharts }))
+            return
+          } catch (err) {
+            if (err.name === 'AbortError') {
+              res.writeHead(504, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: 'Request timed out' }))
+              return
+            }
+            if (attempt === 0 && (err instanceof SyntaxError || (err.message && (err.message.includes('type') || err.message.includes('charts'))))) continue
+            res.writeHead(500, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Failed to generate visuals: ' + err.message }))
+            return
+          }
+        }
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Failed to generate valid chart data after retry' }))
       })
     }
   }
