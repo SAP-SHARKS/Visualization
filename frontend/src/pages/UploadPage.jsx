@@ -395,6 +395,9 @@ const UPLOAD_CSS = `
 [data-theme="light"] .upload-submit:hover {
   box-shadow: 0 8px 32px rgba(53,88,114,0.3);
 }
+[data-theme="light"] .upload-submit.canvas-btn {
+  background: linear-gradient(135deg, #5b6abf, #7c6df5);
+}
 [data-theme="light"] .upload-error {
   background: rgba(239,68,68,0.06);
   border-color: rgba(239,68,68,0.2);
@@ -445,6 +448,15 @@ export default function UploadPage() {
     }
     const data = parseDialogue(content.trim())
     navigate('/visualize', { state: { content: content.trim(), graphData: data } })
+  }
+
+  function handleCanvasView() {
+    setError('')
+    if (!content.trim()) {
+      setError('Transcript is required')
+      return
+    }
+    navigate('/visualize2', { state: { content: content.trim() } })
   }
 
   return (
@@ -502,9 +514,19 @@ export default function UploadPage() {
             />
           </div>
 
-          <button className="upload-submit" type="submit">
-            Generate Visuals
-          </button>
+          <div style={{ display: 'flex', gap: '10px', flexShrink: 0, marginTop: '10px' }}>
+            <button className="upload-submit" type="submit" style={{ margin: 0, flex: 1 }}>
+              Generate Visuals
+            </button>
+            <button
+              className="upload-submit"
+              type="button"
+              onClick={handleCanvasView}
+              style={{ margin: 0, flex: 1, background: 'linear-gradient(135deg, #5b9cf5, #7c6df5)' }}
+            >
+              Canvas View
+            </button>
+          </div>
         </form>
       </div>
     </div>

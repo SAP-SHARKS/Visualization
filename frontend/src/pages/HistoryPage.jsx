@@ -225,6 +225,15 @@ const HISTORY_CSS = `
   color: #ef4444;
   border: 1px solid rgba(239,68,68,0.2);
 }
+.session-badge.canvas {
+  background: rgba(99,102,241,0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,0.2);
+}
+.session-icon.canvas {
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12));
+  border-color: rgba(99,102,241,0.15);
+}
 .session-arrow {
   color: #4a5060;
   font-size: 18px;
@@ -338,6 +347,15 @@ const HISTORY_CSS = `
   color: #6366f1;
   border-color: rgba(99,102,241,0.15);
 }
+[data-theme="light"] .session-badge.canvas {
+  background: rgba(99,102,241,0.08);
+  color: #6366f1;
+  border-color: rgba(99,102,241,0.15);
+}
+[data-theme="light"] .session-icon.canvas {
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+  border-color: rgba(99,102,241,0.15);
+}
 [data-theme="light"] .session-arrow { color: #a5b4fc; }
 [data-theme="light"] .session-card:hover .session-arrow { color: #6366f1; }
 `
@@ -409,9 +427,9 @@ export default function HistoryPage() {
         {!loading && sessions.length > 0 && (
           <div className="history-grid">
             {sessions.map(s => (
-              <Link key={s.id} to={`/visualize?session=${s.id}`} className="session-card">
-                <div className={`session-icon ${s.mode === 'live' ? 'live' : ''}`}>
-                  {s.mode === 'live' ? '🎙️' : '📄'}
+              <Link key={s.id} to={`${s.mode === 'canvas' ? '/visualize2' : '/visualize'}?session=${s.id}`} className="session-card">
+                <div className={`session-icon ${s.mode === 'live' ? 'live' : s.mode === 'canvas' ? 'canvas' : ''}`}>
+                  {s.mode === 'live' ? '🎙️' : s.mode === 'canvas' ? '🎨' : '📄'}
                 </div>
                 <div className="session-info">
                   <div className="session-title">{s.title || 'Untitled Session'}</div>

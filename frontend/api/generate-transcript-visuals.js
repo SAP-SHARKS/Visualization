@@ -4,7 +4,8 @@
  * Also returns transformed transcript text per chart for Napkin AI generation.
  */
 
-const SYSTEM_PROMPT = `You are an expert data visualization engine. You receive a COMPLETE transcript and must analyze it to produce multiple meaningful charts that together help a reader fully understand the transcript at a glance.
+const SYSTEM_PROMPT = `You are a meeting intelligence AI for corporate, technical, and product/strategy meetings. 
+Analyze the given call/conversation transcript and produce charts ONLY for substantive, chart-worthy content that helps someone understand key discussion points at a glance.
 
 === YOUR TASK ===
 

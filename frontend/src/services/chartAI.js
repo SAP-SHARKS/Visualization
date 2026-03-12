@@ -171,6 +171,50 @@ export async function generateTranscriptVisuals(text) {
 }
 
 /**
+ * Generate a rich meeting canvas from transcript using Claude API.
+ * @param {string} text - The full transcript text
+ * @returns {Promise<{title?: string, subtitle?: string, visuals?: object[], decisions?: object[], actions?: object[], error?: string}>}
+ */
+export async function generateCanvas(text) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000)
+
+    const res = await fetch('/api/generate-canvas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      return { error: errBody.error || `Server error (${res.status})` }
+    }
+
+    const data = await res.json()
+    if (!data || !Array.isArray(data.visuals)) {
+      return { error: 'Invalid response from API' }
+    }
+
+    return {
+      title: data.title || null,
+      subtitle: data.subtitle || null,
+      visuals: data.visuals,
+      decisions: data.decisions || [],
+      actions: data.actions || [],
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' }
+    }
+    return { error: err.message || 'Network error. Check your connection.' }
+  }
+}
+
+/**
  * Generate a Napkin AI visual from text.
  * @param {string} text - The text to visualize
  * @param {string} [forcedType] - Optional visual type hint (e.g. "flowchart", "timeline")

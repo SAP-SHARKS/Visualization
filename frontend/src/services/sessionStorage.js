@@ -9,7 +9,7 @@
  *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
  *   title TEXT,
  *   transcript TEXT,
- *   mode TEXT NOT NULL CHECK (mode IN ('live', 'upload')),
+ *   mode TEXT NOT NULL CHECK (mode IN ('live', 'upload', 'canvas')),
  *   duration INTEGER DEFAULT 0,
  *   word_count INTEGER DEFAULT 0,
  *   audio_file_url TEXT,
@@ -264,6 +264,49 @@ export async function saveLiveSession({ finalLines, chartFeed, duration, wordCou
   } catch (err) {
     console.error('Failed to save live session:', err)
     return { error: err.message || 'Failed to save session' }
+  }
+}
+
+// ==================== Save Canvas Session ====================
+
+/**
+ * Save a canvas session (Visualize2 mode).
+ * Called after generateCanvas() completes on Visualize2Page.
+ *
+ * @param {object} params
+ * @param {string} params.title - Session title
+ * @param {string} [params.subtitle] - Session subtitle
+ * @param {string} params.transcript - Full transcript text
+ * @param {Array} params.visuals - Array of visual objects
+ * @param {Array} params.decisions - Array of decision objects
+ * @param {Array} params.actions - Array of action objects
+ * @returns {Promise<{sessionId?: string, error?: string}>}
+ */
+export async function saveCanvasSession({ title, subtitle, transcript, visuals, decisions, actions }) {
+  if (!isSupabaseConfigured()) {
+    return { error: 'Supabase not configured' }
+  }
+
+  try {
+    const wordCount = transcript ? transcript.split(/\s+/).filter(Boolean).length : 0
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .insert({
+        title: title || 'Untitled Canvas',
+        subtitle: subtitle || null,
+        transcript,
+        mode: 'canvas',
+        word_count: wordCount,
+        canvas_data: { visuals, decisions, actions },
+      })
+      .select('id')
+      .single()
+
+    if (sessionError) throw sessionError
+    return { sessionId: session.id }
+  } catch (err) {
+    console.error('Failed to save canvas session:', err)
+    return { error: err.message || 'Failed to save canvas session' }
   }
 }
 
