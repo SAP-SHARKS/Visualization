@@ -118,7 +118,7 @@ export async function generateSections(text) {
     }
 
     const data = await res.json()
-    if (!data || !data.concepts) {
+    if (!data || !data.concepts || !data.takeaways) {
       return { error: 'Invalid section data received from API' }
     }
 
@@ -140,7 +140,7 @@ export async function generateSections(text) {
 export async function generateTranscriptVisuals(text) {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 65000)
+    const timeout = setTimeout(() => controller.abort(), 120000)
 
     const res = await fetch('/api/generate-transcript-visuals', {
       method: 'POST',
@@ -161,7 +161,7 @@ export async function generateTranscriptVisuals(text) {
       return { error: 'Invalid response from API' }
     }
 
-    return { charts: data.charts }
+    return { title: data.title || null, subtitle: data.subtitle || null, charts: data.charts }
   } catch (err) {
     if (err.name === 'AbortError') {
       return { error: 'Request timed out. Please try again.' }

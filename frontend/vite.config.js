@@ -508,19 +508,26 @@ No explanation.
           'You are a transcript analyst. Analyze the given call/conversation transcript and extract structured data.',
           '',
           'Return a single JSON object with ALL of these fields:',
-          '{"concepts":[{"icon":"emoji","term":"string","def":"string","tag":"Mentioned in call | Not mentioned — technical context | Core mechanic"}],',
+          '{"takeaways":[{"icon":"emoji","text":"string"}],',
+          '"eli5":{"summary":"string"},',
+          '"blindspots":[{"icon":"emoji","title":"string","desc":"string"}],',
+          '"concepts":[{"icon":"emoji","term":"string","def":"string","tag":"Mentioned in call | Not mentioned — technical context | Core mechanic"}],',
           '"suggestions":[{"title":"string","desc":"string","badge":"User Experience | Technical | Business Model","cls":"badge-ux | badge-tech | badge-biz"}],',
           '"actionItems":[{"title":"string","desc":"string","priority":"HIGH | MEDIUM | LOW","cls":"priority-high | priority-med | priority-low"}],',
           '"quizData":[{"q":"string","opts":["string","string","string"],"correct":0,"fb":{"correct":"string","wrong":"string"}}],',
           '"suggestedQs":["string","string","string","string"]}',
           '',
           'RULES:',
+          '- takeaways: ALWAYS include. 3-6 key takeaways — most important points to remember.',
+          '- eli5: ALWAYS include. Explain the entire meeting as if to a 5-year-old. Simple words, fun analogies, no jargon. 3-5 sentences.',
+          '- blindspots: ALWAYS include. 2-4 gaps, risks, or blindspots — things NOT addressed but should have been.',
           '- concepts: 4-6 key terms. Mix mentioned and contextual terms.',
           '- suggestions: 3-5 actionable suggestions. Map badge→cls: "User Experience"→"badge-ux", "Technical"→"badge-tech", "Business Model"→"badge-biz".',
           '- actionItems: 3-5 tasks. Map priority→cls: "HIGH"→"priority-high", "MEDIUM"→"priority-med", "LOW"→"priority-low".',
           '- quizData: 3 questions, 3 options each, "correct" is 0-based index.',
           '- suggestedQs: exactly 4 follow-up questions.',
           '',
+          'ALL output MUST be in English.',
           'Return ONLY valid JSON. No markdown fences. No explanation.',
         ].join('\n')
 
@@ -562,7 +569,7 @@ No explanation.
             }
 
             const sections = JSON.parse(jsonStr)
-            if (!sections || !sections.concepts) throw new Error('Missing fields')
+            if (!sections || !sections.concepts || !sections.takeaways || !sections.eli5 || !sections.blindspots) throw new Error('Missing fields')
 
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify(sections))
@@ -694,9 +701,11 @@ No explanation.
 === YOUR TASK ===
 
 1. Read the entire transcript carefully
-2. Identify 1-8 KEY TOPICS or themes discussed (don't create charts for greetings, filler, or meta-conversation)
-3. For each topic, create the BEST chart type to visualize it
-4. Return an array of chart objects
+2. Suggest a title
+3. One sentence summary of what was discussed and why it matters
+4. Identify 1-8 KEY TOPICS or themes discussed (don't create charts for greetings, filler, or meta-conversation)
+5. For each topic, create the BEST chart type to visualize it
+6. Return a JSON object with title, subtitle, and charts array
 
 === CHART TYPE SELECTION ===
 
@@ -797,19 +806,19 @@ MINDMAP:
 
 === OUTPUT FORMAT ===
 
-Return a JSON object with a "charts" array:
-{"charts": [ ...chart objects... ]}
+Return a JSON object with a "title", "subtitle", and a "charts" array:
+{"title": "Short descriptive title for the entire transcript (3-8 words)", "subtitle": "One sentence summary of what was discussed and why it matters", "charts": [ ...chart objects... ]}
 
 Return ONLY valid JSON. No markdown. No explanation. No code fences.`
 
-        const userMessage = 'Here is the complete transcript to analyze and visualize:\n\n' + text.trim() + '\n\nAnalyze this transcript. Create exactly ONE chart per distinct topic discussed. If only 1-2 topics exist, return only 1-2 charts. Do NOT create multiple charts for the same topic. Return {"charts": [...]}'
+        const userMessage = 'Here is the complete transcript to analyze and visualize:\n\n' + text.trim() + '\n\nAnalyze this transcript. Create exactly ONE chart per distinct topic discussed. If only 1-2 topics exist, return only 1-2 charts. Do NOT create multiple charts for the same topic. Return {"title": "...", "subtitle": "...", "charts": [...]}'
 
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const sysPrompt = attempt === 0 ? VISUALS_SYSTEM : VISUALS_SYSTEM + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No code fences.'
 
             const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 60000)
+            const timeout = setTimeout(() => controller.abort(), 100000)
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
@@ -851,7 +860,7 @@ Return ONLY valid JSON. No markdown. No explanation. No code fences.`
             if (validCharts.length === 0) throw new Error('No valid charts in response')
 
             res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ charts: validCharts }))
+            res.end(JSON.stringify({ title: result.title || validCharts[0]?.title || 'Untitled', subtitle: result.subtitle || '', charts: validCharts }))
             return
           } catch (err) {
             if (err.name === 'AbortError') {

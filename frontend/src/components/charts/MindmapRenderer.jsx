@@ -34,17 +34,16 @@ function MindmapRenderer({ data }) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
-  // Calculate dynamic height based on total node count
+  // Calculate dynamic dimensions based on total node count
   const totalNodes = countNodes(data.root)
-  const containerHeight = Math.max(400, totalNodes * 45)
 
   useEffect(() => {
     if (!svgRef.current || !data.root) return
     const DEPTH_COLORS = isLight ? DEPTH_COLORS_LIGHT : DEPTH_COLORS_DARK
 
     const container = containerRef.current
-    const width = container.clientWidth || 500
-    const height = containerHeight
+    const width = Math.max(container.clientWidth || 500, 600)
+    const treeHeight = Math.max(400, totalNodes * 45)
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
@@ -53,7 +52,7 @@ function MindmapRenderer({ data }) {
       .attr('transform', `translate(${80}, ${30})`)
 
     const hierarchy = d3.hierarchy(buildHierarchy(data.root))
-    const treeLayout = d3.tree().size([height - 60, width - 200])
+    const treeLayout = d3.tree().size([treeHeight - 60, width - 200])
     treeLayout(hierarchy)
 
     // Draw links
@@ -122,21 +121,29 @@ function MindmapRenderer({ data }) {
     // Auto-fit SVG to content using viewBox
     const bbox = g.node().getBBox()
     const pad = 24
+    const vbW = bbox.width + pad * 2
+    const vbH = bbox.height + pad * 2
+    const containerW = container.clientWidth || 500
+    const renderedH = (vbH / vbW) * containerW
+    const finalH = Math.max(400, renderedH)
+
     svg
-      .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`)
+      .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${vbW} ${vbH}`)
       .attr('width', '100%')
-      .attr('height', '100%')
+      .attr('height', finalH)
       .attr('preserveAspectRatio', 'xMidYMid meet')
 
-  }, [data, containerHeight, isLight])
+    container.style.height = `${finalH}px`
+
+  }, [data, totalNodes, isLight])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: `${containerHeight}px` }}>
+    <div ref={containerRef} style={{ width: '100%', minHeight: '400px', overflow: 'visible' }}>
       <svg
         ref={svgRef}
         style={{
           display: 'block',
-          margin: '0 auto',
+          width: '100%',
         }}
       />
     </div>

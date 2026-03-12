@@ -35,6 +35,9 @@
  * CREATE TABLE sections (
  *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
  *   session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+ *   takeaways JSONB DEFAULT '[]',
+ *   eli5 JSONB DEFAULT '{}',
+ *   blindspots JSONB DEFAULT '[]',
  *   concepts JSONB DEFAULT '[]',
  *   suggestions JSONB DEFAULT '[]',
  *   action_items JSONB DEFAULT '[]',
@@ -137,6 +140,9 @@ export async function saveUploadSession({ title, transcript, chartFeed, sections
         .from('sections')
         .insert({
           session_id: sessionId,
+          takeaways: sections.takeaways || [],
+          eli5: sections.eli5 || {},
+          blindspots: sections.blindspots || [],
           concepts: sections.concepts || [],
           suggestions: sections.suggestions || [],
           action_items: sections.actionItems || [],

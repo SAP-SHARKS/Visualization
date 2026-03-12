@@ -9,9 +9,11 @@ const SYSTEM_PROMPT = `You are an expert data visualization engine. You receive 
 === YOUR TASK ===
 
 1. Read the entire transcript carefully
-2. Identify 1-8 KEY TOPICS or themes discussed (don't create charts for greetings, filler, or meta-conversation)
-3. For each topic, create the BEST chart type to visualize it
-4. Return an array of chart objects
+2. Suggest a title
+3. One sentence summary of what was discussed and why it matters,
+4. Identify 1-8 KEY TOPICS or themes discussed (don't create charts for greetings, filler, or meta-conversation)
+5. For each topic, create the BEST chart type to visualize it
+6. Return an array of chart objects
 
 === CHART TYPE SELECTION ===
 
@@ -112,8 +114,8 @@ MINDMAP:
 
 === OUTPUT FORMAT ===
 
-Return a JSON object with a "charts" array:
-{"charts": [ ...chart objects... ]}
+Return a JSON object with "title", "subtitle", and "charts":
+{"title": "Short descriptive title for the entire transcript (3-8 words)", "subtitle": "One sentence summary of what was discussed and why it matters", "charts": [ ...chart objects... ]}
 
 Return ONLY valid JSON. No markdown. No explanation. No code fences.`
 
@@ -133,7 +135,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Transcript text is required' })
   }
 
-  const userMessage = `Here is the complete transcript to analyze and visualize:\n\n${text.trim()}\n\nAnalyze this transcript. Create exactly ONE chart per distinct topic discussed. If only 1-2 topics exist, return only 1-2 charts. Do NOT create multiple charts for the same topic. Return {"charts": [...]}`
+  const userMessage = `Here is the complete transcript to analyze and visualize:\n\n${text.trim()}\n\nAnalyze this transcript. Create exactly ONE chart per distinct topic discussed. If only 1-2 topics exist, return only 1-2 charts. Do NOT create multiple charts for the same topic. Return {"title": "...", "subtitle": "...", "charts": [...]}`
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -142,7 +144,7 @@ export default async function handler(req, res) {
         : SYSTEM_PROMPT + '\n\nCRITICAL: Your previous response was not valid JSON. Return ONLY valid JSON. No markdown. No code fences.'
 
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 60000)
+      const timeout = setTimeout(() => controller.abort(), 100000)
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -190,7 +192,7 @@ export default async function handler(req, res) {
         throw new Error('No valid charts in response')
       }
 
-      return res.status(200).json({ charts: validCharts })
+      return res.status(200).json({ title: parsed.title || validCharts[0]?.title || 'Untitled', subtitle: parsed.subtitle || '', charts: validCharts })
     } catch (err) {
       if (err.name === 'AbortError') {
         return res.status(504).json({ error: 'Claude API request timed out' })

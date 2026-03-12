@@ -403,7 +403,6 @@ const UPLOAD_CSS = `
 `
 
 export default function UploadPage() {
-  const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -426,7 +425,6 @@ export default function UploadPage() {
     const reader = new FileReader()
     reader.onload = (e) => {
       setContent(e.target.result)
-      if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''))
     }
     reader.readAsText(file)
   }
@@ -441,16 +439,12 @@ export default function UploadPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!title.trim() || !content.trim()) {
-      setError('Title and dialogue content are required')
+    if (!content.trim()) {
+      setError('Transcript is required')
       return
     }
     const data = parseDialogue(content.trim())
-    if (data.lines.length === 0) {
-      setError('No dialogue lines detected. Check the format: Speaker Name: Dialogue text')
-      return
-    }
-    navigate('/visualize', { state: { title, content: content.trim(), graphData: data } })
+    navigate('/visualize', { state: { content: content.trim(), graphData: data } })
   }
 
   return (
@@ -495,24 +489,13 @@ export default function UploadPage() {
         {error && <div className="upload-error">{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div className="upload-form-group">
-            <label>Title</label>
-            <input
-              className="upload-input"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. RoundUp Giving — Product Walkthrough"
-            />
-          </div>
-
           <div className="upload-form-group grow">
-            <label>Dialogue Content</label>
+            <label>Transcript</label>
             <textarea
               className="upload-textarea"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={`Host: So walk me through the product — how does a user get started?\nFounder: First, you download the app. Then through Plaid, the app links directly to your bank account.`}
+              placeholder={`Paste your meeting transcript, call notes, or any text you want to visualize...`}
             />
           </div>
 
