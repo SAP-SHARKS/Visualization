@@ -78,7 +78,7 @@ import { captureAndUploadCharts } from './chartCapture'
  * @param {string} [params.audioFileName] - Original audio file name
  * @returns {Promise<{sessionId?: string, error?: string}>}
  */
-export async function saveUploadSession({ title, transcript, chartFeed, sections, audioFile, audioFileName }) {
+export async function saveUploadSession({ title, subtitle, transcript, chartFeed, sections, audioFile, audioFileName }) {
   if (!isSupabaseConfigured()) {
     return { error: 'Supabase not configured' }
   }
@@ -101,6 +101,7 @@ export async function saveUploadSession({ title, transcript, chartFeed, sections
       .from('sessions')
       .insert({
         title: title || 'Untitled Session',
+        subtitle: subtitle || null,
         transcript,
         mode: 'upload',
         word_count: wordCount,
@@ -308,6 +309,57 @@ async function uploadAudioFile(file, fileName) {
  * @param {number} position - Chart position in the feed
  * @param {string} napkinImageUrl
  */
+// ==================== List Sessions ====================
+
+/**
+ * Fetch all sessions, newest first.
+ * @returns {Promise<{sessions?: Array, error?: string}>}
+ */
+export async function listSessions() {
+  if (!isSupabaseConfigured()) return { error: 'Supabase not configured' }
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('id, title, mode, word_count, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    return { sessions: data }
+  } catch (err) {
+    console.error('Failed to list sessions:', err)
+    return { error: err.message || 'Failed to list sessions' }
+  }
+}
+
+// ==================== Get Session ====================
+
+/**
+ * Fetch a full session with charts and sections.
+ * @param {string} sessionId
+ * @returns {Promise<{session?: object, charts?: Array, sections?: object, error?: string}>}
+ */
+export async function getSession(sessionId) {
+  if (!isSupabaseConfigured()) return { error: 'Supabase not configured' }
+  try {
+    const [sessionRes, chartsRes, sectionsRes] = await Promise.all([
+      supabase.from('sessions').select('*').eq('id', sessionId).single(),
+      supabase.from('charts').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
+      supabase.from('sections').select('*').eq('session_id', sessionId).single(),
+    ])
+    if (sessionRes.error) throw sessionRes.error
+    return {
+      session: sessionRes.data,
+      charts: chartsRes.data || [],
+      sections: sectionsRes.data || null,
+    }
+  } catch (err) {
+    console.error('Failed to get session:', err)
+    return { error: err.message || 'Failed to load session' }
+  }
+}
+
+// ==================== Update Session (add Napkin images later) ====================
+
 export async function updateChartNapkinImage(sessionId, position, napkinImageUrl) {
   if (!isSupabaseConfigured() || !sessionId) return
 

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import ChartRouter from '../components/ChartRouter'
 import useSectionGeneration from '../hooks/useSectionGeneration'
 import { askAI, generateTranscriptVisuals, generateNapkinVisual } from '../services/chartAI'
-import { saveUploadSession } from '../services/sessionStorage'
+import { saveUploadSession, getSession } from '../services/sessionStorage'
 
 // ==================== CSS ====================
 const PAGE_CSS = `
@@ -619,21 +619,27 @@ function AIVisualCard({ item, showClaude }) {
 export default function VisualizePage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const state = location.state
+  const historySessionId = searchParams.get('session')
 
-  // Redirect if no data
+  // Redirect if no data and not loading from history
   useEffect(() => {
-    if (!state?.graphData) navigate('/', { replace: true })
-  }, [state, navigate])
+    if (!state?.graphData && !historySessionId) navigate('/', { replace: true })
+  }, [state, historySessionId, navigate])
 
-  const { content, graphData } = state || {}
+  const [content, setContent] = useState(state?.content || null)
+  const [graphData, setGraphData] = useState(state?.graphData || null)
   const lines = graphData?.lines || []
   const speakerEntries = Object.entries(graphData?.speakers || {})
-  const [title, setTitle] = useState('Analyzing...')
+  const [title, setTitle] = useState(historySessionId ? 'Loading...' : 'Analyzing...')
   const [subtitle, setSubtitle] = useState('')
+  const [isHistoryMode, setIsHistoryMode] = useState(!!historySessionId)
 
-  // AI-generated section data
-  const { sections, loading: sectionsLoading, error: sectionsError } = useSectionGeneration(content)
+  // AI-generated section data (pass null content in history mode to skip API call)
+  const { sections: generatedSections, loading: sectionsLoading, error: sectionsError } = useSectionGeneration(isHistoryMode ? null : content)
+  const [historySections, setHistorySections] = useState(null)
+  const sections = isHistoryMode ? historySections : generatedSections
   const takeaways = sections?.takeaways || []
   const eli5 = sections?.eli5 || null
   const blindspots = sections?.blindspots || []
@@ -680,9 +686,60 @@ export default function VisualizePage() {
     }
   }, [])
 
-  // Generate AI visuals from complete transcript
+  // Load session from Supabase (history mode)
   useEffect(() => {
-    if (!content || chartFeed.length > 0 || visualsLoading) return
+    if (!historySessionId) return
+    let cancelled = false
+    setVisualsLoading(true)
+
+    getSession(historySessionId).then(({ session, charts, sections: sec, error }) => {
+      if (cancelled) return
+      if (error) {
+        setVisualsError(error)
+        setVisualsLoading(false)
+        return
+      }
+
+      setTitle(session.title || 'Untitled Session')
+      setSubtitle(session.subtitle || '')
+      setContent(session.transcript || '')
+      setSessionSaved(true) // already saved, don't re-save
+
+      // Build chart feed from stored data
+      const feed = (charts || []).map((c, idx) => ({
+        id: idx + 1,
+        claudeChart: c.chart_data,
+        topicSummary: c.topic_summary || c.chart_data?.title || '',
+        transformedTranscript: c.transformed_transcript || null,
+        napkinImage: c.napkin_image_url || null,
+        napkinLoading: false,
+        napkinError: null,
+      }))
+      setChartFeed(feed)
+
+      // Load sections
+      if (sec) {
+        setHistorySections({
+          takeaways: sec.takeaways || [],
+          eli5: sec.eli5 || null,
+          blindspots: sec.blindspots || [],
+          concepts: sec.concepts || [],
+          suggestions: sec.suggestions || [],
+          actionItems: sec.action_items || [],
+          quizData: sec.quiz_data || [],
+          suggestedQs: sec.suggested_qs || [],
+        })
+      }
+
+      setVisualsLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [historySessionId])
+
+  // Generate AI visuals from complete transcript (upload mode only)
+  useEffect(() => {
+    if (isHistoryMode || !content || chartFeed.length > 0 || visualsLoading) return
 
     let cancelled = false
     setVisualsLoading(true)
@@ -735,15 +792,16 @@ export default function VisualizePage() {
     return () => { cancelled = true }
   }, [content])
 
-  // Auto-save to Supabase when charts and sections are both ready
+  // Auto-save to Supabase when charts and sections are both ready (skip in history mode)
   useEffect(() => {
-    if (sessionSaved || !content) return
+    if (isHistoryMode || sessionSaved || !content) return
     if (visualsLoading || sectionsLoading) return
     if (chartFeed.length === 0 && !visualsError) return
 
     setSessionSaved(true)
     saveUploadSession({
       title: title || 'Untitled',
+      subtitle: subtitle || null,
       transcript: content,
       chartFeed,
       sections: sections || null,
@@ -829,7 +887,7 @@ export default function VisualizePage() {
     })
   }
 
-  if (!state?.graphData) return null
+  if (!state?.graphData && !historySessionId) return null
 
   const totalAnswered = Object.keys(quizAnswered).length
   const scoreColor = quizScore === totalAnswered && totalAnswered > 0 ? 'var(--accent)' : totalAnswered === quizData.length ? 'var(--company)' : 'var(--border)'
@@ -853,13 +911,13 @@ export default function VisualizePage() {
       <div className="section" id="transcript" ref={el => sectionRefs.current.transcript = el}>
         <div className="section-label">Transcript Summary</div>
         <div className="section-title">{title}</div>
-        <div className="section-subtitle">{subtitle || 'Generating summary...'}</div>
+        <div className="section-subtitle">{subtitle || (isHistoryMode ? 'Saved session' : 'Generating summary...')}</div>
 
         <div className="stats-bar">
-          <div className="stat-card"><div className="stat-value">{lines.length}</div><div className="stat-label">Lines</div></div>
-          <div className="stat-card"><div className="stat-value">{graphData.total_words}</div><div className="stat-label">Words</div></div>
-          <div className="stat-card"><div className="stat-value">{speakerEntries.length}</div><div className="stat-label">Speakers</div></div>
-          <div className="stat-card"><div className="stat-value">{graphData.exchanges}</div><div className="stat-label">Exchanges</div></div>
+          <div className="stat-card"><div className="stat-value">{lines.length || (content ? content.split('\n').filter(l => l.trim()).length : 0)}</div><div className="stat-label">Lines</div></div>
+          <div className="stat-card"><div className="stat-value">{graphData?.total_words || (content ? content.split(/\s+/).filter(Boolean).length : 0)}</div><div className="stat-label">Words</div></div>
+          <div className="stat-card"><div className="stat-value">{chartFeed.length}</div><div className="stat-label">Visuals</div></div>
+          <div className="stat-card"><div className="stat-value">{graphData?.exchanges || 0}</div><div className="stat-label">Exchanges</div></div>
         </div>
 
         <div className="dual-panel-layout">
