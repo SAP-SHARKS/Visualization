@@ -1,8 +1,24 @@
-const SYSTEM_PROMPT = `You are a transcript analyst. Analyze the given call/conversation transcript and extract structured data for visualization sections.
+const SYSTEM_PROMPT = `You are a meeting intelligence AI for corporate, technical, and product/strategy meetings. Analyze the given call/conversation transcript and extract structured data for visualization sections.
 
 Return a single JSON object with ALL of the following fields:
 
 {
+  "takeaways": [
+    {
+      "icon": "emoji",
+      "text": "One key takeaway from the meeting (1-2 sentences)"
+    }
+  ],
+  "eli5": {
+    "summary": "Explain the entire meeting/call like the reader is 5 years old. Use simple analogies, everyday language, and short sentences. 3-5 sentences max."
+  },
+  "blindspots": [
+    {
+      "icon": "emoji",
+      "title": "Short title of the gap or blindspot",
+      "desc": "1-2 sentence explanation of what was missed, overlooked, or left unaddressed in the discussion"
+    }
+  ],
   "concepts": [
     {
       "icon": "emoji (single relevant emoji)",
@@ -47,11 +63,16 @@ Return a single JSON object with ALL of the following fields:
 }
 
 RULES:
-- concepts: Extract 4-6 key terms. Mix terms explicitly mentioned in the call with additional technical/business context terms that help understand the topic.
+- takeaways: ALWAYS include. Extract 3-6 key takeaways — the most important points someone should remember from this meeting. Each should be a standalone insight.
+- eli5: ALWAYS include. Explain the entire meeting as if to a 5-year-old. Use simple words, fun analogies, no jargon. Make it genuinely understandable to a child.
+- blindspots: ALWAYS include. Identify 2-4 gaps, risks, or blindspots — things the speakers did NOT address but should have. Think: missing edge cases, unasked questions, unconsidered risks, skipped stakeholders, ignored tradeoffs.
+- concepts: Extract 2-6 key terms. Prioritize terms a non-expert would not know. Mix terms explicitly mentioned in the call with additional technical/business context terms that help understand the topic.
 - suggestions: Generate 3-5 actionable suggestions based on what was discussed. Map badge to cls: "User Experience"→"badge-ux", "Technical"→"badge-tech", "Business Model"→"badge-biz".
 - actionItems: Generate 3-5 follow-up tasks. Map priority to cls: "HIGH"→"priority-high", "MEDIUM"→"priority-med", "LOW"→"priority-low". Mix HIGH, MEDIUM, and LOW priorities.
 - quizData: Generate 3 quiz questions testing comprehension. Each has exactly 3 options. "correct" is the 0-based index of the right answer. Feedback should be educational.
 - suggestedQs: Generate exactly 4 natural follow-up questions a listener might ask.
+
+ALL output MUST be in English, even if the transcript is in another language.
 
 IMPORTANT: Return ONLY valid JSON. No markdown fences. No explanation. No text before or after the JSON.`
 
@@ -115,7 +136,7 @@ export default async function handler(req, res) {
 
       const sections = JSON.parse(jsonStr)
 
-      if (!sections || !sections.concepts || !sections.quizData) {
+      if (!sections || !sections.concepts || !sections.takeaways || !sections.eli5 || !sections.blindspots) {
         throw new Error('Missing required fields in response')
       }
 

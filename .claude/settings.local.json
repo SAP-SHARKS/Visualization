@@ -3,7 +3,13 @@
     "allow": [
       "Bash(python -m venv venv)",
       "Bash(npm install reactflow dagre d3 lucide-react html-to-image)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(pip install fastapi uvicorn websockets python-dotenv)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: Token 16731a713f4a7994e5e1f0c2f96b52d640d94f64\" \"https://api.deepgram.com/v1/projects\")",
+      "Bash(npm install @supabase/supabase-js)",
+      "Read(//Users/Nimra/Desktop/Visualization/frontend/api/**)",
+      "Read(//c/Users/Nimra/Desktop/Visualization/frontend/api/**)",
+      "Bash(node -e \":*)"
     ]
   }
 }

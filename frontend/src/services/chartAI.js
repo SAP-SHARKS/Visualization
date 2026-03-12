@@ -118,7 +118,7 @@ export async function generateSections(text) {
     }
 
     const data = await res.json()
-    if (!data || !data.concepts) {
+    if (!data || !data.concepts || !data.takeaways) {
       return { error: 'Invalid section data received from API' }
     }
 
@@ -128,6 +128,72 @@ export async function generateSections(text) {
       return { error: 'Request timed out. Please try again.' }
     }
     return { error: err.message || 'Network error. Check your connection.' }
+  }
+}
+
+/**
+ * Generate multiple charts from a complete transcript using Claude API.
+ * Returns an array of chart objects, each representing a key topic.
+ * @param {string} text - The full transcript text
+ * @returns {Promise<{charts?: object[], error?: string}>}
+ */
+export async function generateTranscriptVisuals(text) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000)
+
+    const res = await fetch('/api/generate-transcript-visuals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      return { error: errBody.error || `Server error (${res.status})` }
+    }
+
+    const data = await res.json()
+    if (!data || !Array.isArray(data.charts)) {
+      return { error: 'Invalid response from API' }
+    }
+
+    return { title: data.title || null, subtitle: data.subtitle || null, charts: data.charts }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Request timed out. Please try again.' }
+    }
+    return { error: err.message || 'Network error. Check your connection.' }
+  }
+}
+
+/**
+ * Generate a Napkin AI visual from text.
+ * @param {string} text - The text to visualize
+ * @param {string} [forcedType] - Optional visual type hint (e.g. "flowchart", "timeline")
+ * @returns {Promise<{imageUrl?: string, error?: string}>}
+ */
+export async function generateNapkinVisual(text, forcedType) {
+  try {
+    const body = { text }
+    if (forcedType) body.forcedType = forcedType
+
+    const res = await fetch('/api/generate-chart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      return { error: err.error || `Napkin API error (${res.status})` }
+    }
+    const data = await res.json()
+    return { imageUrl: data.imageUrl || null, error: data.imageUrl ? null : 'No image returned' }
+  } catch (err) {
+    return { error: err.message || 'Network error' }
   }
 }
 

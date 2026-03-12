@@ -1,7 +1,9 @@
 import { useEffect, useRef, memo } from 'react'
 import * as d3 from 'd3'
+import { useTheme } from '../../context/ThemeContext'
 
-const DEPTH_COLORS = ['#3dd68c', '#60a5fa', '#f59e0b', '#a78bfa', '#ef4444']
+const DEPTH_COLORS_DARK = ['#3dd68c', '#60a5fa', '#f59e0b', '#a78bfa', '#ef4444']
+const DEPTH_COLORS_LIGHT = ['#6366f1', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444']
 
 function buildHierarchy(root) {
   if (!root) return { name: 'Root', children: [] }
@@ -17,26 +19,40 @@ function buildHierarchy(root) {
   return convert(root)
 }
 
+function countNodes(node) {
+  if (!node) return 0
+  let count = 1
+  if (node.children) {
+    for (const child of node.children) count += countNodes(child)
+  }
+  return count
+}
+
 function MindmapRenderer({ data }) {
   const svgRef = useRef(null)
   const containerRef = useRef(null)
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
+
+  // Calculate dynamic dimensions based on total node count
+  const totalNodes = countNodes(data.root)
 
   useEffect(() => {
     if (!svgRef.current || !data.root) return
+    const DEPTH_COLORS = isLight ? DEPTH_COLORS_LIGHT : DEPTH_COLORS_DARK
 
     const container = containerRef.current
-    const width = container.clientWidth || 500
-    const height = Math.min(container.clientHeight || 400, Math.max(300, width * 0.55))
+    const width = Math.max(container.clientWidth || 500, 600)
+    const treeHeight = Math.max(400, totalNodes * 45)
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
-    svg.attr('width', width).attr('height', height)
 
     const g = svg.append('g')
-      .attr('transform', `translate(${80}, ${height / 2})`)
+      .attr('transform', `translate(${80}, ${30})`)
 
     const hierarchy = d3.hierarchy(buildHierarchy(data.root))
-    const treeLayout = d3.tree().size([height - 60, width - 200])
+    const treeLayout = d3.tree().size([treeHeight - 60, width - 200])
     treeLayout(hierarchy)
 
     // Draw links
@@ -51,7 +67,7 @@ function MindmapRenderer({ data }) {
       )
       .attr('fill', 'none')
       .attr('stroke', d => DEPTH_COLORS[Math.min(d.source.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke-opacity', 0.4)
+      .attr('stroke-opacity', isLight ? 0.6 : 0.55)
       .attr('stroke-width', d => Math.max(1, 3 - d.source.depth))
       .style('opacity', 0)
       .transition()
@@ -75,15 +91,15 @@ function MindmapRenderer({ data }) {
 
     // Node circles
     node.append('circle')
-      .attr('r', d => d.depth === 0 ? 10 : d.children ? 7 : 5)
+      .attr('r', d => d.depth === 0 ? 12 : d.children ? 8 : 6)
       .attr('fill', d => DEPTH_COLORS[Math.min(d.depth, DEPTH_COLORS.length - 1)])
-      .attr('stroke', '#06080c')
+      .attr('stroke', isLight ? '#ffffff' : '#06080c')
       .attr('stroke-width', 2)
 
     // Glow for root
     node.filter(d => d.depth === 0)
       .append('circle')
-      .attr('r', 16)
+      .attr('r', 18)
       .attr('fill', 'none')
       .attr('stroke', DEPTH_COLORS[0])
       .attr('stroke-opacity', 0.2)
@@ -95,21 +111,39 @@ function MindmapRenderer({ data }) {
       .attr('x', d => d.depth === 0 ? 0 : d.children ? 0 : 12)
       .attr('text-anchor', d => d.depth === 0 ? 'middle' : d.children ? 'middle' : 'start')
       .text(d => d.data.name)
-      .attr('fill', d => d.depth === 0 ? '#e8eaf0' : d.depth === 1 ? '#c8cad0' : '#9ca3af')
-      .attr('font-size', d => d.depth === 0 ? 14 : d.depth === 1 ? 12 : 11)
+      .attr('fill', d => isLight
+        ? (d.depth === 0 ? '#0f172a' : d.depth === 1 ? '#1e293b' : '#334155')
+        : (d.depth === 0 ? '#f1f5f9' : d.depth === 1 ? '#e2e8f0' : '#cbd5e1'))
+      .attr('font-size', d => d.depth === 0 ? 17 : d.depth === 1 ? 14 : 13)
       .attr('font-weight', d => d.depth <= 1 ? 600 : 400)
       .attr('font-family', "'DM Sans', sans-serif")
 
-  }, [data])
+    // Auto-fit SVG to content using viewBox
+    const bbox = g.node().getBBox()
+    const pad = 24
+    const vbW = bbox.width + pad * 2
+    const vbH = bbox.height + pad * 2
+    const containerW = container.clientWidth || 500
+    const renderedH = (vbH / vbW) * containerW
+    const finalH = Math.max(400, renderedH)
+
+    svg
+      .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${vbW} ${vbH}`)
+      .attr('width', '100%')
+      .attr('height', finalH)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+
+    container.style.height = `${finalH}px`
+
+  }, [data, totalNodes, isLight])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ width: '100%', minHeight: '400px', overflow: 'visible' }}>
       <svg
         ref={svgRef}
         style={{
           display: 'block',
-          margin: '0 auto',
-          overflow: 'hidden',
+          width: '100%',
         }}
       />
     </div>

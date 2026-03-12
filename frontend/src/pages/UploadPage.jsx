@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import parseDialogue from '../utils/parseDialogue'
 
 const UPLOAD_CSS = `
@@ -253,6 +253,45 @@ const UPLOAD_CSS = `
   margin-bottom: 10px;
   flex-shrink: 0;
 }
+.go-live-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  text-decoration: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(239,68,68,0.25);
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  animation: livePulse 2.5s ease-in-out infinite;
+}
+.go-live-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(239,68,68,0.4);
+}
+.go-live-btn .live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff;
+  animation: dotBlink 1.2s infinite;
+}
+[data-theme="light"] .go-live-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+@keyframes livePulse {
+  0%,100% { box-shadow: 0 2px 12px rgba(239,68,68,0.25); }
+  50% { box-shadow: 0 2px 20px rgba(239,68,68,0.45); }
+}
+@keyframes dotBlink {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
 @media(max-width:640px) {
   .upload-header { padding: 10px 16px; }
   .upload-container { padding: 12px 16px 16px; }
@@ -266,10 +305,104 @@ const UPLOAD_CSS = `
   .upload-divider { margin-bottom: 10px; }
   .upload-submit { padding: 12px 24px; font-size: 13px; }
 }
+
+[data-theme="light"] .upload-page {
+  background: #F7F8F0;
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-page::before {
+  background: radial-gradient(circle, rgba(156,213,255,0.12) 0%, transparent 65%);
+}
+[data-theme="light"] .upload-page::after {
+  background: radial-gradient(circle, rgba(122,170,206,0.1) 0%, transparent 65%);
+}
+[data-theme="light"] .upload-header {
+  background: rgba(255,255,255,0.92);
+  border-bottom-color: rgba(53,88,114,0.1);
+}
+[data-theme="light"] .upload-header .logo {
+  background: linear-gradient(135deg, #355872, #7AAACE);
+  -webkit-background-clip: text;
+}
+[data-theme="light"] .upload-header .logo-sub {
+  color: #7AAACE;
+  -webkit-text-fill-color: #7AAACE;
+}
+[data-theme="light"] .upload-hero h1 {
+  background: linear-gradient(135deg, #1a2d3d 30%, #7AAACE);
+  -webkit-background-clip: text;
+}
+[data-theme="light"] .upload-hero p {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-hero-icon {
+  background: linear-gradient(135deg, rgba(53,88,114,0.1), rgba(122,170,206,0.1));
+  border-color: rgba(53,88,114,0.15);
+}
+[data-theme="light"] .upload-dropzone {
+  border-color: rgba(53,88,114,0.25);
+  background: rgba(255,255,255,0.7);
+}
+[data-theme="light"] .upload-dropzone:hover {
+  border-color: rgba(53,88,114,0.5);
+  background: rgba(156,213,255,0.08);
+  box-shadow: 0 8px 32px rgba(53,88,114,0.1);
+}
+[data-theme="light"] .upload-dropzone.active {
+  border-color: #355872;
+  background: rgba(156,213,255,0.1);
+}
+[data-theme="light"] .upload-dropzone .drop-text {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-dropzone .drop-text strong {
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-divider span {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-divider::before,
+[data-theme="light"] .upload-divider::after {
+  background: linear-gradient(90deg, transparent, rgba(53,88,114,0.15), transparent);
+}
+[data-theme="light"] .upload-form-group label {
+  color: #7AAACE;
+}
+[data-theme="light"] .upload-input {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(53,88,114,0.12);
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-input:focus {
+  border-color: rgba(53,88,114,0.4);
+  box-shadow: 0 0 0 3px rgba(53,88,114,0.08);
+}
+[data-theme="light"] .upload-input::placeholder { color: #9CD5FF; }
+[data-theme="light"] .upload-textarea {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(53,88,114,0.12);
+  color: #1a2d3d;
+}
+[data-theme="light"] .upload-textarea:focus {
+  border-color: rgba(53,88,114,0.4);
+  box-shadow: 0 0 0 3px rgba(53,88,114,0.08);
+}
+[data-theme="light"] .upload-textarea::placeholder { color: #9CD5FF; }
+[data-theme="light"] .upload-submit {
+  background: linear-gradient(135deg, #355872, #7AAACE);
+  color: #F7F8F0;
+}
+[data-theme="light"] .upload-submit:hover {
+  box-shadow: 0 8px 32px rgba(53,88,114,0.3);
+}
+[data-theme="light"] .upload-error {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.2);
+  color: #dc2626;
+}
 `
 
 export default function UploadPage() {
-  const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -292,7 +425,6 @@ export default function UploadPage() {
     const reader = new FileReader()
     reader.onload = (e) => {
       setContent(e.target.result)
-      if (!title) setTitle(file.name.replace(/\.[^.]+$/, ''))
     }
     reader.readAsText(file)
   }
@@ -307,22 +439,25 @@ export default function UploadPage() {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!title.trim() || !content.trim()) {
-      setError('Title and dialogue content are required')
+    if (!content.trim()) {
+      setError('Transcript is required')
       return
     }
-    const data = parseDialogue(content)
-    if (data.lines.length === 0) {
-      setError('No dialogue lines detected. Check the format: Speaker Name: Dialogue text')
-      return
-    }
-    navigate('/visualize', { state: { title, content, graphData: data } })
+    const data = parseDialogue(content.trim())
+    navigate('/visualize', { state: { content: content.trim(), graphData: data } })
   }
 
   return (
     <div className="upload-page">
       <header className="upload-header">
         <div className="logo">VisualScript <span className="logo-sub">Smart Transcription</span></div>
+        <Link to="/history" className="go-live-btn" style={{ background: 'rgba(255,255,255,0.06)', boxShadow: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#e8eaf0', animation: 'none', marginLeft: 'auto' }}>
+          History
+        </Link>
+        <Link to="/live" className="go-live-btn" style={{ marginLeft: 0 }}>
+          <span className="live-dot" />
+          Go Live
+        </Link>
       </header>
 
       <div className="upload-container">
@@ -357,24 +492,13 @@ export default function UploadPage() {
         {error && <div className="upload-error">{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div className="upload-form-group">
-            <label>Title</label>
-            <input
-              className="upload-input"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. RoundUp Giving — Product Walkthrough"
-            />
-          </div>
-
           <div className="upload-form-group grow">
-            <label>Dialogue Content</label>
+            <label>Transcript</label>
             <textarea
               className="upload-textarea"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={`Host: So walk me through the product — how does a user get started?\nFounder: First, you download the app. Then through Plaid, the app links directly to your bank account.`}
+              placeholder={`Paste your meeting transcript, call notes, or any text you want to visualize...`}
             />
           </div>
 

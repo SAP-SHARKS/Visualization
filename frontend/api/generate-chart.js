@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     // Build request body
     const body = {
       format: 'svg',
-      content: text.trim(),
+      content: '[IMPORTANT: All text in the visual MUST be in English.]\n\n' + text.trim(),
       style_id: DEFAULT_STYLE,
       number_of_visuals: 1,
     }

@@ -1,15 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import useMultiChartGeneration from '../hooks/useMultiChartGeneration'
-import useMultiChartGenerationClaude from '../hooks/useMultiChartGenerationClaude'
-import useBackgroundPregen from '../hooks/useBackgroundPregen'
-import useBackgroundPregenClaude from '../hooks/useBackgroundPregenClaude'
+import { useState, useEffect, useRef } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import ChartRouter from '../components/ChartRouter'
-import ChartLoading from '../components/ChartLoading'
-import ChartError from '../components/ChartError'
-import ChartExportButton from '../components/charts/ChartExportButton'
 import useSectionGeneration from '../hooks/useSectionGeneration'
-import { askAI } from '../services/chartAI'
+import { askAI, generateTranscriptVisuals, generateNapkinVisual } from '../services/chartAI'
+import { saveUploadSession, getSession } from '../services/sessionStorage'
 
 // ==================== CSS ====================
 const PAGE_CSS = `
@@ -30,18 +24,36 @@ const PAGE_CSS = `
   --gradient-accent: linear-gradient(135deg, #3dd68c, #5bf5dc);
   --gradient-surface: linear-gradient(135deg, rgba(14,17,23,0.9), rgba(21,25,33,0.9));
 }
+[data-theme="light"] {
+  --bg: #f8f9fc;
+  --surface: #ffffff;
+  --surface-2: #f0f2f8;
+  --border: rgba(99,102,241,0.1);
+  --text: #1e1b4b;
+  --text-dim: #6b7280;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.12);
+  --charity: #3b82f6;
+  --company: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --teal: #06b6d4;
+  --gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --gradient-surface: linear-gradient(135deg, #ffffff, #f0f2f8);
+}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden;position:relative;}
 body::before{content:'';position:fixed;top:-30%;left:-15%;width:60%;height:60%;background:radial-gradient(circle,rgba(61,214,140,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
 body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55%;background:radial-gradient(circle,rgba(91,156,245,0.03) 0%,transparent 65%);pointer-events:none;z-index:0;}
 
-.app-header{position:sticky;top:0;z-index:100;background:rgba(6,8,12,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:16px 40px;display:flex;align-items:center;justify-content:space-between;}
+.app-header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,8,12,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:16px 40px;display:flex;align-items:center;justify-content:space-between;}
+.page-content{padding-top:70px;}
 .app-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(61,214,140,0.15),transparent);}
 .logo{font-family:'DM Serif Display',serif;font-size:22px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px;cursor:pointer;}
 .logo span{color:var(--text-dim);font-size:13px;font-family:'DM Sans';margin-left:12px;-webkit-text-fill-color:var(--text-dim);}
 .nav-pills{display:flex;gap:4px;background:rgba(14,17,23,0.8);border-radius:12px;padding:4px;border:1px solid var(--border);}
 .nav-pill{padding:8px 16px;border-radius:9px;font-size:12px;font-weight:500;color:var(--text-dim);cursor:pointer;transition:all 0.25s;border:none;background:none;font-family:'DM Sans',sans-serif;}
-.nav-pill:hover{color:var(--text);}
+.nav-pill:hover{color:var(--text);background:rgba(255,255,255,0.06);transform:translateY(-1px);}
 .nav-pill.active{background:linear-gradient(135deg,#3dd68c,#2bc47a);color:var(--bg);font-weight:600;box-shadow:0 2px 12px rgba(61,214,140,0.3);}
 
 .section{max-width:1200px;margin:0 auto;padding:60px 40px;}
@@ -89,6 +101,50 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
 .visual-chart-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto;}
 .visual-chart-area>div{flex:1;min-height:0;max-height:100%;}
 .dialogue-progress-inline{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);background:rgba(61,214,140,0.06);padding:3px 8px;border-radius:4px;}
+
+.dual-panel-layout{display:flex;gap:0;height:calc(100vh - 120px);min-height:600px;border-radius:20px;overflow:hidden;border:1px solid var(--border);background:var(--surface);}
+.dual-visual-panel{display:flex;flex-direction:column;overflow:hidden;flex:1;min-width:0;border-right:1px solid var(--border);}
+.dual-transcript-panel{display:flex;flex-direction:column;overflow:hidden;width:340px;flex-shrink:0;}
+.dual-visual-feed{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;display:flex;flex-direction:column;gap:24px;scroll-behavior:smooth;}
+.dual-visual-feed::-webkit-scrollbar{width:4px;}
+.dual-visual-feed::-webkit-scrollbar-track{background:transparent;}
+.dual-visual-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+.ai-visuals-feed{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:16px;}
+.ai-visual-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.04);animation:fadeUp .6s ease forwards;transition:border-color .3s ease,box-shadow .3s ease;}
+.ai-visual-card:hover{border-color:rgba(61,214,140,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.15);}
+.ai-visual-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:16px 16px 0 0;background:var(--surface);}
+.ai-visual-card-title{font-size:15px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ai-visual-card-type{font-size:10px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);background:var(--accent-glow);padding:3px 10px;border-radius:10px;flex-shrink:0;}
+.ai-visual-card-body{padding:16px;min-height:350px;position:relative;}
+.ai-visual-card-body > div{min-height:350px;width:100%;}
+.ai-visual-card-transcript{border-top:1px solid var(--border);max-height:0;overflow:hidden;transition:max-height 0.3s ease;}
+.ai-visual-card-transcript.open{max-height:300px;}
+.ai-visual-card-transcript-toggle{padding:8px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);transition:color .2s;background:none;border-left:none;border-right:none;border-bottom:none;width:100%;text-align:left;}
+.ai-visual-card-transcript-toggle:hover{color:var(--accent);}
+.ai-visual-card-transcript-toggle .arrow{transition:transform .2s;font-size:10px;}
+.ai-visual-card-transcript-toggle .arrow.open{transform:rotate(90deg);}
+.ai-visual-card-transcript-content{padding:12px 18px;overflow-y:auto;max-height:260px;font-size:12px;line-height:1.7;color:var(--text-dim);font-family:'DM Sans',sans-serif;}
+.ai-visuals-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 24px;color:var(--text-dim);font-size:14px;font-family:'JetBrains Mono',monospace;}
+.ai-visuals-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-visuals-error{text-align:center;color:var(--red);padding:40px;font-size:13px;}
+.source-toggle-vis{display:flex;align-items:center;background:var(--surface-2);border-radius:8px;padding:2px;gap:2px;flex-shrink:0;}
+.source-toggle-vis-btn{padding:4px 12px;border-radius:6px;border:none;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;transition:all .2s;background:transparent;color:var(--text-dim);}
+.source-toggle-vis-btn.active{background:var(--accent);color:#06080c;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+[data-theme="light"] .source-toggle-vis-btn.active{color:#ffffff;}
+.napkin-img-container{width:100%;min-height:350px;display:flex;align-items:center;justify-content:center;padding:16px;}
+.napkin-img-container img{max-width:100%;object-fit:contain;border-radius:8px;}
+.napkin-loading-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:350px;color:var(--text-dim);font-size:13px;}
+.napkin-error-msg{display:flex;align-items:center;justify-content:center;min-height:350px;color:var(--text-dim);font-size:13px;text-align:center;padding:24px;}
+@media(max-width:900px){.ai-visuals-feed{grid-template-columns:1fr;}.dual-panel-layout{flex-direction:column;height:auto;min-height:0;}.dual-transcript-panel{width:100%;height:400px;border-top:1px solid var(--border);}.dual-visual-panel{border-right:none;height:500px;}.dual-visual-feed{padding:12px;}}
+@media(max-width:600px){.dual-transcript-panel{height:350px;}.dual-visual-panel{height:400px;}}
+[data-theme="light"] .dual-panel-layout{border-color:rgba(53,88,114,0.1);background:#ffffff;}
+[data-theme="light"] .dual-visual-panel{border-right-color:rgba(53,88,114,0.1);}
+[data-theme="light"] .ai-visual-card{background:#ffffff;border-color:rgba(53,88,114,0.08);}
+[data-theme="light"] .ai-visual-card:hover{border-color:rgba(53,88,114,0.2);box-shadow:0 8px 32px rgba(53,88,114,0.08);}
+[data-theme="light"] .ai-visual-card-header{background:#ffffff;}
+[data-theme="light"] .ai-visual-card-type{color:#355872;background:rgba(53,88,114,0.08);}
 
 .flow-container{width:100%;display:flex;flex-direction:column;align-items:center;gap:0;}
 .flow-node{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:16px;padding:20px 28px;text-align:center;width:280px;position:relative;transition:all .4s cubic-bezier(0.4,0,0.2,1);overflow:hidden;}
@@ -183,6 +239,29 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
 .speaker-stat:hover{border-color:rgba(61,214,140,0.2);transform:translateY(-2px);}
 .speaker-stat .ss-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;}
 .speaker-stat .ss-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+
+.takeaways-list{display:flex;flex-direction:column;gap:14px;}
+.takeaway-item{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:14px;padding:20px 24px;display:flex;align-items:flex-start;gap:16px;transition:all .35s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;}
+.takeaway-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(to bottom,var(--accent),rgba(61,214,140,0.3));opacity:0;transition:opacity .3s;}
+.takeaway-item:hover{border-color:rgba(61,214,140,0.25);transform:translateX(4px);box-shadow:0 4px 24px rgba(61,214,140,0.06);}
+.takeaway-item:hover::before{opacity:1;}
+.takeaway-icon{width:40px;height:40px;border-radius:10px;background:rgba(61,214,140,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.takeaway-text{font-size:15px;line-height:1.7;color:var(--text-dim);flex:1;}
+
+.eli5-card{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:20px;padding:32px;position:relative;overflow:hidden;transition:all .35s cubic-bezier(0.4,0,0.2,1);}
+.eli5-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--teal));opacity:0;transition:opacity .3s;}
+.eli5-card:hover{border-color:rgba(164,123,245,0.25);box-shadow:0 8px 32px rgba(164,123,245,0.06);}
+.eli5-card:hover::before{opacity:1;}
+.eli5-text{font-size:17px;line-height:1.85;color:var(--text-dim);font-style:italic;}
+
+.blindspots-list{display:flex;flex-direction:column;gap:14px;}
+.blindspot-item{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:14px;padding:20px 24px;display:flex;align-items:flex-start;gap:16px;transition:all .35s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;}
+.blindspot-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(to bottom,var(--red),rgba(245,91,91,0.3));opacity:0;transition:opacity .3s;}
+.blindspot-item:hover{border-color:rgba(245,91,91,0.2);transform:translateX(4px);box-shadow:0 4px 24px rgba(245,91,91,0.06);}
+.blindspot-item:hover::before{opacity:1;}
+.blindspot-icon{width:40px;height:40px;border-radius:10px;background:rgba(245,91,91,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.blindspot-content h4{font-size:16px;font-weight:600;margin-bottom:4px;color:var(--text);}
+.blindspot-content p{font-size:14px;color:var(--text-dim);line-height:1.7;}
 
 .concepts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
 .concept-card{background:linear-gradient(135deg,rgba(14,17,23,0.9),rgba(21,25,33,0.9));border:1px solid var(--border);border-radius:16px;padding:28px;transition:all .35s cubic-bezier(0.4,0,0.2,1);cursor:default;position:relative;overflow:hidden;}
@@ -328,57 +407,254 @@ body::after{content:'';position:fixed;bottom:-25%;right:-15%;width:55%;height:55
   .sankey-label{width:50px;font-size:9px;}
   .sankey-bar{font-size:9px;}
 }
+
+/* ===== LIGHT MODE OVERRIDES — Vibrant Modern ===== */
+[data-theme="light"] body{background:#f8f9fc;color:#1e1b4b;}
+[data-theme="light"] body::before{background:radial-gradient(circle at 20% 20%,rgba(99,102,241,0.06) 0%,transparent 55%);}
+[data-theme="light"] body::after{background:radial-gradient(circle at 80% 80%,rgba(236,72,153,0.05) 0%,transparent 55%);}
+[data-theme="light"] .app-header{background:rgba(255,255,255,0.88);border-bottom-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .app-header::after{background:linear-gradient(90deg,transparent,rgba(99,102,241,0.2),rgba(236,72,153,0.15),transparent);}
+[data-theme="light"] .logo{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .logo span{color:#a5b4fc;-webkit-text-fill-color:#a5b4fc;}
+[data-theme="light"] .nav-pills{background:rgba(255,255,255,0.85);border-color:rgba(99,102,241,0.1);}
+[data-theme="light"] .nav-pill{color:#9ca3af;}
+[data-theme="light"] .nav-pill:hover{color:#4f46e5;background:rgba(99,102,241,0.06);transform:translateY(-1px);}
+[data-theme="light"] .nav-pill.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;box-shadow:0 4px 15px rgba(99,102,241,0.3);}
+[data-theme="light"] .section-label{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .section-title{background:linear-gradient(135deg,#1e1b4b 30%,#6366f1);-webkit-background-clip:text;}
+[data-theme="light"] .stat-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .stat-card::before{background:linear-gradient(90deg,transparent,#6366f1,#ec4899,transparent);}
+[data-theme="light"] .stat-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 8px 32px rgba(99,102,241,0.1);}
+[data-theme="light"] .stat-value{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
+[data-theme="light"] .transcript-panel{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .transcript-panel:hover{box-shadow:0 4px 24px rgba(99,102,241,0.08);}
+[data-theme="light"] .visual-panel{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .visual-panel:hover{box-shadow:0 4px 24px rgba(99,102,241,0.08);}
+[data-theme="light"] .panel-header{border-bottom-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .panel-header .dot{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 0 8px rgba(99,102,241,0.3);}
+[data-theme="light"] .t-line:hover{background:rgba(99,102,241,0.04);}
+[data-theme="light"] .t-line.active{background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(139,92,246,0.04));border-left-color:#6366f1;box-shadow:0 2px 12px rgba(99,102,241,0.06);}
+[data-theme="light"] .t-line .speaker.host{color:#3b82f6;}
+[data-theme="light"] .t-line .speaker.guest{color:#f59e0b;}
+[data-theme="light"] .visual-modes{background:rgba(255,255,255,0.7);border-bottom-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .vmode-btn{color:#a5b4fc;}
+[data-theme="light"] .vmode-btn:hover{color:#4f46e5;border-color:rgba(99,102,241,0.2);background:rgba(99,102,241,0.04);}
+[data-theme="light"] .vmode-btn.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;box-shadow:0 2px 12px rgba(99,102,241,0.3);}
+[data-theme="light"] .vdl-step{color:#1e1b4b;background:rgba(99,102,241,0.06);}
+[data-theme="light"] .flow-node{background:#ffffff;border-color:rgba(99,102,241,0.1);}
+[data-theme="light"] .flow-node::before{background:linear-gradient(90deg,transparent,#6366f1,#ec4899,transparent);}
+[data-theme="light"] .flow-node:hover{border-color:rgba(99,102,241,0.25);box-shadow:0 8px 32px rgba(99,102,241,0.1);}
+[data-theme="light"] .flow-node .node-amount{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .flow-arrow{background:linear-gradient(to bottom,rgba(99,102,241,0.15),#6366f1);}
+[data-theme="light"] .flow-arrow::after{border-top-color:#6366f1;}
+[data-theme="light"] .info-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .info-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 4px 20px rgba(99,102,241,0.1);}
+[data-theme="light"] .info-card .info-big-number{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .info-metric-bar{background:rgba(99,102,241,0.06);}
+[data-theme="light"] .info-step{background:#f0f2f8;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .info-step .step-num{color:#6366f1;}
+[data-theme="light"] .info-step-connector{color:#6366f1;}
+[data-theme="light"] .napkin-board{background:rgba(255,255,255,0.6);border-color:rgba(99,102,241,0.1);}
+[data-theme="light"] .napkin-board::before{color:#a5b4fc;}
+[data-theme="light"] .napkin-blob{background:rgba(99,102,241,0.04);}
+[data-theme="light"] .napkin-note{background:rgba(99,102,241,0.04);border-color:rgba(99,102,241,0.1);}
+[data-theme="light"] .napkin-box{border-color:rgba(99,102,241,0.12);background:rgba(255,255,255,0.5);}
+[data-theme="light"] .napkin-box.accent{border-color:#6366f1;color:#6366f1;}
+[data-theme="light"] .napkin-connector{color:#6366f1;}
+[data-theme="light"] .sankey-bar-wrap{background:rgba(99,102,241,0.04);}
+[data-theme="light"] .compare-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .compare-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 8px 24px rgba(99,102,241,0.1);}
+[data-theme="light"] .compare-card .cc-val{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .timeline-dot{border-color:rgba(99,102,241,0.15);background:#f8f9fc;}
+[data-theme="light"] .timeline-node.active .timeline-dot{border-color:#6366f1;background:#6366f1;box-shadow:0 0 16px rgba(99,102,241,0.25);}
+[data-theme="light"] .timeline-node:hover .timeline-dot{border-color:#6366f1;box-shadow:0 0 8px rgba(99,102,241,0.15);}
+[data-theme="light"] .timeline-node.active .timeline-label{color:#6366f1;}
+[data-theme="light"] .timeline-line{background:rgba(99,102,241,0.08);}
+[data-theme="light"] .timeline-node.active .timeline-line{background:linear-gradient(90deg,#6366f1,rgba(99,102,241,0.1));}
+[data-theme="light"] .speaker-bar-track{background:rgba(99,102,241,0.04);border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .speaker-bar-fill{color:#ffffff;}
+[data-theme="light"] .speaker-stat{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .speaker-stat:hover{border-color:rgba(99,102,241,0.2);}
+[data-theme="light"] .takeaway-item{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .takeaway-item::before{background:linear-gradient(to bottom,#10b981,rgba(16,185,129,0.3));}
+[data-theme="light"] .takeaway-item:hover{border-color:rgba(16,185,129,0.25);box-shadow:0 4px 24px rgba(16,185,129,0.1);}
+[data-theme="light"] .takeaway-icon{background:rgba(16,185,129,0.1);}
+[data-theme="light"] .takeaway-text{color:#4b5563;}
+[data-theme="light"] .eli5-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .eli5-card::before{background:linear-gradient(90deg,#f59e0b,#ec4899,#6366f1);}
+[data-theme="light"] .eli5-card:hover{border-color:rgba(245,158,11,0.2);box-shadow:0 8px 32px rgba(245,158,11,0.08);}
+[data-theme="light"] .eli5-text{color:#4b5563;}
+[data-theme="light"] .blindspot-item{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .blindspot-item::before{background:linear-gradient(to bottom,#ef4444,rgba(239,68,68,0.3));}
+[data-theme="light"] .blindspot-item:hover{border-color:rgba(239,68,68,0.2);box-shadow:0 4px 24px rgba(239,68,68,0.08);}
+[data-theme="light"] .blindspot-icon{background:rgba(239,68,68,0.08);}
+[data-theme="light"] .blindspot-content h4{color:#1e1b4b;}
+[data-theme="light"] .blindspot-content p{color:#4b5563;}
+[data-theme="light"] .concept-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .concept-card::before{background:linear-gradient(90deg,#6366f1,#ec4899);}
+[data-theme="light"] .concept-card:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 12px 40px rgba(99,102,241,0.1);}
+[data-theme="light"] .concept-card:nth-child(1) .concept-icon{background:rgba(99,102,241,0.1);}
+[data-theme="light"] .concept-card:nth-child(2) .concept-icon{background:rgba(59,130,246,0.1);}
+[data-theme="light"] .concept-card:nth-child(3) .concept-icon{background:rgba(245,158,11,0.1);}
+[data-theme="light"] .concept-card:nth-child(4) .concept-icon{background:rgba(236,72,153,0.1);}
+[data-theme="light"] .concept-card:nth-child(5) .concept-icon{background:rgba(239,68,68,0.1);}
+[data-theme="light"] .concept-card:nth-child(6) .concept-icon{background:rgba(6,182,212,0.1);}
+[data-theme="light"] .concept-tag{background:rgba(99,102,241,0.06);color:#6366f1;border-color:rgba(99,102,241,0.12);}
+[data-theme="light"] .suggestion-item{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .suggestion-item::before{background:linear-gradient(to bottom,#8b5cf6,rgba(139,92,246,0.3));}
+[data-theme="light"] .suggestion-item:hover{border-color:rgba(139,92,246,0.25);box-shadow:0 4px 24px rgba(139,92,246,0.1);}
+[data-theme="light"] .suggestion-number{background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .badge-ux{background:rgba(139,92,246,0.1);color:#7c3aed;}
+[data-theme="light"] .badge-biz{background:rgba(16,185,129,0.1);color:#059669;}
+[data-theme="light"] .badge-tech{background:rgba(59,130,246,0.1);color:#2563eb;}
+[data-theme="light"] .quiz-card{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .quiz-card:hover{border-color:rgba(99,102,241,0.15);box-shadow:0 4px 20px rgba(99,102,241,0.08);}
+[data-theme="light"] .quiz-number{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;}
+[data-theme="light"] .quiz-option{background:rgba(248,249,252,0.8);border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .quiz-option:hover{border-color:rgba(99,102,241,0.25);background:rgba(99,102,241,0.04);}
+[data-theme="light"] .quiz-option.selected.correct{border-color:#10b981;background:rgba(16,185,129,0.06);}
+[data-theme="light"] .quiz-option.selected.wrong{border-color:#ef4444;background:rgba(239,68,68,0.06);}
+[data-theme="light"] .option-letter{background:#f0f2f8;border-color:rgba(99,102,241,0.1);}
+[data-theme="light"] .quiz-option:hover .option-letter{border-color:rgba(99,102,241,0.3);color:#6366f1;}
+[data-theme="light"] .quiz-feedback.correct{background:rgba(16,185,129,0.06);color:#059669;border-color:rgba(16,185,129,0.2);}
+[data-theme="light"] .quiz-feedback.wrong{background:rgba(239,68,68,0.06);color:#dc2626;border-color:rgba(239,68,68,0.2);}
+[data-theme="light"] .quiz-score-bar{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .quiz-score-ring{border-color:rgba(99,102,241,0.12);box-shadow:0 0 20px rgba(99,102,241,0.08);}
+[data-theme="light"] .ask-container{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .ask-input-area{border-bottom-color:rgba(99,102,241,0.08);background:rgba(248,249,252,0.5);}
+[data-theme="light"] .ask-input{background:rgba(255,255,255,0.9);border-color:rgba(99,102,241,0.12);color:#1e1b4b;}
+[data-theme="light"] .ask-input:focus{border-color:rgba(99,102,241,0.4);box-shadow:0 0 0 3px rgba(99,102,241,0.08);}
+[data-theme="light"] .ask-input::placeholder{color:#a5b4fc;}
+[data-theme="light"] .ask-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;}
+[data-theme="light"] .ask-btn:hover{box-shadow:0 4px 20px rgba(99,102,241,0.35);}
+[data-theme="light"] .thread-avatar.user{background:rgba(59,130,246,0.1);}
+[data-theme="light"] .thread-avatar.ai{background:rgba(99,102,241,0.1);}
+[data-theme="light"] .thread-name.user{color:#3b82f6;}
+[data-theme="light"] .thread-name.ai{color:#6366f1;}
+[data-theme="light"] .sq-chip{background:rgba(255,255,255,0.8);border-color:rgba(99,102,241,0.1);color:#6366f1;}
+[data-theme="light"] .sq-chip:hover{border-color:rgba(99,102,241,0.3);color:#4f46e5;background:rgba(99,102,241,0.04);}
+[data-theme="light"] .action-item{background:#ffffff;border-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .action-item:hover{border-color:rgba(99,102,241,0.2);box-shadow:0 4px 20px rgba(99,102,241,0.08);}
+[data-theme="light"] .action-check{border-color:rgba(99,102,241,0.15);}
+[data-theme="light"] .action-check:hover{border-color:rgba(99,102,241,0.4);}
+[data-theme="light"] .action-check.done{background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 2px 8px rgba(99,102,241,0.3);}
+[data-theme="light"] .priority-high{background:rgba(239,68,68,0.08);color:#ef4444;}
+[data-theme="light"] .priority-med{background:rgba(245,158,11,0.08);color:#f59e0b;}
+[data-theme="light"] .priority-low{background:rgba(59,130,246,0.08);color:#3b82f6;}
+[data-theme="light"] .section-divider hr{border-top-color:rgba(99,102,241,0.06);background:linear-gradient(90deg,transparent,rgba(99,102,241,0.1),rgba(236,72,153,0.08),transparent);}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.15);}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,0.3);}
 `
 
 // ==================== CHART GENERATION (AI-powered) ====================
 
-const SECTIONS = ['transcript', 'timeline', 'speakers', 'concepts', 'suggestions', 'actions', 'quiz', 'ask']
+const SECTIONS = ['transcript', 'takeaways', 'eli5', 'blindspots', 'concepts', 'suggestions', 'actions', 'quiz', 'ask']
+
+// ==================== AI Visual Card Component ====================
+function AIVisualCard({ item, showClaude }) {
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
+
+  return (
+    <div className="ai-visual-card">
+      <div className="ai-visual-card-header">
+        <span className="ai-visual-card-title">
+          {item.claudeChart?.title || item.topicSummary || 'Visual'}
+        </span>
+        <span className="ai-visual-card-type">
+          {item.claudeChart?.type?.replace('_', ' ') || 'chart'}
+        </span>
+      </div>
+
+      <div className="ai-visual-card-body">
+        <div data-chart-id={item.id}>
+          {showClaude ? (
+            <ChartRouter data={item.claudeChart} />
+          ) : (
+            item.napkinLoading ? (
+              <div className="napkin-loading-indicator">
+                <div className="ai-visuals-spinner" />
+                <span>Generating Napkin AI visual...</span>
+              </div>
+            ) : item.napkinError ? (
+              <div className="napkin-error-msg">
+                <span>Napkin AI: {item.napkinError}</span>
+              </div>
+            ) : item.napkinImage ? (
+              <div className="napkin-img-container">
+                <img
+                  src={item.napkinImage}
+                  alt={item.claudeChart?.title || 'Napkin Visual'}
+                />
+              </div>
+            ) : (
+              <div className="napkin-error-msg">
+                <span>No Napkin visual available</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {item.transformedTranscript && (
+        <>
+          <button
+            className="ai-visual-card-transcript-toggle"
+            onClick={() => setTranscriptOpen(o => !o)}
+          >
+            <span className={`arrow${transcriptOpen ? ' open' : ''}`}>&#9654;</span>
+            <span>View Transcript Context</span>
+          </button>
+          <div className={`ai-visual-card-transcript${transcriptOpen ? ' open' : ''}`}>
+            <div className="ai-visual-card-transcript-content">
+              {item.transformedTranscript}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 // ==================== COMPONENT ====================
 export default function VisualizePage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const state = location.state
+  const historySessionId = searchParams.get('session')
 
-  // Redirect if no data
+  // Redirect if no data and not loading from history
   useEffect(() => {
-    if (!state?.graphData) navigate('/', { replace: true })
-  }, [state, navigate])
+    if (!state?.graphData && !historySessionId) navigate('/', { replace: true })
+  }, [state, historySessionId, navigate])
 
-  const { title, content, graphData } = state || {}
+  const [content, setContent] = useState(state?.content || null)
+  const [graphData, setGraphData] = useState(state?.graphData || null)
   const lines = graphData?.lines || []
   const speakerEntries = Object.entries(graphData?.speakers || {})
+  const [title, setTitle] = useState(historySessionId ? 'Loading...' : 'Analyzing...')
+  const [subtitle, setSubtitle] = useState('')
+  const [isHistoryMode, setIsHistoryMode] = useState(!!historySessionId)
 
-  // AI-generated section data (concepts, suggestions, actionItems, quizData, suggestedQs)
-  const { sections, loading: sectionsLoading, error: sectionsError } = useSectionGeneration(content)
+  // AI-generated section data (pass null content in history mode to skip API call)
+  const { sections: generatedSections, loading: sectionsLoading, error: sectionsError } = useSectionGeneration(isHistoryMode ? null : content)
+  const [historySections, setHistorySections] = useState(null)
+  const sections = isHistoryMode ? historySections : generatedSections
+  const takeaways = sections?.takeaways || []
+  const eli5 = sections?.eli5 || null
+  const blindspots = sections?.blindspots || []
   const concepts = sections?.concepts || []
   const suggestions = sections?.suggestions || []
   const actionItems = sections?.actionItems || []
   const quizData = sections?.quizData || []
   const suggestedQs = sections?.suggestedQs || []
 
-  // Visual mode tabs — mapped to AI chart types
-  const MODES = [
-    { label: 'Flowchart', type: 'flowchart' },
-    { label: 'Infographic', type: 'infographic' },
-    { label: 'Napkin', type: 'mindmap' },
-    { label: 'Sankey', type: 'timeline' },
-    { label: 'Compare', type: 'comparison' },
-  ]
-  const [currentMode, setCurrentMode] = useState(0)
-  const forcedType = MODES[currentMode].type
-
-  // Napkin.ai chart generation
-  const { charts, loading: chartLoadingSet, errors: chartErrors, progress, retryLine } = useMultiChartGeneration(lines, forcedType)
-  const { totalDone, totalNeeded } = useBackgroundPregen(lines)
-
-  // Claude chart generation (parallel)
-  const { charts: claudeCharts, loading: claudeLoadingSet, errors: claudeErrors, progress: claudeProgress, retryLine: claudeRetryLine } = useMultiChartGenerationClaude(lines, forcedType)
-  const { totalDone: claudeTotalDone, totalNeeded: claudeTotalNeeded } = useBackgroundPregenClaude(lines)
-
-  // Toggle: 'napkin' or 'claude'
-  const [chartSource, setChartSource] = useState('napkin')
-  const chartExportRef = useRef(null)
+  // AI Visuals feed — generated from complete transcript
+  // Each item: { id, claudeChart, napkinImage, napkinLoading, napkinError, transformedTranscript, topicSummary }
+  const [chartFeed, setChartFeed] = useState([])
+  const [visualsLoading, setVisualsLoading] = useState(false)
+  const [visualsError, setVisualsError] = useState(null)
+  const [viewSource, setViewSource] = useState('claude')
 
   const [currentStep, setCurrentStep] = useState(0)
   const [activeNav, setActiveNav] = useState('transcript')
@@ -387,6 +663,10 @@ export default function VisualizePage() {
   const [actionsDone, setActionsDone] = useState({})
   const [askInput, setAskInput] = useState('')
   const [threads, setThreads] = useState([])
+
+  // Supabase save state
+  const [sessionSaved, setSessionSaved] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   const transcriptRef = useRef(null)
   const sectionRefs = useRef({})
@@ -406,6 +686,135 @@ export default function VisualizePage() {
     }
   }, [])
 
+  // Load session from Supabase (history mode)
+  useEffect(() => {
+    if (!historySessionId) return
+    let cancelled = false
+    setVisualsLoading(true)
+
+    getSession(historySessionId).then(({ session, charts, sections: sec, error }) => {
+      if (cancelled) return
+      if (error) {
+        setVisualsError(error)
+        setVisualsLoading(false)
+        return
+      }
+
+      setTitle(session.title || 'Untitled Session')
+      setSubtitle(session.subtitle || '')
+      setContent(session.transcript || '')
+      setSessionSaved(true) // already saved, don't re-save
+
+      // Build chart feed from stored data
+      const feed = (charts || []).map((c, idx) => ({
+        id: idx + 1,
+        claudeChart: c.chart_data,
+        topicSummary: c.topic_summary || c.chart_data?.title || '',
+        transformedTranscript: c.transformed_transcript || null,
+        napkinImage: c.napkin_image_url || null,
+        napkinLoading: false,
+        napkinError: null,
+      }))
+      setChartFeed(feed)
+
+      // Load sections
+      if (sec) {
+        setHistorySections({
+          takeaways: sec.takeaways || [],
+          eli5: sec.eli5 || null,
+          blindspots: sec.blindspots || [],
+          concepts: sec.concepts || [],
+          suggestions: sec.suggestions || [],
+          actionItems: sec.action_items || [],
+          quizData: sec.quiz_data || [],
+          suggestedQs: sec.suggested_qs || [],
+        })
+      }
+
+      setVisualsLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [historySessionId])
+
+  // Generate AI visuals from complete transcript (upload mode only)
+  useEffect(() => {
+    if (isHistoryMode || !content || chartFeed.length > 0 || visualsLoading) return
+
+    let cancelled = false
+    setVisualsLoading(true)
+    setVisualsError(null)
+
+    generateTranscriptVisuals(content).then(({ title: apiTitle, subtitle: apiSubtitle, charts, error }) => {
+      if (cancelled) return
+      if (error) {
+        setVisualsError(error)
+        setVisualsLoading(false)
+        return
+      }
+      if (apiTitle) setTitle(apiTitle)
+      if (apiSubtitle) setSubtitle(apiSubtitle)
+
+      // Build feed items from Claude charts
+      const feed = charts.map((chart, idx) => ({
+        id: idx + 1,
+        claudeChart: chart,
+        topicSummary: chart.topicSummary || chart.title,
+        transformedTranscript: chart.transformedTranscript || null,
+        napkinImage: null,
+        napkinLoading: true,
+        napkinError: null,
+      }))
+      setChartFeed(feed)
+      setVisualsLoading(false)
+
+      // Fire Napkin AI generation in parallel for each chart
+      feed.forEach((item) => {
+        const text = item.transformedTranscript || item.topicSummary || ''
+        if (!text.trim()) {
+          setChartFeed(prev => prev.map(f =>
+            f.id === item.id ? { ...f, napkinLoading: false, napkinError: 'No text for visual' } : f
+          ))
+          return
+        }
+
+        generateNapkinVisual(text, item.claudeChart?.napkinVisualType || null).then(({ imageUrl, error: napErr }) => {
+          if (cancelled) return
+          setChartFeed(prev => prev.map(f =>
+            f.id === item.id
+              ? { ...f, napkinImage: imageUrl || null, napkinLoading: false, napkinError: napErr || (imageUrl ? null : 'No image returned') }
+              : f
+          ))
+        })
+      })
+    })
+
+    return () => { cancelled = true }
+  }, [content])
+
+  // Auto-save to Supabase when charts and sections are both ready (skip in history mode)
+  useEffect(() => {
+    if (isHistoryMode || sessionSaved || !content) return
+    if (visualsLoading || sectionsLoading) return
+    if (chartFeed.length === 0 && !visualsError) return
+
+    setSessionSaved(true)
+    saveUploadSession({
+      title: title || 'Untitled',
+      subtitle: subtitle || null,
+      transcript: content,
+      chartFeed,
+      sections: sections || null,
+    }).then(({ sessionId, error }) => {
+      if (error) {
+        setSaveError(error)
+        if (error !== 'Supabase not configured') {
+          console.error('Session save failed:', error)
+        }
+      }
+    })
+  }, [chartFeed, sections, visualsLoading, sectionsLoading, sessionSaved, content, title, visualsError])
+
   // Scroll-based transcript line highlighting
   useEffect(() => {
     const el = transcriptRef.current
@@ -424,13 +833,16 @@ export default function VisualizePage() {
     return () => el.removeEventListener('scroll', detect)
   }, [lines.length, currentStep])
 
-  // Intersection observer for nav pills
+  // Intersection observer for nav pills — highlights section nearest to top
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) setActiveNav(entry.target.id)
-      })
-    }, { threshold: 0.3 })
+      const visible = entries.filter(e => e.isIntersecting)
+      if (visible.length > 0) {
+        // Pick the one closest to the top of the viewport
+        visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        setActiveNav(visible[0].target.id)
+      }
+    }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 })
 
     SECTIONS.forEach(id => {
       const el = sectionRefs.current[id]
@@ -475,7 +887,7 @@ export default function VisualizePage() {
     })
   }
 
-  if (!state?.graphData) return null
+  if (!state?.graphData && !historySessionId) return null
 
   const totalAnswered = Object.keys(quizAnswered).length
   const scoreColor = quizScore === totalAnswered && totalAnswered > 0 ? 'var(--accent)' : totalAnswered === quizData.length ? 'var(--company)' : 'var(--border)'
@@ -494,121 +906,103 @@ export default function VisualizePage() {
         </nav>
       </header>
 
-      {/* HERO + TRANSCRIPT */}
+      <div className="page-content">
+      {/* HERO + TRANSCRIPT & AI VISUALS SIDE BY SIDE */}
       <div className="section" id="transcript" ref={el => sectionRefs.current.transcript = el}>
-        <div className="section-label">Call Summary</div>
+        <div className="section-label">Transcript Summary</div>
         <div className="section-title">{title}</div>
-        <div className="section-subtitle">A visual breakdown of the uploaded call transcript with {lines.length} dialogue lines and {speakerEntries.length} speakers.</div>
+        <div className="section-subtitle">{subtitle || (isHistoryMode ? 'Saved session' : 'Generating summary...')}</div>
 
         <div className="stats-bar">
-          <div className="stat-card"><div className="stat-value">{lines.length}</div><div className="stat-label">Lines</div></div>
-          <div className="stat-card"><div className="stat-value">{graphData.total_words}</div><div className="stat-label">Words</div></div>
-          <div className="stat-card"><div className="stat-value">{speakerEntries.length}</div><div className="stat-label">Speakers</div></div>
-          <div className="stat-card"><div className="stat-value">{graphData.exchanges}</div><div className="stat-label">Exchanges</div></div>
+          <div className="stat-card"><div className="stat-value">{lines.length || (content ? content.split('\n').filter(l => l.trim()).length : 0)}</div><div className="stat-label">Lines</div></div>
+          <div className="stat-card"><div className="stat-value">{graphData?.total_words || (content ? content.split(/\s+/).filter(Boolean).length : 0)}</div><div className="stat-label">Words</div></div>
+          <div className="stat-card"><div className="stat-value">{chartFeed.length}</div><div className="stat-label">Visuals</div></div>
+          <div className="stat-card"><div className="stat-value">{graphData?.exchanges || 0}</div><div className="stat-label">Exchanges</div></div>
         </div>
 
-        <div className="transcript-layout">
-          <div className="transcript-panel">
-            <div className="panel-header"><div className="dot"></div>CALL TRANSCRIPT</div>
-            <div className="transcript-body" ref={transcriptRef}>
-              {lines.map((line, i) => (
-                <div key={i} className={`t-line${i === currentStep ? ' active' : ''}`} data-step={i} onClick={() => setCurrentStep(i)}>
-                  <span className={`speaker ${line.role}`}>{line.speaker}</span>
-                  {line.timestamp && <span className="timestamp">{line.timestamp}</span>}
-                  {line.text}
+        <div className="dual-panel-layout">
+          {/* Left: AI Visuals scrollable feed */}
+          <div className="dual-visual-panel">
+            <div className="panel-header">
+              <div className="dot"></div>
+              AI Visuals
+              <div style={{ flex: 1 }} />
+              <div className="source-toggle-vis">
+                <button
+                  className={`source-toggle-vis-btn${viewSource === 'claude' ? ' active' : ''}`}
+                  onClick={() => setViewSource('claude')}
+                >
+                  Claude
+                </button>
+                <button
+                  className={`source-toggle-vis-btn${viewSource === 'napkin' ? ' active' : ''}`}
+                  onClick={() => setViewSource('napkin')}
+                >
+                  Napkin AI
+                </button>
+              </div>
+            </div>
+
+            <div className="dual-visual-feed">
+              {visualsLoading && (
+                <div className="ai-visuals-loading">
+                  <div className="ai-visuals-spinner" />
+                  <span>Analyzing transcript...</span>
                 </div>
+              )}
+
+              {visualsError && !visualsLoading && (
+                <div className="ai-visuals-error">
+                  Failed to generate visuals: {visualsError}
+                </div>
+              )}
+
+              {!visualsLoading && !visualsError && chartFeed.length === 0 && (
+                <div className="ai-visuals-loading">
+                  <span>Visuals will appear here</span>
+                </div>
+              )}
+
+              {chartFeed.map((item) => (
+                <AIVisualCard
+                  key={item.id}
+                  item={item}
+                  showClaude={viewSource === 'claude'}
+                />
               ))}
             </div>
           </div>
 
-          <div className="visual-panel" style={{ position: 'relative' }}>
-            <div className="panel-header"><div className="dot" style={{ background: 'var(--purple)' }}></div>VISUAL BREAKDOWN</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
-              <div className="visual-modes">
-                {MODES.map((m, i) => (
-                  <button key={m.type} className={'vmode-btn' + (currentMode === i ? ' active' : '')} onClick={() => setCurrentMode(i)}>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '4px', background: 'rgba(14,17,23,0.8)', borderRadius: '10px', padding: '3px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <button
-                  onClick={() => setChartSource('napkin')}
-                  style={{
-                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                    background: chartSource === 'napkin' ? 'linear-gradient(135deg, #a78bfa, #818cf8)' : 'transparent',
-                    color: chartSource === 'napkin' ? '#fff' : '#6b7280',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Napkin.ai
-                </button>
-                <button
-                  onClick={() => setChartSource('claude')}
-                  style={{
-                    padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                    background: chartSource === 'claude' ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'transparent',
-                    color: chartSource === 'claude' ? '#fff' : '#6b7280',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  Claude AI
-                </button>
-              </div>
+          {/* Right: Transcript scrollable panel */}
+          <div className="dual-transcript-panel">
+            <div className="panel-header"><div className="dot"></div>Transcript</div>
+            <div className="transcript-body" ref={transcriptRef}>
+              {(content || '').split('\n').filter(l => l.trim()).map((line, i) => (
+                <div key={i} className="t-line">
+                  {line}
+                </div>
+              ))}
             </div>
-            <div className="visual-content" ref={chartExportRef}>
-              {(() => {
-                const activeCharts = chartSource === 'claude' ? claudeCharts : charts
-                const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
-                const activeErrors = chartSource === 'claude' ? claudeErrors : chartErrors
-                const activeProgress = chartSource === 'claude' ? claudeProgress : progress
-                const activeRetry = chartSource === 'claude' ? claudeRetryLine : retryLine
-
-                const chart = activeCharts.get(currentStep)
-                const isLoading = activeLoading.has(currentStep)
-                const error = activeErrors.get(currentStep)
-
-                return (
-                  <>
-                    <div className="visual-chart-area">
-                      {isLoading && <ChartLoading />}
-                      {error && !isLoading && <ChartError error={error} onRetry={() => activeRetry(currentStep)} />}
-                      {chart && !isLoading && !error && <ChartRouter data={chart} />}
-                      {!chart && !isLoading && !error && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a5060', fontSize: '13px', fontFamily: "'JetBrains Mono', monospace" }}>
-                          {currentStep >= activeProgress ? 'Generating...' : 'Waiting...'}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )
-              })()}
-            </div>
-            {(() => {
-              const activeCharts = chartSource === 'claude' ? claudeCharts : charts
-              const activeLoading = chartSource === 'claude' ? claudeLoadingSet : chartLoadingSet
-              return activeCharts.get(currentStep) && !activeLoading.has(currentStep) && <ChartExportButton targetRef={chartExportRef} filename={(title || 'chart') + '-' + (currentStep + 1)} />
-            })()}
           </div>
         </div>
       </div>
 
       <div className="section-divider"><hr /></div>
 
-      {/* TIMELINE */}
-      <div className="section" id="timeline" ref={el => sectionRefs.current.timeline = el}>
-        <div className="section-label">Call Timeline</div>
-        <div className="section-title">Conversation Flow</div>
-        <div className="section-subtitle">Click any moment to jump to that part of the conversation and see the visual breakdown.</div>
-        <div className="timeline-track">
-          {lines.map((line, i) => (
-            <div key={i} className={`timeline-node${i === currentStep ? ' active' : ''}`} onClick={() => timelineJump(i)}>
-              <div className="timeline-line"></div>
-              <div className="timeline-dot"></div>
-              <div className="timeline-label">{line.text.substring(0, 20)}...</div>
-              <div className="timeline-time">{line.timestamp || `#${i + 1}`}</div>
+      {/* TAKEAWAYS */}
+      <div className="section" id="takeaways" ref={el => sectionRefs.current.takeaways = el}>
+        <div className="section-label">Summary</div>
+        <div className="section-title">Key Takeaways</div>
+        <div className="section-subtitle">The most important points from this meeting.</div>
+        <div className="takeaways-list">
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : takeaways.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No takeaways extracted</div>
+          ) : takeaways.map((t, i) => (
+            <div className="takeaway-item" key={i}>
+              <div className="takeaway-icon">{t.icon}</div>
+              <div className="takeaway-text">{t.text}</div>
             </div>
           ))}
         </div>
@@ -616,31 +1010,43 @@ export default function VisualizePage() {
 
       <div className="section-divider"><hr /></div>
 
-      {/* SPEAKER ANALYTICS */}
-      <div className="section" id="speakers" ref={el => sectionRefs.current.speakers = el}>
-        <div className="section-label">Speaker Analytics</div>
-        <div className="section-title">Who Said What</div>
-        <div className="section-subtitle">Breakdown of word count and contribution by each participant.</div>
-        <div className="speaker-bars">
-          {speakerEntries.map(([name, data]) => (
-            <div className="speaker-bar-row" key={name}>
-              <div className={`speaker-bar-label ${data.role}`}>{name}</div>
-              <div className="speaker-bar-track">
-                <div className="speaker-bar-fill" style={{ width: `${data.percentage}%`, background: data.role === 'host' ? 'var(--charity)' : 'var(--company)' }}>
-                  {data.percentage}%
-                </div>
+      {/* ELI5 */}
+      <div className="section" id="eli5" ref={el => sectionRefs.current.eli5 = el}>
+        <div className="section-label">Simple Explanation</div>
+        <div className="section-title">Explain Like I'm 5</div>
+        <div className="section-subtitle">The entire meeting explained in the simplest terms possible.</div>
+        <div className="eli5-card">
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : !eli5?.summary ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No ELI5 generated</div>
+          ) : (
+            <div className="eli5-text">{eli5.summary}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="section-divider"><hr /></div>
+
+      {/* BLINDSPOTS */}
+      <div className="section" id="blindspots" ref={el => sectionRefs.current.blindspots = el}>
+        <div className="section-label">Critical Analysis</div>
+        <div className="section-title">Blindspots & Gaps</div>
+        <div className="section-subtitle">Things that were not addressed or overlooked in the discussion.</div>
+        <div className="blindspots-list">
+          {sectionsLoading ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+          ) : blindspots.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No blindspots identified</div>
+          ) : blindspots.map((b, i) => (
+            <div className="blindspot-item" key={i}>
+              <div className="blindspot-icon">{b.icon}</div>
+              <div className="blindspot-content">
+                <h4>{b.title}</h4>
+                <p>{b.desc}</p>
               </div>
             </div>
           ))}
-        </div>
-        <div className="speaker-stat-grid">
-          {speakerEntries.map(([name, data]) => (
-            <div className="speaker-stat" key={name}>
-              <div className="ss-val" style={{ color: data.role === 'host' ? 'var(--charity)' : 'var(--company)' }}>{data.word_count}</div>
-              <div className="ss-label">{name} words</div>
-            </div>
-          ))}
-          <div className="speaker-stat"><div className="ss-val" style={{ color: 'var(--accent)' }}>{graphData.exchanges}</div><div className="ss-label">Q&A exchanges</div></div>
         </div>
       </div>
 
@@ -653,9 +1059,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Terms and ideas from the call — plus additional context you need to fully understand the model.</div>
         <div className="concepts-grid">
           {sectionsLoading ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : concepts.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No concepts extracted</div>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No concepts extracted</div>
           ) : concepts.map((c, i) => (
             <div className="concept-card" key={i}>
               <div className="concept-icon">{c.icon}</div>
@@ -676,9 +1082,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Actionable ideas surfaced from analyzing the call content.</div>
         <div className="suggestions-list">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : suggestions.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No suggestions generated</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No suggestions generated</div>
           ) : suggestions.map((s, i) => (
             <div className="suggestion-item" key={i}>
               <div className="suggestion-number">{String(i + 1).padStart(2, '0')}</div>
@@ -701,9 +1107,9 @@ export default function VisualizePage() {
         <div className="section-subtitle">Tasks extracted from the call that need follow-up.</div>
         <div className="action-items-list">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Analyzing transcript...</div>
           ) : actionItems.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No action items extracted</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No action items extracted</div>
           ) : actionItems.map((a, i) => (
             <div className="action-item" key={i}>
               <div className={`action-check${actionsDone[i] ? ' done' : ''}`} onClick={() => toggleActionDone(i)}>
@@ -743,9 +1149,9 @@ export default function VisualizePage() {
 
         <div className="quiz-container">
           {sectionsLoading ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Generating quiz questions...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Generating quiz questions...</div>
           ) : quizData.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#4a5060', padding: '32px 0', fontSize: '13px' }}>No quiz questions generated</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: '13px' }}>No quiz questions generated</div>
           ) : quizData.map((qd, qi) => {
             const answered = quizAnswered[qi]
             return (
@@ -814,6 +1220,7 @@ export default function VisualizePage() {
       </div>
 
       <div style={{ height: 100 }}></div>
+      </div>
     </>
   )
 }

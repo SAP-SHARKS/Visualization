@@ -6,6 +6,8 @@ const EXPORT_CSS = `
 .chart-export-btn:hover{color:#e8eaf0;border-color:rgba(61,214,140,0.3);background:rgba(14,17,23,0.95);}
 .chart-export-btn:active{transform:scale(0.97);}
 .chart-export-btn svg{width:12px;height:12px;}
+[data-theme="light"] .chart-export-btn{background:rgba(255,255,255,0.85);border-color:rgba(53,88,114,0.1);color:#7AAACE;}
+[data-theme="light"] .chart-export-btn:hover{color:#1a2d3d;border-color:rgba(53,88,114,0.25);background:rgba(255,255,255,0.95);}
 `
 
 function ChartExportButton({ targetRef, filename = 'chart' }) {
@@ -13,8 +15,9 @@ function ChartExportButton({ targetRef, filename = 'chart' }) {
     if (!targetRef?.current) return
 
     try {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light'
       const dataUrl = await toPng(targetRef.current, {
-        backgroundColor: '#06080c',
+        backgroundColor: isLight ? '#F7F8F0' : '#06080c',
         pixelRatio: 2,
         style: {
           padding: '24px',
