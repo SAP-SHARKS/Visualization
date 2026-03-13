@@ -40,7 +40,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-pill:hover{color:var(--text);background:rgba(255,255,255,0.06);}
 .v2-pill.active{background:linear-gradient(135deg,#3dd68c,#2bc47a);color:#06080c;font-weight:600;box-shadow:0 2px 12px rgba(61,214,140,0.3);}
 
-.v2-content{padding-top:70px;max-width:960px;margin:0 auto;padding-left:32px;padding-right:32px;padding-bottom:80px;}
+.v2-content{padding-top:70px;max-width:1200px;margin:0 auto;padding-left:32px;padding-right:32px;padding-bottom:80px;}
 
 .v2-hero{padding:48px 0 32px;text-align:center;}
 .v2-hero-label{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:2px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
@@ -166,11 +166,25 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 [data-theme="light"] .v2-metric{background:#fff;}
 [data-theme="light"] .v2-term{background:#fff;}
 [data-theme="light"] .v2-comp-table{background:#fff;}
+/* Transcript Panel */
+.v2-split{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch;}
+.v2-transcript-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;overflow-y:auto;}
+.v2-transcript-panel::-webkit-scrollbar{width:5px;}
+.v2-transcript-panel::-webkit-scrollbar-track{background:transparent;}
+.v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
+.v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
+.v2-transcript-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.v2-transcript-label::before{content:'📝';font-size:14px;}
+.v2-transcript-text{font-size:13px;line-height:1.8;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;font-family:'JetBrains Mono',monospace;}
+[data-theme="light"] .v2-transcript-panel{background:#fff;}
+[data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);}
+[data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.2);}
 @media(max-width:700px){
   .v2-ps-grid,.v2-pc-grid{grid-template-columns:1fr;}
   .v2-metrics-grid{grid-template-columns:1fr 1fr;}
   .v2-content{padding-left:16px;padding-right:16px;}
   .v2-hero-title{font-size:28px;}
+  .v2-split{grid-template-columns:1fr;}
 }
 `
 
@@ -502,6 +516,7 @@ export default function Visualize2Page() {
 
         {visuals.map((visual, idx) => {
           const meta = SECTION_META[visual.type] || { icon: '📌', label: visual.type }
+          const isTakeaways = visual.type === 'takeaways'
           return (
             <div key={idx} className="v2-section" id={`v2-${visual.type}`} ref={el => sectionRefs.current[`v2-${visual.type}`] = el} style={{animationDelay: `${idx * 0.1}s`}}>
               <div className="v2-section-head">
@@ -510,8 +525,23 @@ export default function Visualize2Page() {
                   <div className="v2-section-label">{meta.label}</div>
                 </div>
               </div>
-              <VisualRenderer visual={visual} />
-              {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
+              {isTakeaways ? (
+                <div className="v2-split">
+                  <div>
+                    <VisualRenderer visual={visual} />
+                    {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
+                  </div>
+                  <div className="v2-transcript-panel">
+                    <div className="v2-transcript-label">Full Transcript</div>
+                    <div className="v2-transcript-text">{content}</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <VisualRenderer visual={visual} />
+                  {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
+                </>
+              )}
             </div>
           )
         })}
