@@ -427,9 +427,9 @@ export default function HistoryPage() {
         {!loading && sessions.length > 0 && (
           <div className="history-grid">
             {sessions.map(s => (
-              <Link key={s.id} to={`${s.mode === 'canvas' ? '/visualize2' : '/visualize'}?session=${s.id}`} className="session-card">
-                <div className={`session-icon ${s.mode === 'live' ? 'live' : s.mode === 'canvas' ? 'canvas' : ''}`}>
-                  {s.mode === 'live' ? '🎙️' : s.mode === 'canvas' ? '🎨' : '📄'}
+              <Link key={s.id} to={`${s.mode === 'canvas' ? '/visualize2' : s.mode === 'live2' ? '/live2' : '/visualize'}?session=${s.id}`} className="session-card">
+                <div className={`session-icon ${s.mode === 'live' || s.mode === 'live2' ? 'live' : s.mode === 'canvas' ? 'canvas' : ''}`}>
+                  {s.mode === 'live' ? '🎙️' : s.mode === 'live2' ? '🎙️' : s.mode === 'canvas' ? '🎨' : '📄'}
                 </div>
                 <div className="session-info">
                   <div className="session-title">{s.title || 'Untitled Session'}</div>

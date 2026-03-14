@@ -1,52 +1,90 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
+import { saveLive2Session } from '../services/sessionStorage'
 
 const MermaidRenderer = lazy(() => import('../components/charts/MermaidRenderer'))
 const MindmapRenderer = lazy(() => import('../components/charts/MindmapRenderer'))
 
-// ── Claude Analysis Prompt (same as MVP) ─────────────────
-const ANALYSIS_PROMPT = `You are a meeting intelligence AI. Analyze this meeting transcript segment and return a JSON canvas.
+// ── Claude Analysis Prompt ────────────────────────────────
+const ANALYSIS_PROMPT = `You are a real-time meeting intelligence AI. Analyze this meeting transcript and return a JSON response.
 
 RESPOND ONLY WITH VALID JSON — no markdown, no backticks.
 
-Schema:
-{
-  "currentTopic": "What is being discussed RIGHT NOW — 5-8 words",
-  "eli5Now": "1-2 plain sentences: what's happening in this meeting right now, for someone who just looked up",
-  "takeawaysNow": [
-    { "text": "key point from this segment", "highlight": false }
+=== CONTEXT YOU RECEIVE ===
+1. PREVIOUS SUMMARY — a compressed record of everything discussed before the recent window. Treat this as ground truth for earlier content.
+2. CHART REGISTRY — compact list of all charts already on canvas {chartId, type, topicSummary}.
+3. RECENT TRANSCRIPT — the last ~300 words being discussed right now.
+
+=== CHARTS ARRAY ===
+
+Return a "charts" array with 1-4 chart objects. Each has an "action" field:
+
+UPDATE: {"action":"update","chartId":"<existing id>","topicSummary":"2-6 words","type":"<same type>", ...fullChartData}
+  Same topic continuing. Include ALL previous items PLUS new ones. Never drop existing data.
+NEW:    {"action":"new","chartId":"chart_<timestamp>","topicSummary":"2-6 words","type":"<type>", ...fullChartData}
+  Genuinely new topic or aspect not already in the registry.
+
+CHART RULES:
+- Check registry FIRST — do NOT create a NEW chart if a similar type + topic already exists
+- If registry has a matching chart → UPDATE it, do not duplicate
+- Pick DIFFERENT types for different aspects of the content
+- If process/steps → flowchart
+- If topic breakdown → mindmap
+- If debate → proscons
+- If options compared → comparison
+- If dates/schedule → timeline
+- If 3+ numbers → metrics
+- If jargon → terms
+- If problems & fixes → problemsolution
+- Every chart MUST have "title" and "explanation" (1-2 sentences of genuine insight)
+
+=== SCHEMAS ===
+flowchart:       {"type":"flowchart","title":"...","mermaid":"graph TD\\n  A[X] --> B[Y]","caption":"...","explanation":"..."}
+mindmap:         {"type":"mindmap","title":"...","center":"topic","color":"#26de81","branches":[{"label":"x","children":["y"]}],"explanation":"..."}
+proscons:        {"type":"proscons","title":"...","topic":"...","pros":["..."],"cons":["..."],"explanation":"..."}
+comparison:      {"type":"comparison","title":"...","options":["A","B"],"criteria":[{"name":"x","values":["a","b"]}],"explanation":"..."}
+timeline:        {"type":"timeline","title":"...","items":[{"time":"Q1","event":"...","note":"...","done":false}],"explanation":"..."}
+metrics:         {"type":"metrics","title":"...","items":[{"value":"$1M","name":"METRIC","context":"...","color":"#00ff88"}],"explanation":"..."}
+terms:           {"type":"terms","title":"...","items":[{"term":"TERM","definition":"..."}],"explanation":"..."}
+problemsolution: {"type":"problemsolution","title":"...","problems":["..."],"solutions":["..."],"explanation":"..."}
+
+=== ALWAYS-PRESENT FIELDS (every response) ===
+
+"currentTopic": "5-8 word summary of what is being discussed RIGHT NOW"
+"eli5Now": "1-2 plain sentences for someone who just looked up"
+"takeawaysNow": [{"text":"...","highlight":false}] — 2-3 items from current moment, highlight:true on most important
+
+"summary": {
+  "text": "comprehensive plain-language summary of the ENTIRE meeting so far — must be detailed enough that anything before the recent window can be discarded. Cover all topics, decisions, and key points discussed.",
+  "keyTakeaways": [
+    {"text":"most important point from entire meeting","highlight":true},
+    {"text":"second most important point","highlight":false}
   ],
-  "visuals": [ /* 2-4 detail visual sections — pick what fits the new content */ ],
-  "decisions": [ { "status": "MADE|PENDING|TABLED", "text": "..." } ],
-  "actions": [ { "text": "...", "owner": "" } ]
+  "blindspots": [
+    {"question":"what has not been addressed?","note":"why this matters"}
+  ]
 }
 
-RULES:
-- takeawaysNow: 2-4 items, highlight:true on the most important one
-- visuals: pick 2-4 from the types below based on what the NEW content contains
-  - If process/steps → flowchart
-  - If NO process → mindmap AND/OR problemsolution
-  - If debate → proscons
-  - If options being compared → comparison
-  - If dates/schedule → timeline
-  - If numbers → metrics
-  - If jargon → terms
-  - ALWAYS include blindspots
-- Every visual needs an "explanation" field with 1-2 sentences of genuine insight
+"decisions": [{"status":"MADE|PENDING|TABLED","text":"..."}]
+"actions": [{"text":"...","owner":""}]
 
-Visual schemas:
+SUMMARY RULES:
+- summary.text must synthesize PREVIOUS SUMMARY + RECENT TRANSCRIPT — never lose information
+- keyTakeaways and blindspots must cover the full meeting, not just recent content
+- At least 2 keyTakeaways and 2 blindspots once there is enough content
+- highlight:true on the single most critical takeaway only
+- decisions and actions accumulate across the full meeting
 
-"takeaways": { "type":"takeaways","items":[{"text":"...","highlight":false}],"explanation":"..." }
-"flowchart": { "type":"flowchart","mermaid":"graph TD\\n  A[X] --> B[Y]","caption":"...","explanation":"..." }
-"mindmap": { "type":"mindmap","center":"topic","color":"#26de81","branches":[{"label":"x","children":["y"]}],"explanation":"..." }
-"problemsolution": { "type":"problemsolution","problems":["..."],"solutions":["..."],"explanation":"..." }
-"proscons": { "type":"proscons","topic":"...","pros":["..."],"cons":["..."],"explanation":"..." }
-"comparison": { "type":"comparison","options":["A","B"],"criteria":[{"name":"x","values":["a","b"]}],"explanation":"..." }
-"timeline": { "type":"timeline","items":[{"time":"Q1","event":"...","note":"...","done":false}],"explanation":"..." }
-"metrics": { "type":"metrics","items":[{"value":"$1M","name":"METRIC","context":"context","color":"#00ff88"}],"explanation":"..." }
-"terms": { "type":"terms","items":[{"term":"TERM","definition":"..."}],"explanation":"..." }
-"blindspots": { "type":"blindspots","items":[{"question":"...","note":"..."}],"explanation":"..." }
-"eli5": { "type":"eli5","simple":"...","analogy":"...","explanation":"..." }`
+=== OUTPUT FORMAT ===
+{
+  "currentTopic": "...",
+  "eli5Now": "...",
+  "takeawaysNow": [...],
+  "summary": { "text":"...", "keyTakeaways":[...], "blindspots":[...] },
+  "decisions": [...],
+  "actions": [...],
+  "charts": [...]
+}`
 
 const ANALYSIS_INTERVAL_MS = 45000
 const MIN_NEW_WORDS = 20
@@ -95,6 +133,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-status-dot.idle{background:var(--text-dim);opacity:.3;}
 .lp-status-dot.listening{background:#00ff88;box-shadow:0 0 6px #00ff88;}
 .lp-status-dot.analyzing{background:#ffd93d;box-shadow:0 0 6px #ffd93d;}
+.lp-status-dot.paused{background:#f59e0b;box-shadow:0 0 6px #f59e0b;animation:none;}
 .lp-status-text{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:1px;flex:1;text-transform:uppercase;}
 .lp-status-timer{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:1px;opacity:.6;}
 
@@ -255,6 +294,27 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-act-text{font-size:14px;color:var(--text);line-height:1.6;flex:1;}
 .lp-act-owner{font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;background:var(--accent-glow);padding:2px 8px;border-radius:6px;white-space:nowrap;}
 
+/* Meeting Summary */
+.lp-summary{margin:0 28px 20px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;animation:lp-fadeUp .4s ease both;}
+.lp-summary-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.lp-summary-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(99,102,241,0.15);}
+.lp-summary-label{font-size:11px;font-weight:700;letter-spacing:2px;font-family:'JetBrains Mono',monospace;color:#8b5cf6;text-transform:uppercase;}
+.lp-summary-updated{margin-left:auto;font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;opacity:.6;}
+.lp-summary-text{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.lp-summary-section{margin-bottom:16px;}
+.lp-summary-section:last-child{margin-bottom:0;}
+.lp-summary-section-label{font-size:10px;font-weight:700;letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:10px;text-transform:uppercase;}
+.lp-summary-section-label.takeaways{color:var(--accent);}
+.lp-summary-section-label.blindspots{color:#ff8c6b;}
+.lp-summary-tk{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin-bottom:6px;border-radius:10px;border:1px solid rgba(61,214,140,0.1);font-size:14px;line-height:1.6;}
+.lp-summary-tk.hl{background:rgba(61,214,140,0.06);border-color:rgba(61,214,140,0.2);}
+.lp-summary-tk .lp-tk-num{background:var(--accent-glow);padding:4px 8px;border-radius:6px;font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:700;flex-shrink:0;}
+.lp-summary-bs{padding:12px 14px;margin-bottom:6px;border-radius:10px;background:rgba(255,80,80,0.04);border:1px solid rgba(255,80,80,0.12);}
+.lp-summary-bs-q{font-size:14px;font-weight:600;color:#ff5050;margin-bottom:3px;line-height:1.4;}
+.lp-summary-bs-note{font-size:13px;color:var(--text-dim);line-height:1.5;}
+[data-theme="light"] .lp-summary{background:#fff;}
+[data-theme="light"] .lp-summary-icon{background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.06));}
+
 /* Empty state */
 .lp-empty{padding:20px 28px;display:flex;align-items:center;justify-content:center;flex:1;opacity:.2;}
 .lp-empty p{font-size:11px;color:var(--text-dim);letter-spacing:2px;font-family:'JetBrains Mono',monospace;text-align:center;line-height:2;text-transform:uppercase;}
@@ -294,30 +354,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 
 // ── Visual Config ────────────────────────────────────────
 const VIS_CFG = {
-  takeaways:       { icon: '✦', label: 'KEY TAKEAWAYS',      color: '#00ff88' },
-  flowchart:       { icon: '⬡', label: 'PROCESS FLOW',       color: '#00d4ff' },
-  eli5:            { icon: '💡', label: 'IN PLAIN ENGLISH',   color: '#c77dff' },
-  blindspots:      { icon: '⚠', label: 'BLIND SPOTS',        color: '#ff8c6b' },
-  mindmap:         { icon: '✦', label: 'TOPIC MAP',           color: '#26de81' },
+  flowchart: { icon: '⬡', label: 'PROCESS FLOW', color: '#00d4ff' },
+  eli5: { icon: '💡', label: 'IN PLAIN ENGLISH', color: '#c77dff' },
+  mindmap: { icon: '✦', label: 'TOPIC MAP', color: '#26de81' },
   problemsolution: { icon: '⟳', label: 'PROBLEM → SOLUTION', color: '#ff6b9d' },
-  proscons:        { icon: '⚖', label: 'PROS & CONS',         color: '#ff9f43' },
-  comparison:      { icon: '≡', label: 'COMPARISON',          color: '#ff9f43' },
-  timeline:        { icon: '◈', label: 'TIMELINE',            color: '#00d4ff' },
-  metrics:         { icon: '◉', label: 'KEY METRICS',         color: '#00ffaa' },
-  terms:           { icon: '📖', label: 'TERMS EXPLAINED',    color: '#ffd93d' },
+  proscons: { icon: '⚖', label: 'PROS & CONS', color: '#ff9f43' },
+  comparison: { icon: '≡', label: 'COMPARISON', color: '#ff9f43' },
+  timeline: { icon: '◈', label: 'TIMELINE', color: '#00d4ff' },
+  metrics: { icon: '◉', label: 'KEY METRICS', color: '#00ffaa' },
+  terms: { icon: '📖', label: 'TERMS EXPLAINED', color: '#ffd93d' },
 }
 
 // ── Visual Block Renderer ────────────────────────────────
 function VisualBlock({ visual }) {
   const t = visual.type
-  if (t === 'takeaways') {
-    return <>{(visual.items || []).map((tk, i) => (
-      <div key={i} className={`lp-tk-row${tk.highlight ? ' hl' : ''}`}>
-        <div className="lp-tk-num">✦</div>
-        <div className="lp-tk-text">{tk.text}</div>
-      </div>
-    ))}</>
-  }
   if (t === 'flowchart') {
     if (!visual.mermaid) return <p style={{ color: 'var(--text-dim)', fontSize: 11 }}>No diagram data.</p>
     return (
@@ -334,14 +384,6 @@ function VisualBlock({ visual }) {
       <div className="lp-eli5-body">{visual.simple}</div>
       {visual.analogy && <div className="lp-eli5-analogy"><strong style={{ color: '#c77dff', fontStyle: 'normal', fontSize: 9, letterSpacing: 2, fontFamily: "'JetBrains Mono',monospace", display: 'block', marginBottom: 4 }}>ANALOGY</strong>{visual.analogy}</div>}
     </>
-  }
-  if (t === 'blindspots') {
-    return <div className="lp-bs-grid">{(visual.items || []).map((b, i) => (
-      <div key={i} className="lp-bs-card">
-        <div className="lp-bs-q">? {b.question}</div>
-        <div className="lp-bs-note">{b.note}</div>
-      </div>
-    ))}</div>
   }
   if (t === 'mindmap') {
     const mc = visual.color || '#26de81'
@@ -428,11 +470,15 @@ export default function LivePage2() {
   const [deepgramKey] = useState(import.meta.env.VITE_DEEPGRAM_API_KEY || '')
   const [sessionStarted, setSessionStarted] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [statusState, setStatusState] = useState('idle')
   const [error, setError] = useState('')
   const [timerText, setTimerText] = useState('')
   const [liveSummary, setLiveSummary] = useState(null)
-  const [sections, setSections] = useState([])
+  const [meetingSummary, setMeetingSummary] = useState(null)
+  const [decisions, setDecisions] = useState([])
+  const [actions, setActions] = useState([])
+  const [charts, setCharts] = useState([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [qaThreads, setQaThreads] = useState([])
   const [qaInput, setQaInput] = useState('')
@@ -444,7 +490,8 @@ export default function LivePage2() {
   const bufferRef = useRef('')
   const lastAnalyzedRef = useRef(0)
   const lastAnalysisTimeRef = useRef(0)
-  const batchNumRef = useRef(0)
+  const chartsRef = useRef([])
+  const prevSummaryRef = useRef('')
   const dgSocketRef = useRef(null)
   const mediaStreamRef = useRef(null)
   const audioCtxRef = useRef(null)
@@ -539,7 +586,7 @@ export default function LivePage2() {
       } catch (e) { console.error('DG parse error', e) }
     }
 
-    ws.onerror = () => {}
+    ws.onerror = () => { }
     ws.onclose = (e) => {
       if (e.code === 1006) { setError('Deepgram: connection failed. Check your API key.'); isRecordingRef.current = false; setIsRecording(false); setStatusState('idle'); return }
       if (e.code === 1008 || e.code === 4001 || e.code === 4010) { setError('Deepgram: invalid API key.'); isRecordingRef.current = false; setIsRecording(false); setStatusState('idle'); return }
@@ -571,6 +618,58 @@ export default function LivePage2() {
     // Final analysis if enough content
     const newContent = bufferRef.current.slice(lastAnalyzedRef.current).trim()
     if (newContent.split(/\s+/).filter(Boolean).length >= 10) doAnalyze()
+  }
+
+  // ── PAUSE / RESUME ──
+  function doPause() {
+    doStopMic()
+    setIsPaused(true)
+    setSessionStarted(true) // keep session alive
+    setStatusState('paused')
+  }
+
+  function doResume() {
+    setIsPaused(false)
+    doStartMic()
+  }
+
+  // ── NEW SESSION (save to Supabase, then reset) ──
+  async function doNewSession() {
+    doStopMic()
+
+    // Save current session if there's transcript
+    if (txLines.length > 0) {
+      const result = await saveLive2Session({
+        txLines,
+        charts: chartsRef.current,
+        summary: meetingSummary,
+        decisions,
+        actions,
+      })
+      if (result.error) {
+        console.error('Save failed:', result.error)
+      }
+    }
+
+    // Reset everything
+    setIsPaused(false)
+    setSessionStarted(false)
+    bufferRef.current = ''
+    lastAnalyzedRef.current = 0
+    lastAnalysisTimeRef.current = 0
+    chartsRef.current = []
+    prevSummaryRef.current = ''
+    setCharts([])
+    setLiveSummary(null)
+    setMeetingSummary(null)
+    setDecisions([])
+    setActions([])
+    setTxLines([])
+    setInterimText('')
+    setQaThreads([])
+    setError('')
+    setTimerText('')
+    setStatusState('idle')
   }
 
   // ── TIMER ──
@@ -607,7 +706,7 @@ export default function LivePage2() {
     doAnalyze()
   }
 
-  // ── ANALYZE ──
+  // ── ANALYZE (incremental SKIP/UPDATE/NEW) ──
   async function doAnalyze() {
     const key = anthropicKey.trim()
     if (!key) { setError('Anthropic API key is missing.'); return }
@@ -619,9 +718,21 @@ export default function LivePage2() {
     setStatusState('analyzing')
     setError('')
 
-    const context = bufferRef.current.length > 2000
-      ? `[Earlier context]: ${bufferRef.current.slice(0, bufferRef.current.length - newContent.length).slice(-600).trim()}\n\n[NEW — analyze this]: ${newContent}`
-      : `[Full transcript so far]: ${bufferRef.current}`
+    // 1. Previous summary — compressed record of everything before the window
+    const prevSummary = prevSummaryRef.current
+      ? 'PREVIOUS SUMMARY:\n' + prevSummaryRef.current
+      : 'PREVIOUS SUMMARY:\nNo previous summary yet (first analysis).'
+
+    // 2. Chart registry — all charts on canvas (id, type, topicSummary only)
+    const chartRegistry = chartsRef.current.length > 0
+      ? 'CHART REGISTRY:\n' + chartsRef.current.map(c => `- [${c.chartId}] ${c.type}: "${c.topicSummary || c.title}"`).join('\n')
+      : 'CHART REGISTRY:\nNo charts yet.'
+
+    // 3. Recent transcript — last ~300 words
+    const allWords = bufferRef.current.slice(0, analyzedUpTo).split(/\s+/)
+    const recentWords = allWords.slice(-300).join(' ')
+
+    const userMsg = prevSummary + '\n\n' + chartRegistry + '\n\nRECENT TRANSCRIPT:\n' + recentWords
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -629,7 +740,7 @@ export default function LivePage2() {
         headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514', max_tokens: 2500, system: ANALYSIS_PROMPT,
-          messages: [{ role: 'user', content: `Analyze this meeting content:\n\n${context}` }]
+          messages: [{ role: 'user', content: userMsg }]
         })
       })
       const data = await res.json()
@@ -639,24 +750,42 @@ export default function LivePage2() {
       const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
 
       lastAnalyzedRef.current = analyzedUpTo
-      batchNumRef.current++
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-      // Update live summary
-      setLiveSummary({
-        topic: parsed.currentTopic || '—',
-        eli5: parsed.eli5Now || '',
-        takeaways: parsed.takeawaysNow || [],
-        updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      })
+      // Always update live summary + meeting summary (present on every response including skip)
+      if (parsed.currentTopic || parsed.eli5Now || parsed.takeawaysNow) {
+        setLiveSummary({
+          topic: parsed.currentTopic || '—',
+          eli5: parsed.eli5Now || '',
+          takeaways: parsed.takeawaysNow || [],
+          updatedAt: now
+        })
+      }
+      if (parsed.summary) {
+        prevSummaryRef.current = parsed.summary.text || ''
+        setMeetingSummary({ ...parsed.summary, updatedAt: now })
+      }
 
-      // Append section
-      setSections(prev => [...prev, {
-        batch: batchNumRef.current,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        visuals: parsed.visuals || [],
-        decisions: parsed.decisions || [],
-        actions: parsed.actions || [],
-      }])
+      // Extract decisions & actions
+      if (parsed.decisions) setDecisions(parsed.decisions)
+      if (parsed.actions) setActions(parsed.actions)
+
+      // Handle charts array
+      if (Array.isArray(parsed.charts)) {
+        let updated = [...chartsRef.current]
+        for (const chart of parsed.charts) {
+          if (chart.action === 'update' && chart.chartId) {
+            updated = updated.map(c =>
+              c.chartId === chart.chartId ? { ...chart, updatedAt: now } : c
+            )
+          } else if (chart.action === 'new') {
+            const chartId = chart.chartId || `chart_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+            updated = [...updated, { ...chart, chartId, updatedAt: now }]
+          }
+        }
+        chartsRef.current = updated
+        setCharts([...updated])
+      }
 
     } catch (e) {
       setError('Analysis failed: ' + e.message)
@@ -711,17 +840,25 @@ export default function LivePage2() {
 
         {/* Mic controls */}
         <div className="lp-mic-zone">
-          <button className={`lp-mic-btn ${isRecording ? 'recording' : 'idle'}`} onClick={() => isRecording ? doStopMic() : doStartMic()}>
-            {isRecording ? '🎙 SESSION ACTIVE...' : '🎙 START SESSION'}
-          </button>
-          <button className={`lp-stop-btn${isRecording ? ' visible' : ''}`} onClick={doStopMic}>■ STOP SESSION</button>
+          {!sessionStarted ? (
+            <button className="lp-mic-btn idle" onClick={doStartMic}>🎙 START SESSION</button>
+          ) : (
+            <>
+              {isRecording ? (
+                <button className="lp-mic-btn recording" onClick={doPause}>⏸ PAUSE SESSION</button>
+              ) : (
+                <button className="lp-mic-btn idle" onClick={doResume}>▶ RESUME SESSION</button>
+              )}
+              <button className="lp-stop-btn visible" onClick={doNewSession}>✦ NEW SESSION</button>
+            </>
+          )}
         </div>
 
         {/* Status */}
         <div className="lp-status">
           <div className={`lp-status-dot ${statusState}`} />
           <span className="lp-status-text">
-            {statusState === 'listening' ? 'LISTENING — SPEAK NATURALLY' : statusState === 'analyzing' ? 'ANALYZING TRANSCRIPT...' : 'READY — CLICK TO START'}
+            {statusState === 'listening' ? 'LISTENING — SPEAK NATURALLY' : statusState === 'analyzing' ? 'ANALYZING TRANSCRIPT...' : statusState === 'paused' ? 'SESSION PAUSED' : 'READY — CLICK TO START'}
           </span>
           <span className="lp-status-timer">{timerText}</span>
         </div>
@@ -757,7 +894,7 @@ export default function LivePage2() {
           {!liveSummary ? (
             <div className="lp-lt-waiting">
               <div className="lp-lt-waiting-icon">🎙</div>
-              <p className="lp-lt-waiting-text">START SESSION TO SEE<br/>YOUR VISUAL SCRIPT HERE</p>
+              <p className="lp-lt-waiting-text">START SESSION TO SEE<br />YOUR VISUAL SCRIPT HERE</p>
             </div>
           ) : (
             <div className="lp-lt-content">
@@ -782,85 +919,104 @@ export default function LivePage2() {
           )}
         </div>
 
-        {/* Visual Sections */}
+        {/* Meeting Summary */}
+        {meetingSummary && (
+          <div className="lp-summary">
+            <div className="lp-summary-head">
+              <div className="lp-summary-icon">📋</div>
+              <span className="lp-summary-label">Meeting Summary</span>
+              <span className="lp-summary-updated">{meetingSummary.updatedAt}</span>
+            </div>
+            <div className="lp-summary-text">{meetingSummary.text}</div>
+
+            {meetingSummary.keyTakeaways?.length > 0 && (
+              <div className="lp-summary-section">
+                <div className="lp-summary-section-label takeaways">KEY TAKEAWAYS</div>
+                {meetingSummary.keyTakeaways.map((tk, i) => (
+                  <div key={i} className={`lp-summary-tk${tk.highlight ? ' hl' : ''}`}>
+                    <span className="lp-tk-num">{tk.highlight ? '★' : `${i + 1}`}</span>
+                    <span>{tk.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {meetingSummary.blindspots?.length > 0 && (
+              <div className="lp-summary-section">
+                <div className="lp-summary-section-label blindspots">BLIND SPOTS</div>
+                {meetingSummary.blindspots.map((bs, i) => (
+                  <div key={i} className="lp-summary-bs">
+                    <div className="lp-summary-bs-q">? {bs.question}</div>
+                    <div className="lp-summary-bs-note">{bs.note}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Decisions & Actions */}
+        {(decisions.length > 0 || actions.length > 0) && (
+          <div className="lp-da-grid" style={{ padding: '0 28px 20px' }}>
+            {decisions.length > 0 && (
+              <div>
+                <div className="lp-sb-label" style={{ marginBottom: 10, color: '#c77dff' }}>DECISIONS</div>
+                {decisions.map((d, i) => {
+                  const statusColor = d.status === 'MADE' ? '#3dd68c' : d.status === 'PENDING' ? '#ffd93d' : '#6b7280'
+                  return (
+                    <div key={i} className="lp-dec-item" style={{ borderLeftColor: statusColor }}>
+                      <span className="lp-dec-status" style={{ background: statusColor + '18', color: statusColor }}>{d.status}</span>
+                      <span className="lp-dec-text">{d.text}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {actions.length > 0 && (
+              <div>
+                <div className="lp-sb-label" style={{ marginBottom: 10, color: 'var(--accent)' }}>ACTION ITEMS</div>
+                {actions.map((a, i) => (
+                  <div key={i} className="lp-act-item">
+                    <div className="lp-act-cb" />
+                    <span className="lp-act-text">{a.text}</span>
+                    {a.owner && <span className="lp-act-owner">{a.owner}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Visual Charts */}
         <div className="lp-cv-sections">
-          {sections.length === 0 && (
+          {charts.length === 0 && (
             <div className="lp-empty">
-              <p>DETAILED VISUALS WILL APPEAR HERE<br/>AS THE MEETING PROGRESSES</p>
+              <p>DETAILED VISUALS WILL APPEAR HERE<br />AS THE MEETING PROGRESSES</p>
             </div>
           )}
 
-          {sections.map((section, si) => (
-            <div key={si}>
-              <div className="lp-section-ts">
-                <span>UPDATE {section.batch} · {section.timestamp}</span>
-              </div>
-
-              {section.visuals.map((visual, vi) => {
-                const cfg = VIS_CFG[visual.type] || { icon: '▸', label: visual.type?.toUpperCase() || 'VISUAL', color: '#4a7a9b' }
-                return (
-                  <div key={vi} className="lp-vs" style={{ animationDelay: `${vi * 0.07}s` }}>
-                    <div className="lp-vs-head">
-                      <span className="lp-vs-icon">{cfg.icon}</span>
-                      <span className="lp-vs-label" style={{ color: cfg.color }}>{cfg.label}</span>
-                      <span className="lp-vs-chip" style={{ background: cfg.color + '15', color: cfg.color, border: `1px solid ${cfg.color}28` }}>{visual.type}</span>
-                    </div>
-                    <div className="lp-vs-body">
-                      <VisualBlock visual={visual} />
-                    </div>
-                    {visual.explanation && (
-                      <div className="lp-vs-explanation">
-                        <div className="lp-vs-exp-label">WHAT THIS MEANS</div>
-                        {visual.explanation}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              {/* Decisions & Actions */}
-              {(section.decisions.length > 0 || section.actions.length > 0) && (
-                <div className="lp-vs">
-                  <div className="lp-vs-head">
-                    <span className="lp-vs-icon">⊹</span>
-                    <span className="lp-vs-label" style={{ color: '#7b9cff' }}>DECISIONS & ACTIONS</span>
-                  </div>
-                  <div className="lp-vs-body">
-                    <div className="lp-da-grid">
-                      {section.decisions.length > 0 && (
-                        <div>
-                          <div className="lp-sb-label" style={{ marginBottom: 9 }}>DECISIONS</div>
-                          {section.decisions.map((d, di) => {
-                            const sc = d.status === 'MADE' ? '#00ff88' : d.status === 'PENDING' ? '#ffd93d' : '#7b9cff'
-                            return (
-                              <div key={di} className="lp-dec-item" style={{ borderLeftColor: sc }}>
-                                <span className="lp-dec-status" style={{ color: sc }}>{d.status}</span>
-                                <span className="lp-dec-text">{d.text}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                      {section.actions.length > 0 && (
-                        <div>
-                          <div className="lp-sb-label" style={{ marginBottom: 9 }}>ACTION ITEMS</div>
-                          {section.actions.map((a, ai) => (
-                            <div key={ai} className="lp-act-item">
-                              <div className="lp-act-cb" />
-                              <div>
-                                <div className="lp-act-text">{a.text}</div>
-                                {a.owner && <div className="lp-act-owner">→ {a.owner}</div>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          {charts.map((chart, ci) => {
+            const cfg = VIS_CFG[chart.type] || { icon: '▸', label: chart.type?.toUpperCase() || 'VISUAL', color: '#4a7a9b' }
+            return (
+              <div key={chart.chartId || ci} className="lp-vs" style={{ animationDelay: `${ci * 0.07}s` }}>
+                <div className="lp-vs-head">
+                  <span className="lp-vs-icon">{cfg.icon}</span>
+                  <span className="lp-vs-label" style={{ color: cfg.color }}>{chart.title || cfg.label}</span>
+                  <span className="lp-vs-chip" style={{ background: cfg.color + '15', color: cfg.color, border: `1px solid ${cfg.color}28` }}>{chart.type}</span>
+                  {chart.updatedAt && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1 }}>{chart.updatedAt}</span>}
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="lp-vs-body">
+                  <VisualBlock visual={chart} />
+                </div>
+                {chart.explanation && (
+                  <div className="lp-vs-explanation">
+                    <div className="lp-vs-exp-label">WHAT THIS MEANS</div>
+                    {chart.explanation}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Ask Q&A */}

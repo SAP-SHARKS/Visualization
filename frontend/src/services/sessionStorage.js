@@ -9,7 +9,8 @@
  *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
  *   title TEXT,
  *   transcript TEXT,
- *   mode TEXT NOT NULL CHECK (mode IN ('live', 'upload', 'canvas')),
+ *   mode TEXT NOT NULL CHECK (mode IN ('live', 'upload', 'canvas', 'live2')),
+ *   canvas_data JSONB,
  *   duration INTEGER DEFAULT 0,
  *   word_count INTEGER DEFAULT 0,
  *   audio_file_url TEXT,
@@ -58,6 +59,11 @@
  *
  * -- Storage bucket for audio files (create via Supabase Dashboard > Storage)
  * -- Bucket name: "audio-files", public access enabled
+ *
+ * -- If upgrading from older schema, run:
+ * ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_mode_check;
+ * ALTER TABLE sessions ADD CONSTRAINT sessions_mode_check CHECK (mode IN ('live', 'upload', 'canvas', 'live2'));
+ * ALTER TABLE sessions ADD COLUMN IF NOT EXISTS canvas_data JSONB;
  */
 
 import { supabase, isSupabaseConfigured } from './supabase'
@@ -307,6 +313,52 @@ export async function saveCanvasSession({ title, subtitle, transcript, visuals, 
   } catch (err) {
     console.error('Failed to save canvas session:', err)
     return { error: err.message || 'Failed to save canvas session' }
+  }
+}
+
+// ==================== Save Live2 Session (real-time canvas) ====================
+
+/**
+ * Save a Live2 session (real-time meeting intelligence).
+ *
+ * @param {object} params
+ * @param {string[]} params.txLines - Transcript lines
+ * @param {Array} params.charts - Chart objects from canvas
+ * @param {object|null} params.summary - Meeting summary object
+ * @param {Array} params.decisions - Decision objects
+ * @param {Array} params.actions - Action item objects
+ * @returns {Promise<{sessionId?: string, error?: string}>}
+ */
+export async function saveLive2Session({ txLines, charts, summary, decisions, actions }) {
+  if (!isSupabaseConfigured()) {
+    return { error: 'Supabase not configured' }
+  }
+
+  if (!txLines || txLines.length === 0) {
+    return { error: 'No transcript to save' }
+  }
+
+  try {
+    const transcript = txLines.join('\n')
+    const wordCount = transcript.split(/\s+/).filter(Boolean).length
+
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .insert({
+        title: `Live Session - ${new Date().toLocaleString()}`,
+        transcript,
+        mode: 'live2',
+        word_count: wordCount,
+        canvas_data: { charts, summary, decisions, actions },
+      })
+      .select('id')
+      .single()
+
+    if (sessionError) throw sessionError
+    return { sessionId: session.id }
+  } catch (err) {
+    console.error('Failed to save live2 session:', err)
+    return { error: err.message || 'Failed to save session' }
   }
 }
 
