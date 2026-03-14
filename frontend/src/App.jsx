@@ -6,6 +6,7 @@ import VisualizePage from './pages/VisualizePage'
 import LivePage from './pages/LivePage'
 import HistoryPage from './pages/HistoryPage'
 import Visualize2Page from './pages/Visualize2Page'
+import LivePage2 from './pages/LivePage2'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<UploadPage />} />
         <Route path="/visualize" element={<VisualizePage />} />
         <Route path="/live" element={<LivePage />} />
+        <Route path="/live2" element={<LivePage2 />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/visualize2" element={<Visualize2Page />} />
         <Route path="*" element={<Navigate to="/" replace />} />

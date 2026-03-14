@@ -396,7 +396,7 @@ export default function HistoryPage() {
         <Link to="/" className="logo">VisualScript <span className="logo-sub">Smart Transcription</span></Link>
         <div className="history-nav-links">
           <Link to="/" className="history-nav-link">Upload</Link>
-          <Link to="/live" className="go-live-btn">
+          <Link to="/live2" className="go-live-btn">
             <span className="live-dot" />
             Go Live
           </Link>

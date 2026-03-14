@@ -177,6 +177,27 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-transcript-label::before{content:'📝';font-size:14px;}
 .v2-transcript-text{font-size:13px;line-height:1.8;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;font-family:'JetBrains Mono',monospace;}
 [data-theme="light"] .v2-transcript-panel{background:#fff;}
+
+/* Ask Q&A */
+.v2-ask{margin-top:48px;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:20px;animation:v2FadeUp .6s ease forwards;opacity:0;}
+.v2-ask-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.v2-ask-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--accent-glow);border:1px solid var(--border);flex-shrink:0;}
+.v2-ask-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);}
+.v2-ask-row{display:flex;gap:10px;margin-bottom:16px;}
+.v2-ask-input{flex:1;padding:14px 18px;border-radius:14px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+.v2-ask-input:focus{border-color:var(--accent);}
+.v2-ask-input::placeholder{color:var(--text-dim);opacity:.5;}
+.v2-ask-btn{padding:14px 24px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--accent),#2bc47a);color:#06080c;font-weight:700;font-size:13px;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:1px;transition:all .2s;}
+.v2-ask-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(61,214,140,0.3);}
+.v2-ask-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+[data-theme="light"] .v2-ask-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
+[data-theme="light"] .v2-ask{background:#fff;}
+.v2-ask-threads{display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;}
+.v2-ask-msg{display:flex;gap:12px;padding:14px 16px;border-radius:14px;background:var(--bg);border:1px solid var(--border);}
+.v2-ask-avatar{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.v2-ask-avatar.user{background:rgba(91,156,245,0.12);}
+.v2-ask-avatar.ai{background:var(--accent-glow);}
+.v2-ask-text{font-size:14px;line-height:1.7;color:var(--text);}
 [data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);}
 [data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.2);}
 @media(max-width:700px){
@@ -387,6 +408,9 @@ export default function Visualize2Page() {
   const [activeNav, setActiveNav] = useState(null)
   const [sessionSaved, setSessionSaved] = useState(false)
   const [isHistoryMode, setIsHistoryMode] = useState(!!historySessionId)
+  const [qaInput, setQaInput] = useState('')
+  const [qaLoading, setQaLoading] = useState(false)
+  const [qaThreads, setQaThreads] = useState([])
   const sectionRefs = useRef({})
 
   useEffect(() => {
@@ -475,6 +499,32 @@ export default function Visualize2Page() {
   function scrollTo(id) {
     const el = sectionRefs.current[id]
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  async function askQuestion() {
+    const question = qaInput.trim()
+    if (!question || qaLoading) return
+    const apiKey = import.meta.env.ANTHROPIC_API_KEY
+    if (!apiKey) return
+    setQaLoading(true)
+    setQaInput('')
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514', max_tokens: 500,
+          system: 'You are a helpful meeting assistant. Answer questions about the meeting transcript concisely in 2-4 sentences.',
+          messages: [{ role: 'user', content: `Meeting transcript:\n${content}\n\nQuestion: ${question}` }]
+        })
+      })
+      const data = await res.json()
+      const answer = data.content?.[0]?.text || 'Could not generate an answer.'
+      setQaThreads(prev => [...prev, { q: question, a: answer }])
+    } catch {
+      setQaThreads(prev => [...prev, { q: question, a: 'Failed to get a response. Please try again.' }])
+    }
+    setQaLoading(false)
   }
 
   if (!state?.content && !historySessionId) return null
@@ -578,6 +628,30 @@ export default function Visualize2Page() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Ask Q&A */}
+        {!loading && visuals.length > 0 && (
+          <div className="v2-ask" style={{ animationDelay: `${visuals.length * 0.1 + 0.2}s` }}>
+            <div className="v2-ask-head">
+              <div className="v2-ask-icon">❓</div>
+              <div className="v2-ask-label">Ask a Question</div>
+            </div>
+            <div className="v2-ask-row">
+              <input className="v2-ask-input" placeholder="Ask about the meeting..." value={qaInput} onChange={e => setQaInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !qaLoading && askQuestion()} />
+              <button className="v2-ask-btn" onClick={askQuestion} disabled={qaLoading || !qaInput.trim()}>{qaLoading ? 'Thinking...' : 'ASK'}</button>
+            </div>
+            {qaThreads.length > 0 && (
+              <div className="v2-ask-threads">
+                {qaThreads.map((t, i) => (
+                  <div key={i}>
+                    <div className="v2-ask-msg"><div className="v2-ask-avatar user">👤</div><div className="v2-ask-text">{t.q}</div></div>
+                    <div className="v2-ask-msg" style={{ marginTop: 6 }}><div className="v2-ask-avatar ai">⚡</div><div className="v2-ask-text">{t.a}</div></div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

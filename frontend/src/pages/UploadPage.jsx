@@ -466,7 +466,7 @@ export default function UploadPage() {
         <Link to="/history" className="go-live-btn" style={{ background: 'rgba(255,255,255,0.06)', boxShadow: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#e8eaf0', animation: 'none', marginLeft: 'auto' }}>
           History
         </Link>
-        <Link to="/live" className="go-live-btn" style={{ marginLeft: 0 }}>
+        <Link to="/live2" className="go-live-btn" style={{ marginLeft: 0 }}>
           <span className="live-dot" />
           Go Live
         </Link>
