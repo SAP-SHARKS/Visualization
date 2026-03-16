@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
-import { Link } from 'react-router-dom'
-import { saveLive2Session } from '../services/sessionStorage'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { saveLive2Session, getSession } from '../services/sessionStorage'
 
 const MermaidRenderer = lazy(() => import('../components/charts/MermaidRenderer'))
 const MindmapRenderer = lazy(() => import('../components/charts/MindmapRenderer'))
@@ -142,6 +142,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-tx-scroll{flex:1;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;color:var(--text-dim);}
 .lp-tx-scroll::-webkit-scrollbar{width:4px;}
 .lp-tx-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+.lp-tx-block{margin-bottom:10px;}
+.lp-tx-speaker{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;}
+.lp-tx-speaker.s0{color:#3dd68c;} .lp-tx-speaker.s1{color:#5b9cf5;} .lp-tx-speaker.s2{color:#f59e0b;} .lp-tx-speaker.s3{color:#c77dff;} .lp-tx-speaker.s4{color:#f472b6;} .lp-tx-speaker.s5{color:#fb7185;}
 .lp-tx-final{color:var(--text);display:inline;}
 .lp-tx-interim{color:var(--text-dim);font-style:italic;display:inline;}
 .lp-tx-placeholder{color:var(--text-dim);font-style:italic;opacity:.4;}
@@ -500,6 +503,42 @@ export default function LivePage2() {
   const isRecordingRef = useRef(false)
   const txScrollRef = useRef(null)
   const canvasRef = useRef(null)
+  const lastSpeakerRef = useRef(null)
+
+  // History mode — load saved session from ?session= query param
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const historySessionId = searchParams.get('session')
+  const [historyMode, setHistoryMode] = useState(false)
+
+  useEffect(() => {
+    if (!historySessionId) return
+    ;(async () => {
+      const { session, error: err } = await getSession(historySessionId)
+      if (err || !session) { setError(err || 'Session not found'); return }
+
+      setHistoryMode(true)
+      setSessionStarted(true)
+
+      // Restore transcript (also populate bufferRef so Q&A works)
+      if (session.transcript) {
+        bufferRef.current = session.transcript
+        setTxLines(session.transcript.split('\n').filter(Boolean).map(line => {
+          const match = line.match(/^Speaker (\d+): (.*)$/)
+          return match ? { speaker: parseInt(match[1]), text: match[2] } : { speaker: null, text: line }
+        }))
+      }
+
+      // Restore canvas data (charts, summary, decisions, actions)
+      const cd = session.canvas_data || {}
+      if (cd.charts) { chartsRef.current = cd.charts; setCharts(cd.charts) }
+      if (cd.summary) setMeetingSummary(cd.summary)
+      if (cd.decisions) setDecisions(cd.decisions)
+      if (cd.actions) setActions(cd.actions)
+
+      setStatusState('idle')
+    })()
+  }, [historySessionId])
 
   // CSS injection
   useEffect(() => {
@@ -533,7 +572,7 @@ export default function LivePage2() {
     }
     mediaStreamRef.current = stream
 
-    const dgUrl = 'wss://api.deepgram.com/v1/listen?model=nova-3&language=en&smart_format=true&interim_results=true&endpointing=300&encoding=linear16&sample_rate=16000&channels=1'
+    const dgUrl = 'wss://api.deepgram.com/v1/listen?model=nova-3&language=en&punctuate=true&smart_format=true&interim_results=true&endpointing=300&encoding=linear16&sample_rate=16000&channels=1&diarize=true'
     const ws = new WebSocket(dgUrl, ['token', deepgramKey.trim()])
     dgSocketRef.current = ws
 
@@ -577,8 +616,29 @@ export default function LivePage2() {
 
         if (data.is_final) {
           setInterimText('')
-          bufferRef.current += ' ' + transcript
-          setTxLines(prev => [...prev, transcript.trim()])
+          const speaker = alt.words?.[0]?.speaker
+          const speakerChanged = speaker != null && speaker !== lastSpeakerRef.current
+          if (speaker != null) lastSpeakerRef.current = speaker
+
+          // Only add speaker prefix to buffer when speaker changes
+          if (speakerChanged && speaker != null) {
+            bufferRef.current += '\nSpeaker ' + (speaker + 1) + ': ' + transcript.trim()
+          } else {
+            bufferRef.current += ' ' + transcript.trim()
+          }
+
+          setTxLines(prev => {
+            if (speakerChanged || prev.length === 0) {
+              // New speaker — start a new block
+              return [...prev, { speaker, text: transcript.trim() }]
+            }
+            // Same speaker — append to last block
+            const updated = [...prev]
+            const last = { ...updated[updated.length - 1] }
+            last.text += ' ' + transcript.trim()
+            updated[updated.length - 1] = last
+            return updated
+          })
           checkAutoAnalyze()
         } else {
           setInterimText(transcript)
@@ -633,25 +693,36 @@ export default function LivePage2() {
     doStartMic()
   }
 
-  // ── NEW SESSION (save to Supabase, then reset) ──
-  async function doNewSession() {
+  // ── END SESSION (save to Supabase, stop, keep canvas visible) ──
+  const [sessionSaved, setSessionSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  async function doEndSession() {
+    doStopMic()
+    setIsPaused(false)
+    setIsRecording(false)
+    if (txLines.length === 0) { setSessionSaved(true); return }
+    setIsSaving(true)
+    const result = await saveLive2Session({
+      txLines,
+      charts: chartsRef.current,
+      summary: meetingSummary,
+      decisions,
+      actions,
+    })
+    setIsSaving(false)
+    if (result.error) { setError('Save failed: ' + result.error); return }
+    setSessionSaved(true)
+    setStatusState('idle')
+  }
+
+  // ── NEW SESSION (reset everything) ──
+  function doNewSession() {
     doStopMic()
 
-    // Save current session if there's transcript
-    if (txLines.length > 0) {
-      const result = await saveLive2Session({
-        txLines,
-        charts: chartsRef.current,
-        summary: meetingSummary,
-        decisions,
-        actions,
-      })
-      if (result.error) {
-        console.error('Save failed:', result.error)
-      }
-    }
-
     // Reset everything
+    setHistoryMode(false)
+    setSessionSaved(false)
     setIsPaused(false)
     setSessionStarted(false)
     bufferRef.current = ''
@@ -840,8 +911,12 @@ export default function LivePage2() {
 
         {/* Mic controls */}
         <div className="lp-mic-zone">
-          {!sessionStarted ? (
+          {historyMode ? (
+            <button className="lp-mic-btn idle" onClick={() => { doNewSession(); navigate('/live2', { replace: true }) }}>✦ NEW SESSION</button>
+          ) : !sessionStarted ? (
             <button className="lp-mic-btn idle" onClick={doStartMic}>🎙 START SESSION</button>
+          ) : sessionSaved ? (
+            <button className="lp-mic-btn idle" onClick={() => { doNewSession(); navigate('/live2', { replace: true }) }}>✦ NEW SESSION</button>
           ) : (
             <>
               {isRecording ? (
@@ -849,7 +924,9 @@ export default function LivePage2() {
               ) : (
                 <button className="lp-mic-btn idle" onClick={doResume}>▶ RESUME SESSION</button>
               )}
-              <button className="lp-stop-btn visible" onClick={doNewSession}>✦ NEW SESSION</button>
+              <button className="lp-stop-btn visible" onClick={doEndSession} disabled={isSaving}>
+                {isSaving ? '⏳ SAVING...' : '■ END SESSION'}
+              </button>
             </>
           )}
         </div>
@@ -858,7 +935,7 @@ export default function LivePage2() {
         <div className="lp-status">
           <div className={`lp-status-dot ${statusState}`} />
           <span className="lp-status-text">
-            {statusState === 'listening' ? 'LISTENING — SPEAK NATURALLY' : statusState === 'analyzing' ? 'ANALYZING TRANSCRIPT...' : statusState === 'paused' ? 'SESSION PAUSED' : 'READY — CLICK TO START'}
+            {historyMode ? 'VIEWING SAVED SESSION' : sessionSaved ? 'SESSION SAVED' : statusState === 'listening' ? 'LISTENING — SPEAK NATURALLY' : statusState === 'analyzing' ? 'ANALYZING TRANSCRIPT...' : statusState === 'paused' ? 'SESSION PAUSED' : 'READY — CLICK TO START'}
           </span>
           <span className="lp-status-timer">{timerText}</span>
         </div>
@@ -870,7 +947,12 @@ export default function LivePage2() {
             {txLines.length === 0 && !interimText && (
               <span className="lp-tx-placeholder">Transcript will appear here as you speak...</span>
             )}
-            {txLines.map((line, i) => <span key={i} className="lp-tx-final">{line} </span>)}
+            {txLines.map((block, i) => (
+              <div key={i} className="lp-tx-block">
+                {block.speaker != null && <span className={`lp-tx-speaker s${block.speaker % 6}`}>Speaker {block.speaker + 1}</span>}
+                <span className="lp-tx-final">{typeof block === 'string' ? block : block.text}</span>
+              </div>
+            ))}
             {interimText && <span className="lp-tx-interim">{interimText}</span>}
           </div>
         </div>
@@ -891,12 +973,12 @@ export default function LivePage2() {
       <div className="lp-canvas" ref={canvasRef}>
         {/* Live Summary */}
         <div className="lp-live-top">
-          {!liveSummary ? (
+          {!liveSummary && !historyMode ? (
             <div className="lp-lt-waiting">
               <div className="lp-lt-waiting-icon">🎙</div>
               <p className="lp-lt-waiting-text">START SESSION TO SEE<br />YOUR VISUAL SCRIPT HERE</p>
             </div>
-          ) : (
+          ) : liveSummary ? (
             <div className="lp-lt-content">
               <div className="lp-lt-topic-row">
                 <span className="lp-lt-topic-label">RIGHT NOW</span>
@@ -916,7 +998,7 @@ export default function LivePage2() {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Meeting Summary */}

@@ -339,7 +339,7 @@ export async function saveLive2Session({ txLines, charts, summary, decisions, ac
   }
 
   try {
-    const transcript = txLines.join('\n')
+    const transcript = txLines.map(l => typeof l === 'string' ? l : (l.speaker != null ? `Speaker ${l.speaker}: ${l.text}` : l.text)).join('\n')
     const wordCount = transcript.split(/\s+/).filter(Boolean).length
 
     const { data: session, error: sessionError } = await supabase

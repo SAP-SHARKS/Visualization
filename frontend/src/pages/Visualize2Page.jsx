@@ -35,7 +35,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(61,214,140,0.15),transparent);}
 .v2-logo{font-family:'DM Serif Display',serif;font-size:20px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer;}
 .v2-logo span{color:var(--text-dim);font-size:12px;font-family:'DM Sans';margin-left:10px;-webkit-text-fill-color:var(--text-dim);}
-.v2-nav{display:flex;gap:4px;background:rgba(14,17,23,0.8);border-radius:12px;padding:4px;border:1px solid var(--border);overflow-x:auto;max-width:700px;}
+.v2-nav{display:flex;gap:4px;background:rgba(14,17,23,0.8);border-radius:12px;padding:4px;border:1px solid var(--border);overflow-x:auto;flex-wrap:wrap;}
+.v2-nav::-webkit-scrollbar{height:0;display:none;}
 .v2-pill{padding:7px 14px;border-radius:9px;font-size:11px;font-weight:500;color:var(--text-dim);cursor:pointer;transition:all 0.25s;border:none;background:none;font-family:'DM Sans',sans-serif;white-space:nowrap;}
 .v2-pill:hover{color:var(--text);background:rgba(255,255,255,0.06);}
 .v2-pill.active{background:linear-gradient(135deg,#3dd68c,#2bc47a);color:#06080c;font-weight:600;box-shadow:0 2px 12px rgba(61,214,140,0.3);}
@@ -167,8 +168,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 [data-theme="light"] .v2-term{background:#fff;}
 [data-theme="light"] .v2-comp-table{background:#fff;}
 /* Transcript Panel */
-.v2-split{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch;}
-.v2-transcript-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;overflow-y:auto;}
+.v2-split{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.v2-split>.v2-section{animation:none;opacity:1;}
+.v2-transcript-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-height:500px;overflow-y:auto;}
 .v2-transcript-panel::-webkit-scrollbar{width:5px;}
 .v2-transcript-panel::-webkit-scrollbar-track{background:transparent;}
 .v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
@@ -201,6 +203,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 [data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);}
 [data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.2);}
 @media(max-width:700px){
+  .v2-header{padding:10px 16px;flex-wrap:wrap;}
+  .v2-nav{flex-wrap:nowrap;overflow-x:auto;width:100%;}
   .v2-ps-grid,.v2-pc-grid{grid-template-columns:1fr;}
   .v2-metrics-grid{grid-template-columns:1fr 1fr;}
   .v2-content{padding-left:16px;padding-right:16px;}
@@ -221,6 +225,7 @@ const SECTION_META = {
   timeline: { icon: '📅', label: 'Timeline' },
   metrics: { icon: '📈', label: 'Metrics' },
   terms: { icon: '📖', label: 'Glossary' },
+  ask: { icon: '❓', label: 'Ask' },
 }
 
 function VisualRenderer({ visual }) {
@@ -532,6 +537,7 @@ export default function Visualize2Page() {
   const navItems = visuals.map(v => v.type).filter(t => SECTION_META[t])
   if (decisions.length > 0) navItems.push('decisions')
   if (actions.length > 0) navItems.push('actions')
+  navItems.push('ask')
 
   return (
     <div>
@@ -564,9 +570,32 @@ export default function Visualize2Page() {
 
         {error && <div className="v2-error">{error}</div>}
 
-        {visuals.map((visual, idx) => {
+        {/* Takeaways + Transcript side by side */}
+        {visuals.some(v => v.type === 'takeaways') && (
+          <div className="v2-split">
+            <div className="v2-section" id="v2-takeaways" ref={el => sectionRefs.current['v2-takeaways'] = el}>
+              <div className="v2-section-head">
+                <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>🎯</div>
+                <div><div className="v2-section-label">Key Takeaways</div></div>
+              </div>
+              <VisualRenderer visual={visuals.find(v => v.type === 'takeaways')} />
+              {visuals.find(v => v.type === 'takeaways')?.explanation && <div className="v2-explanation">{visuals.find(v => v.type === 'takeaways').explanation}</div>}
+            </div>
+            <div className="v2-section" id="v2-transcript" ref={el => sectionRefs.current['v2-transcript'] = el}>
+              <div className="v2-section-head">
+                <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>📝</div>
+                <div><div className="v2-section-label">Full Transcript</div></div>
+              </div>
+              <div className="v2-transcript-panel">
+                <div className="v2-transcript-text">{content}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Other sections */}
+        {visuals.filter(v => v.type !== 'takeaways').map((visual, idx) => {
           const meta = SECTION_META[visual.type] || { icon: '📌', label: visual.type }
-          const isTakeaways = visual.type === 'takeaways'
           return (
             <div key={idx} className="v2-section" id={`v2-${visual.type}`} ref={el => sectionRefs.current[`v2-${visual.type}`] = el} style={{animationDelay: `${idx * 0.1}s`}}>
               <div className="v2-section-head">
@@ -575,23 +604,8 @@ export default function Visualize2Page() {
                   <div className="v2-section-label">{meta.label}</div>
                 </div>
               </div>
-              {isTakeaways ? (
-                <div className="v2-split">
-                  <div>
-                    <VisualRenderer visual={visual} />
-                    {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
-                  </div>
-                  <div className="v2-transcript-panel">
-                    <div className="v2-transcript-label">Full Transcript</div>
-                    <div className="v2-transcript-text">{content}</div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <VisualRenderer visual={visual} />
-                  {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
-                </>
-              )}
+              <VisualRenderer visual={visual} />
+              {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
             </div>
           )
         })}
@@ -633,7 +647,7 @@ export default function Visualize2Page() {
 
         {/* Ask Q&A */}
         {!loading && visuals.length > 0 && (
-          <div className="v2-ask" style={{ animationDelay: `${visuals.length * 0.1 + 0.2}s` }}>
+          <div className="v2-ask" id="v2-ask" ref={el => sectionRefs.current['v2-ask'] = el} style={{ animationDelay: `${visuals.length * 0.1 + 0.2}s` }}>
             <div className="v2-ask-head">
               <div className="v2-ask-icon">❓</div>
               <div className="v2-ask-label">Ask a Question</div>
