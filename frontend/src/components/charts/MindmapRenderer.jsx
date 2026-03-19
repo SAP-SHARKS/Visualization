@@ -42,17 +42,18 @@ function MindmapRenderer({ data }) {
     const DEPTH_COLORS = isLight ? DEPTH_COLORS_LIGHT : DEPTH_COLORS_DARK
 
     const container = containerRef.current
-    const width = Math.max(container.clientWidth || 500, 600)
-    const treeHeight = Math.max(400, totalNodes * 45)
+    const containerW = container.clientWidth || 500
+    const width = Math.max(containerW, 400)
+    const treeHeight = Math.max(350, totalNodes * 40)
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
     const g = svg.append('g')
-      .attr('transform', `translate(${80}, ${30})`)
+      .attr('transform', `translate(${10}, ${20})`)
 
     const hierarchy = d3.hierarchy(buildHierarchy(data.root))
-    const treeLayout = d3.tree().size([treeHeight - 60, width - 200])
+    const treeLayout = d3.tree().size([treeHeight - 40, width * 0.55])
     treeLayout(hierarchy)
 
     // Draw links
@@ -118,32 +119,45 @@ function MindmapRenderer({ data }) {
       .attr('font-weight', d => d.depth <= 1 ? 600 : 400)
       .attr('font-family', "'DM Sans', sans-serif")
 
+    // Measure the widest leaf label to add enough right padding
+    let maxLeafTextW = 0
+    node.each(function (d) {
+      if (!d.children) {
+        const textEl = d3.select(this).select('text').node()
+        if (textEl) {
+          const tw = textEl.getBBox().width
+          if (tw > maxLeafTextW) maxLeafTextW = tw
+        }
+      }
+    })
+
     // Auto-fit SVG to content using viewBox
     const bbox = g.node().getBBox()
-    const pad = 24
-    const vbW = bbox.width + pad * 2
-    const vbH = bbox.height + pad * 2
-    const containerW = container.clientWidth || 500
-    const renderedH = (vbH / vbW) * containerW
-    const finalH = Math.max(400, renderedH)
+    const padL = 30
+    const padR = Math.max(40, maxLeafTextW * 0.3)
+    const padY = 30
+    const vbX = bbox.x - padL
+    const vbY = bbox.y - padY
+    const vbW = bbox.width + padL + padR
+    const vbH = bbox.height + padY * 2
 
     svg
-      .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${vbW} ${vbH}`)
+      .attr('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`)
       .attr('width', '100%')
-      .attr('height', finalH)
+      .attr('height', null)
       .attr('preserveAspectRatio', 'xMidYMid meet')
-
-    container.style.height = `${finalH}px`
+      .style('aspect-ratio', `${vbW} / ${vbH}`)
 
   }, [data, totalNodes, isLight])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', minHeight: '400px', overflow: 'visible' }}>
+    <div ref={containerRef} style={{ width: '100%', minHeight: '200px', overflow: 'visible' }}>
       <svg
         ref={svgRef}
         style={{
           display: 'block',
           width: '100%',
+          maxWidth: '100%',
         }}
       />
     </div>

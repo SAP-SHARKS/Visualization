@@ -60,6 +60,43 @@
  * -- Storage bucket for audio files (create via Supabase Dashboard > Storage)
  * -- Bucket name: "audio-files", public access enabled
  *
+ * -- Infographic configuration tables:
+ *
+ * CREATE TABLE infographic_topics (
+ *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *   name TEXT NOT NULL UNIQUE,
+ *   keywords TEXT[] NOT NULL DEFAULT '{}',
+ *   created_at TIMESTAMPTZ DEFAULT now()
+ * );
+ *
+ * CREATE TABLE infographic_palettes (
+ *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *   name TEXT NOT NULL UNIQUE,
+ *   bg TEXT NOT NULL,
+ *   accent TEXT NOT NULL,
+ *   secondary TEXT NOT NULL,
+ *   highlight TEXT NOT NULL,
+ *   text_color TEXT NOT NULL,
+ *   card TEXT NOT NULL,
+ *   created_at TIMESTAMPTZ DEFAULT now()
+ * );
+ *
+ * CREATE TABLE infographic_layouts (
+ *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *   name TEXT NOT NULL UNIQUE,
+ *   category TEXT NOT NULL DEFAULT 'other',
+ *   description TEXT NOT NULL,
+ *   content_affinity TEXT[] NOT NULL DEFAULT '{}',
+ *   created_at TIMESTAMPTZ DEFAULT now()
+ * );
+ *
+ * ALTER TABLE infographic_topics ENABLE ROW LEVEL SECURITY;
+ * ALTER TABLE infographic_palettes ENABLE ROW LEVEL SECURITY;
+ * ALTER TABLE infographic_layouts ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Allow all" ON infographic_topics FOR ALL USING (true) WITH CHECK (true);
+ * CREATE POLICY "Allow all" ON infographic_palettes FOR ALL USING (true) WITH CHECK (true);
+ * CREATE POLICY "Allow all" ON infographic_layouts FOR ALL USING (true) WITH CHECK (true);
+ *
  * -- If upgrading from older schema, run:
  * ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_mode_check;
  * ALTER TABLE sessions ADD CONSTRAINT sessions_mode_check CHECK (mode IN ('live', 'upload', 'canvas', 'live2'));
@@ -286,15 +323,28 @@ export async function saveLiveSession({ finalLines, chartFeed, duration, wordCou
  * @param {Array} params.visuals - Array of visual objects
  * @param {Array} params.decisions - Array of decision objects
  * @param {Array} params.actions - Array of action objects
+ * @param {string} [params.infographicImage] - Base64 data URL of the infographic image
  * @returns {Promise<{sessionId?: string, error?: string}>}
  */
-export async function saveCanvasSession({ title, subtitle, transcript, visuals, decisions, actions }) {
+export async function saveCanvasSession({ title, subtitle, transcript, visuals, decisions, actions, infographicImage }) {
   if (!isSupabaseConfigured()) {
     return { error: 'Supabase not configured' }
   }
 
   try {
     const wordCount = transcript ? transcript.split(/\s+/).filter(Boolean).length : 0
+
+    // Upload infographic image to storage if provided
+    let infographicImageUrl = null
+    if (infographicImage) {
+      const uploadResult = await uploadInfographicImage(infographicImage)
+      if (uploadResult.url) {
+        infographicImageUrl = uploadResult.url
+      } else {
+        console.error('Infographic image upload failed:', uploadResult.error)
+      }
+    }
+
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .insert({
@@ -303,7 +353,7 @@ export async function saveCanvasSession({ title, subtitle, transcript, visuals, 
         transcript,
         mode: 'canvas',
         word_count: wordCount,
-        canvas_data: { visuals, decisions, actions },
+        canvas_data: { visuals, decisions, actions, infographic_image_url: infographicImageUrl },
       })
       .select('id')
       .single()
@@ -313,6 +363,48 @@ export async function saveCanvasSession({ title, subtitle, transcript, visuals, 
   } catch (err) {
     console.error('Failed to save canvas session:', err)
     return { error: err.message || 'Failed to save canvas session' }
+  }
+}
+
+/**
+ * Upload a base64 infographic image to Supabase Storage.
+ *
+ * @param {string} base64DataUrl - Data URL (data:image/png;base64,...)
+ * @returns {Promise<{url?: string, error?: string}>}
+ */
+export async function uploadInfographicImage(base64DataUrl) {
+  try {
+    // Parse the data URL
+    const match = base64DataUrl.match(/^data:(image\/\w+);base64,(.+)$/)
+    if (!match) return { error: 'Invalid base64 data URL' }
+
+    const mimeType = match[1]
+    const ext = mimeType.split('/')[1] || 'png'
+    const base64 = match[2]
+
+    // Convert base64 to Blob
+    const byteChars = atob(base64)
+    const byteArray = new Uint8Array(byteChars.length)
+    for (let i = 0; i < byteChars.length; i++) {
+      byteArray[i] = byteChars.charCodeAt(i)
+    }
+    const blob = new Blob([byteArray], { type: mimeType })
+
+    const storagePath = `infographics/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('chart-images')
+      .upload(storagePath, blob, { contentType: mimeType, upsert: false })
+
+    if (uploadError) throw uploadError
+
+    const { data: urlData } = supabase.storage
+      .from('chart-images')
+      .getPublicUrl(storagePath)
+
+    return { url: urlData.publicUrl }
+  } catch (err) {
+    return { error: err.message || 'Infographic upload failed' }
   }
 }
 

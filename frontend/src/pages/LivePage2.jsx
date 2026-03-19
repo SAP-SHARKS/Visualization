@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { saveLive2Session, getSession } from '../services/sessionStorage'
+import { saveLive2Session, saveCanvasSession, getSession } from '../services/sessionStorage'
+import TemplateRenderer from '../components/TemplateRenderer'
+import VisualFeedback from '../components/VisualFeedback'
+import useTemplates from '../hooks/useTemplates'
 
 const MermaidRenderer = lazy(() => import('../components/charts/MermaidRenderer'))
 const MindmapRenderer = lazy(() => import('../components/charts/MindmapRenderer'))
@@ -40,7 +43,7 @@ CHART RULES:
 
 === SCHEMAS ===
 flowchart:       {"type":"flowchart","title":"...","mermaid":"graph TD\\n  A[X] --> B[Y]","caption":"...","explanation":"..."}
-mindmap:         {"type":"mindmap","title":"...","center":"topic","color":"#26de81","branches":[{"label":"x","children":["y"]}],"explanation":"..."}
+mindmap:         {"type":"mindmap","title":"...","root":{"label":"Core topic","children":[{"label":"Theme","children":[{"label":"detail"}]}]},"explanation":"..."}
 proscons:        {"type":"proscons","title":"...","topic":"...","pros":["..."],"cons":["..."],"explanation":"..."}
 comparison:      {"type":"comparison","title":"...","options":["A","B"],"criteria":[{"name":"x","values":["a","b"]}],"explanation":"..."}
 timeline:        {"type":"timeline","title":"...","items":[{"time":"Q1","event":"...","note":"...","done":false}],"explanation":"..."}
@@ -138,7 +141,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-status-timer{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:1px;opacity:.6;}
 
 /* Transcript */
-.lp-tx-zone{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 20px;}
+.lp-tx-zone{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 20px;position:relative;}
 .lp-tx-scroll{flex:1;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;color:var(--text-dim);}
 .lp-tx-scroll::-webkit-scrollbar{width:4px;}
 .lp-tx-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
@@ -148,6 +151,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-tx-final{color:var(--text);display:inline;}
 .lp-tx-interim{color:var(--text-dim);font-style:italic;display:inline;}
 .lp-tx-placeholder{color:var(--text-dim);font-style:italic;opacity:.4;}
+.lp-sel-btn{position:absolute;z-index:20;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#06080c;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(61,214,140,0.4);transition:transform .15s;}
+.lp-sel-btn:hover{transform:scale(1.15);}
+.lp-tx-highlight{background:rgba(61,214,140,0.15);border-left:2px solid var(--accent);padding:2px 4px;border-radius:4px;color:#fff;}
+[data-theme="light"] .lp-tx-highlight{background:rgba(99,102,241,0.1);border-left-color:#6366f1;color:#1e1b4b;}
+.lp-save-btn{padding:6px 16px;border-radius:9px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:1px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;transition:all .25s;white-space:nowrap;margin-left:auto;}
+.lp-save-btn:hover{background:var(--accent);color:#06080c;}
+.lp-save-btn.saved{border-color:var(--text-dim);color:var(--text-dim);cursor:default;}
+.lp-save-btn.saved:hover{background:transparent;color:var(--text-dim);}
 .lp-tx-timestamp{color:var(--text-dim);font-size:9px;letter-spacing:1px;display:block;margin-top:8px;margin-bottom:2px;opacity:.5;}
 
 /* Analyze button */
@@ -166,6 +177,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
 .lp-canvas{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);}
 .lp-canvas::-webkit-scrollbar{width:5px;}
 .lp-canvas::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+
+/* History navbar */
+.lp-hist-nav{display:flex;align-items:center;gap:14px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.lp-hist-nav-logo{font-family:'DM Serif Display',serif;font-size:16px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.3px;cursor:pointer;}
+[data-theme="light"] .lp-hist-nav-logo{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
+.lp-hist-nav-sep{width:1px;height:18px;background:var(--border);}
+.lp-hist-nav-title{font-size:13px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.lp-hist-nav-back{margin-left:auto;font-size:11px;color:var(--text-dim);text-decoration:none;font-family:'JetBrains Mono',monospace;letter-spacing:1px;transition:color .2s;}
+.lp-hist-nav-back:hover{color:var(--accent);}
 
 /* Live Summary (sticky top) */
 .lp-live-top{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);padding:20px 28px;position:sticky;top:0;z-index:10;}
@@ -369,7 +389,17 @@ const VIS_CFG = {
 }
 
 // ── Visual Block Renderer ────────────────────────────────
-function VisualBlock({ visual }) {
+function VisualBlock({ visual, getTemplate }) {
+  // Template-based rendering (new system)
+  if (visual.template_slug) {
+    const tmpl = getTemplate(visual.template_slug)
+    if (tmpl) return <TemplateRenderer template={tmpl} schemaData={visual.schema_data || visual} />
+  }
+  // Legacy rendering (backward-compatible)
+  return <LegacyVisualBlock visual={visual} />
+}
+
+function LegacyVisualBlock({ visual }) {
   const t = visual.type
   if (t === 'flowchart') {
     if (!visual.mermaid) return <p style={{ color: 'var(--text-dim)', fontSize: 11 }}>No diagram data.</p>
@@ -389,19 +419,17 @@ function VisualBlock({ visual }) {
     </>
   }
   if (t === 'mindmap') {
-    const mc = visual.color || '#26de81'
+    const root = visual.root || {
+      label: visual.center || 'Topic',
+      children: (visual.branches || []).map(b => ({
+        label: b.label,
+        children: (b.children || []).map(c => ({ label: typeof c === 'string' ? c : c.label || '' }))
+      }))
+    }
     return (
-      <div className="lp-mm-wrap">
-        <div className="lp-mm-center" style={{ background: mc + '20', border: `2px solid ${mc}`, color: mc }}>{visual.center}</div>
-        <div className="lp-mm-branches">
-          {(visual.branches || []).map((b, i) => (
-            <div key={i} className="lp-mm-branch" style={{ background: mc + '08', border: `1px solid ${mc}20` }}>
-              <div className="lp-mm-blabel" style={{ color: mc }}>{b.label}</div>
-              {(b.children || []).map((c, j) => <div key={j} className="lp-mm-child">{typeof c === 'string' ? c : c.label || ''}</div>)}
-            </div>
-          ))}
-        </div>
-      </div>
+      <Suspense fallback={<div style={{textAlign:'center',padding:40,color:'var(--text-dim)'}}>Loading mindmap...</div>}>
+        <MindmapRenderer data={{ root }} />
+      </Suspense>
     )
   }
   if (t === 'problemsolution') {
@@ -468,6 +496,7 @@ function VisualBlock({ visual }) {
 
 // ── Main Component ───────────────────────────────────────
 export default function LivePage2() {
+  const { getTemplate } = useTemplates()
   // State
   const [anthropicKey] = useState(import.meta.env.ANTHROPIC_API_KEY || '')
   const [deepgramKey] = useState(import.meta.env.VITE_DEEPGRAM_API_KEY || '')
@@ -696,6 +725,11 @@ export default function LivePage2() {
   // ── END SESSION (save to Supabase, stop, keep canvas visible) ──
   const [sessionSaved, setSessionSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [selText, setSelText] = useState('')
+  const [selBtnPos, setSelBtnPos] = useState(null)
+  const [analyzedText, setAnalyzedText] = useState('')
+  const [selCanvasSaved, setSelCanvasSaved] = useState(false)
+  const txZoneRef = useRef(null)
 
   async function doEndSession() {
     doStopMic()
@@ -741,6 +775,90 @@ export default function LivePage2() {
     setError('')
     setTimerText('')
     setStatusState('idle')
+    setSelText('')
+    setSelBtnPos(null)
+    setAnalyzedText('')
+    setSelCanvasSaved(false)
+  }
+
+  // ── TEXT SELECTION (history mode only) ──
+  const handleTxSelect = () => {
+    if (!historyMode) return
+    const sel = window.getSelection()
+    const text = sel?.toString().trim()
+    if (!text || !txZoneRef.current) { setSelBtnPos(null); setSelText(''); return }
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    const zone = txZoneRef.current.getBoundingClientRect()
+    setSelText(text)
+    setSelBtnPos({ top: rect.top - zone.top - 32, left: Math.min(rect.left - zone.left + rect.width / 2 - 14, zone.width - 36) })
+  }
+
+  const handleAnalyzeSelection = async () => {
+    if (!selText) return
+    const key = anthropicKey.trim()
+    if (!key) { setError('Anthropic API key is missing.'); return }
+    const textToAnalyze = selText
+    setAnalyzedText(textToAnalyze)
+    setSelBtnPos(null)
+    setSelText('')
+    setSelCanvasSaved(false)
+    setIsAnalyzing(true)
+    setCharts([])
+    setDecisions([])
+    setActions([])
+    chartsRef.current = []
+    window.getSelection()?.removeAllRanges()
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514', max_tokens: 8192,
+          system: `You are a meeting intelligence AI. Analyze the transcript and return a rich canvas as JSON.\n\nRESPOND ONLY WITH VALID JSON.\n\nSchema:\n{"title":"string","subtitle":"string","visuals":[...],"decisions":[{"status":"MADE|PENDING|TABLED","text":"..."}],"actions":[{"text":"...","owner":"..."}]}\n\nVisual types: takeaways, eli5, blindspots, flowchart, mindmap, problemsolution, proscons, comparison, timeline, metrics, terms.\nInclude 4-7 visuals. Always include takeaways, eli5, blindspots. Each visual needs an "explanation" string.\n\nTYPE "takeaways": {"type":"takeaways","items":[{"text":"...","highlight":false}],"explanation":"..."}\nTYPE "eli5": {"type":"eli5","simple":"...","analogy":"...","explanation":"..."}\nTYPE "blindspots": {"type":"blindspots","items":[{"question":"...","note":"..."}],"explanation":"..."}\nTYPE "flowchart": {"type":"flowchart","mermaid":"graph TD\\n  A[Step] --> B{Decision?}","caption":"...","explanation":"..."}\nTYPE "mindmap": {"type":"mindmap","title":"...","root":{"label":"...","children":[{"label":"...","children":[{"label":"..."}]}]},"explanation":"..."}\nTYPE "problemsolution": {"type":"problemsolution","problems":["..."],"solutions":["..."],"explanation":"..."}\nTYPE "proscons": {"type":"proscons","topic":"...","pros":["..."],"cons":["..."],"explanation":"..."}\nTYPE "comparison": {"type":"comparison","options":["A","B"],"criteria":[{"name":"...","values":["...","...."]}],"explanation":"..."}\nTYPE "timeline": {"type":"timeline","items":[{"time":"...","event":"...","note":"...","done":false}],"explanation":"..."}\nTYPE "metrics": {"type":"metrics","items":[{"value":"...","name":"...","context":"...","color":"#00ff88"}],"explanation":"..."}\nTYPE "terms": {"type":"terms","items":[{"term":"...","definition":"..."}],"explanation":"..."}`,
+          messages: [{ role: 'user', content: `Analyze this transcript and return a rich meeting canvas as JSON:\n\n${textToAnalyze}` }]
+        })
+      })
+      const data = await res.json()
+      if (data.error) { setError('API error: ' + data.error.message); setIsAnalyzing(false); return }
+      const raw = data.content?.[0]?.text || ''
+      let jsonStr = raw.trim()
+      if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+      const parsed = JSON.parse(jsonStr)
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const newCharts = (parsed.visuals || []).map((vis, i) => ({ ...vis, chartId: `sel-${i}`, updatedAt: now }))
+      setCharts(newCharts)
+      chartsRef.current = newCharts
+      setDecisions(parsed.decisions || [])
+      setActions(parsed.actions || [])
+      if (parsed.title) setMeetingSummary(prev => prev ? { ...prev, title: parsed.title } : { title: parsed.title, overview: parsed.subtitle || '' })
+      setIsAnalyzing(false)
+    } catch (err) {
+      setError('Failed to analyze selection: ' + err.message)
+      setIsAnalyzing(false)
+    }
+  }
+
+  const handleSaveSelCanvas = async () => {
+    if (selCanvasSaved || !analyzedText) return
+    const { error: err } = await saveCanvasSession({
+      title: meetingSummary?.title || 'Untitled',
+      subtitle: meetingSummary?.overview || '',
+      transcript: analyzedText,
+      visuals: charts,
+      decisions,
+      actions,
+    })
+    if (err) { setError('Save failed: ' + err); return }
+    setSelCanvasSaved(true)
+  }
+
+  // Highlight analyzed text
+  const highlightTx = (text) => {
+    if (!analyzedText || !text.includes(analyzedText)) return text
+    const idx = text.indexOf(analyzedText)
+    return <>{text.slice(0, idx)}<mark className="lp-tx-highlight">{analyzedText}</mark>{text.slice(idx + analyzedText.length)}</>
   }
 
   // ── TIMER ──
@@ -941,16 +1059,21 @@ export default function LivePage2() {
         </div>
 
         {/* Transcript */}
-        <div className="lp-tx-zone">
-          <div className="lp-sb-label" style={{ marginBottom: 8 }}>Live Transcript</div>
-          <div className="lp-tx-scroll" ref={txScrollRef}>
+        <div className="lp-tx-zone" ref={txZoneRef}>
+          <div className="lp-sb-label" style={{ marginBottom: 8 }}>{historyMode ? 'Transcript' : 'Live Transcript'}</div>
+          {historyMode && selBtnPos && (
+            <button className="lp-sel-btn" style={{ top: selBtnPos.top, left: selBtnPos.left }} onClick={handleAnalyzeSelection} title="Analyze selected text">
+              ✦
+            </button>
+          )}
+          <div className="lp-tx-scroll" ref={txScrollRef} onMouseUp={historyMode ? handleTxSelect : undefined} onScroll={historyMode ? () => { setSelBtnPos(null); setSelText('') } : undefined}>
             {txLines.length === 0 && !interimText && (
               <span className="lp-tx-placeholder">Transcript will appear here as you speak...</span>
             )}
             {txLines.map((block, i) => (
               <div key={i} className="lp-tx-block">
                 {block.speaker != null && <span className={`lp-tx-speaker s${block.speaker % 6}`}>Speaker {block.speaker + 1}</span>}
-                <span className="lp-tx-final">{typeof block === 'string' ? block : block.text}</span>
+                <span className="lp-tx-final">{historyMode ? highlightTx(typeof block === 'string' ? block : block.text) : (typeof block === 'string' ? block : block.text)}</span>
               </div>
             ))}
             {interimText && <span className="lp-tx-interim">{interimText}</span>}
@@ -971,9 +1094,41 @@ export default function LivePage2() {
 
       {/* ── CANVAS ── */}
       <div className="lp-canvas" ref={canvasRef}>
+        {/* History navbar */}
+        {historyMode && (
+          <div className="lp-hist-nav">
+            <span className="lp-hist-nav-logo" onClick={() => navigate('/')}>Visual Script</span>
+            <span className="lp-hist-nav-sep" />
+            <span className="lp-hist-nav-title">SAVED SESSION</span>
+            {analyzedText && (
+              <button className={`lp-save-btn${selCanvasSaved ? ' saved' : ''}`} onClick={handleSaveSelCanvas} disabled={selCanvasSaved}>
+                {selCanvasSaved ? '✓ SAVED' : 'SAVE'}
+              </button>
+            )}
+            <Link to="/history" className="lp-hist-nav-back">← History</Link>
+          </div>
+        )}
+
+        {/* Selection analysis loading */}
+        {historyMode && isAnalyzing && analyzedText && (
+          <div style={{ padding: '28px', textAlign: 'center' }}>
+            <div className="lp-upd-spinner" style={{ width: 24, height: 24, margin: '0 auto 12px' }} />
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', letterSpacing: 2, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase' }}>Analyzing transcript and building canvas...</div>
+          </div>
+        )}
+
+        {/* Selection canvas title */}
+        {historyMode && analyzedText && !isAnalyzing && meetingSummary?.title && (
+          <div style={{ padding: '20px 28px 0' }}>
+            <div style={{ fontSize: 10, letterSpacing: 2, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 6 }}>CANVAS VIEW</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Serif Display',serif", letterSpacing: -0.5 }}>{meetingSummary.title}</div>
+            {meetingSummary.overview && <div style={{ fontSize: 14, color: 'var(--text-dim)', marginTop: 4 }}>{meetingSummary.overview}</div>}
+          </div>
+        )}
+
         {/* Live Summary */}
-        <div className="lp-live-top">
-          {!liveSummary && !historyMode ? (
+        {!historyMode && <div className="lp-live-top">
+          {!liveSummary ? (
             <div className="lp-lt-waiting">
               <div className="lp-lt-waiting-icon">🎙</div>
               <p className="lp-lt-waiting-text">START SESSION TO SEE<br />YOUR VISUAL SCRIPT HERE</p>
@@ -999,10 +1154,10 @@ export default function LivePage2() {
               )}
             </div>
           ) : null}
-        </div>
+        </div>}
 
-        {/* Meeting Summary */}
-        {meetingSummary && (
+        {/* Meeting Summary (hide when selection canvas is active) */}
+        {meetingSummary && !(historyMode && analyzedText) && (
           <div className="lp-summary">
             <div className="lp-summary-head">
               <div className="lp-summary-icon">📋</div>
@@ -1088,7 +1243,7 @@ export default function LivePage2() {
                   {chart.updatedAt && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1 }}>{chart.updatedAt}</span>}
                 </div>
                 <div className="lp-vs-body">
-                  <VisualBlock visual={chart} />
+                  <VisualBlock visual={chart} getTemplate={getTemplate} />
                 </div>
                 {chart.explanation && (
                   <div className="lp-vs-explanation">
@@ -1096,6 +1251,7 @@ export default function LivePage2() {
                     {chart.explanation}
                   </div>
                 )}
+                {chart.template_id && <VisualFeedback templateId={chart.template_id} visualData={chart.schema_data} />}
               </div>
             )
           })}

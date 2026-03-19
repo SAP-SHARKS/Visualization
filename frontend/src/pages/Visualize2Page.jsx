@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { generateCanvas } from '../services/chartAI'
+import { generateCanvas, generateInfographicImage } from '../services/chartAI'
 import { saveCanvasSession, getSession } from '../services/sessionStorage'
+import TemplateRenderer from '../components/TemplateRenderer'
+import VisualFeedback from '../components/VisualFeedback'
+import useTemplates from '../hooks/useTemplates'
 
 const MermaidRenderer = lazy(() => import('../components/charts/MermaidRenderer'))
 const MindmapRenderer = lazy(() => import('../components/charts/MindmapRenderer'))
@@ -31,28 +34,61 @@ const PAGE_CSS = `
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden;}
 
-.v2-header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,8,12,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;gap:16px;}
+.v2-header{position:relative;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.v2-save-btn{margin-left:auto;padding:6px 16px;border-radius:9px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:1px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;transition:all .25s;white-space:nowrap;}
+.v2-save-btn:hover{background:var(--accent);color:#06080c;}
+.v2-save-btn.saved{border-color:var(--text-dim);color:var(--text-dim);cursor:default;}
+.v2-save-btn.saved:hover{background:transparent;color:var(--text-dim);}
 .v2-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(61,214,140,0.15),transparent);}
-.v2-logo{font-family:'DM Serif Display',serif;font-size:20px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer;}
-.v2-logo span{color:var(--text-dim);font-size:12px;font-family:'DM Sans';margin-left:10px;-webkit-text-fill-color:var(--text-dim);}
-.v2-nav{display:flex;gap:4px;background:rgba(14,17,23,0.8);border-radius:12px;padding:4px;border:1px solid var(--border);overflow-x:auto;flex-wrap:wrap;}
+.v2-nav{display:flex;gap:4px;background:rgba(14,17,23,0.8);border-radius:12px;padding:4px;border:1px solid var(--border);overflow:hidden;flex-wrap:wrap;}
 .v2-nav::-webkit-scrollbar{height:0;display:none;}
 .v2-pill{padding:7px 14px;border-radius:9px;font-size:11px;font-weight:500;color:var(--text-dim);cursor:pointer;transition:all 0.25s;border:none;background:none;font-family:'DM Sans',sans-serif;white-space:nowrap;}
 .v2-pill:hover{color:var(--text);background:rgba(255,255,255,0.06);}
 .v2-pill.active{background:linear-gradient(135deg,#3dd68c,#2bc47a);color:#06080c;font-weight:600;box-shadow:0 2px 12px rgba(61,214,140,0.3);}
 
-.v2-content{padding-top:70px;max-width:1200px;margin:0 auto;padding-left:32px;padding-right:32px;padding-bottom:80px;}
+/* Two-column layout like LivePage2 */
+.v2-page{display:grid;grid-template-columns:340px 1fr;height:100vh;overflow:hidden;background:var(--bg);}
 
-.v2-hero{padding:48px 0 32px;text-align:center;}
-.v2-hero-label{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:2px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
-.v2-hero-title{font-family:'DM Serif Display',serif;font-size:38px;letter-spacing:-0.5px;margin-bottom:8px;background:linear-gradient(135deg,#e8eaf0 30%,#8a90a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.v2-hero-sub{color:var(--text-dim);font-size:16px;}
+/* Left sidebar */
+.v2-sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.v2-sb-head{padding:16px 20px;border-bottom:1px solid var(--border);}
+.v2-sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.v2-sb-logo-text{font-family:'DM Serif Display',serif;font-size:16px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.3px;cursor:pointer;}
+[data-theme="light"] .v2-sb-logo-text{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
+.v2-sb-label{font-size:9px;color:var(--text-dim);letter-spacing:2px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;}
+.v2-sb-title{font-size:14px;font-weight:600;color:var(--text);margin-top:6px;line-height:1.4;}
+.v2-sb-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+
+.v2-tx-zone{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 20px;position:relative;}
+.v2-tx-label{font-size:9px;color:var(--text-dim);letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:10px;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.v2-tx-label::before{content:'📝';font-size:12px;}
+.v2-tx-scroll{flex:1;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;}
+.v2-tx-scroll::-webkit-scrollbar{width:4px;}
+.v2-tx-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+.v2-sel-btn{position:absolute;z-index:20;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#06080c;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(61,214,140,0.4);transition:transform .15s;animation:v2FadeUp .2s ease;}
+.v2-sel-btn:hover{transform:scale(1.15);}
+.v2-tx-highlight{background:rgba(61,214,140,0.15);border-left:2px solid var(--accent);padding:2px 4px;border-radius:4px;color:#fff;}
+[data-theme="light"] .v2-tx-highlight{background:rgba(99,102,241,0.1);border-left-color:#6366f1;}
+.v2-sb-back{font-size:11px;color:var(--text-dim);text-decoration:none;padding:8px 20px;border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;transition:color .2s;cursor:pointer;background:none;border-left:none;border-right:none;border-bottom:none;}
+.v2-sb-back:hover{color:var(--accent);}
+
+/* Right canvas */
+.v2-canvas{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);}
+.v2-canvas::-webkit-scrollbar{width:5px;}
+.v2-canvas::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
+
+.v2-content{padding:20px 28px;padding-bottom:80px;}
+
+.v2-hero{padding:24px 0 20px;}
+.v2-hero-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;background:linear-gradient(135deg,#3dd68c,#5bf5dc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
+.v2-hero-title{font-family:'DM Serif Display',serif;font-size:28px;letter-spacing:-0.5px;margin-bottom:4px;background:linear-gradient(135deg,#e8eaf0 30%,#8a90a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.v2-hero-sub{color:var(--text-dim);font-size:14px;}
 
 .v2-section{margin-bottom:48px;animation:v2FadeUp .6s ease forwards;opacity:0;}
 @keyframes v2FadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
 .v2-section-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
 .v2-section-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.v2-section-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);}
+.v2-section-label{font-family:'JetBrains Mono',monospace;font-size:15px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);}
 .v2-section-title{font-size:20px;font-weight:700;}
 .v2-explanation{color:var(--text-dim);font-size:14px;line-height:1.7;margin-top:16px;padding:14px 18px;background:var(--surface-2);border-radius:12px;border-left:3px solid var(--accent);}
 
@@ -81,7 +117,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-chart-caption{font-size:13px;color:var(--text-dim);text-align:center;margin-top:12px;}
 
 /* Mindmap */
-.v2-mindmap-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;min-height:350px;}
+.v2-mindmap-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:0;min-height:300px;overflow:hidden;}
 
 /* Problem/Solution */
 .v2-ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
@@ -149,12 +185,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-error{background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);color:#ff5050;padding:16px 24px;border-radius:14px;font-size:14px;text-align:center;margin-top:40px;}
 
 /* Light mode overrides */
-[data-theme="light"] .v2-header{background:rgba(255,255,255,0.92);border-bottom-color:rgba(99,102,241,0.08);}
+[data-theme="light"] .v2-header{background:#fff;border-bottom-color:rgba(99,102,241,0.08);}
 [data-theme="light"] .v2-header::after{background:linear-gradient(90deg,transparent,rgba(99,102,241,0.15),transparent);}
-[data-theme="light"] .v2-logo{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
 [data-theme="light"] .v2-nav{background:rgba(99,102,241,0.04);border-color:rgba(99,102,241,0.08);}
 [data-theme="light"] .v2-pill:hover{background:rgba(99,102,241,0.06);}
 [data-theme="light"] .v2-pill.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
+[data-theme="light"] .v2-sb-logo-text{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
 [data-theme="light"] .v2-hero-title{background:linear-gradient(135deg,#1e1b4b 30%,#6366f1);-webkit-background-clip:text;}
 [data-theme="light"] .v2-hero-label{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;}
 [data-theme="light"] .v2-takeaway{background:#fff;}
@@ -167,21 +203,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 [data-theme="light"] .v2-metric{background:#fff;}
 [data-theme="light"] .v2-term{background:#fff;}
 [data-theme="light"] .v2-comp-table{background:#fff;}
-/* Transcript Panel */
-.v2-split{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
-.v2-split>.v2-section{animation:none;opacity:1;}
-.v2-transcript-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-height:500px;overflow-y:auto;}
-.v2-transcript-panel::-webkit-scrollbar{width:5px;}
-.v2-transcript-panel::-webkit-scrollbar-track{background:transparent;}
-.v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
-.v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
-.v2-transcript-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.v2-transcript-label::before{content:'📝';font-size:14px;}
-.v2-transcript-text{font-size:13px;line-height:1.8;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;font-family:'JetBrains Mono',monospace;}
-[data-theme="light"] .v2-transcript-panel{background:#fff;}
+[data-theme="light"] .v2-sidebar{background:#fff;}
+[data-theme="light"] .v2-tx-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);}
 
 /* Ask Q&A */
-.v2-ask{margin-top:48px;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:20px;animation:v2FadeUp .6s ease forwards;opacity:0;}
+.v2-ask{padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:20px;animation:v2FadeUp .6s ease forwards;opacity:0;}
 .v2-ask-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
 .v2-ask-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--accent-glow);border:1px solid var(--border);flex-shrink:0;}
 .v2-ask-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);}
@@ -200,16 +226,50 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-ask-avatar.user{background:rgba(91,156,245,0.12);}
 .v2-ask-avatar.ai{background:var(--accent-glow);}
 .v2-ask-text{font-size:14px;line-height:1.7;color:var(--text);}
-[data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);}
-[data-theme="light"] .v2-transcript-panel::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.2);}
-@media(max-width:700px){
+
+/* Transcript speaker diarization */
+.v2-tx-block{margin-bottom:10px;}
+.v2-tx-speaker{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;}
+.v2-tx-speaker.s0{color:#3dd68c;} .v2-tx-speaker.s1{color:#5b9cf5;} .v2-tx-speaker.s2{color:#f59e0b;} .v2-tx-speaker.s3{color:#c77dff;} .v2-tx-speaker.s4{color:#f472b6;} .v2-tx-speaker.s5{color:#fb7185;}
+.v2-tx-text{color:var(--text);display:inline;}
+
+/* Cause-Effect chain override — vertical layout, no scrollbar */
+.tmpl-ce{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0!important;padding:8px 0!important;overflow-x:visible!important;overflow:visible!important;}
+.tmpl-ce-n{padding:14px 18px!important;border-radius:12px!important;display:flex!important;align-items:center!important;gap:12px!important;flex-shrink:1!important;min-width:0!important;margin-right:0!important;position:relative!important;}
+.tmpl-ce-n:not(:last-child){margin-bottom:28px!important;}
+.tmpl-ce-n:not(:last-child)::after{content:'↓'!important;position:absolute!important;bottom:-22px!important;left:50%!important;right:auto!important;top:auto!important;transform:translateX(-50%)!important;color:var(--text-dim)!important;font-size:16px!important;opacity:0.6!important;}
+.tmpl-ce-tag{min-width:48px!important;flex-shrink:0!important;font-size:9px!important;}
+.tmpl-ce-lbl{font-size:13px!important;line-height:1.5!important;word-break:break-word!important;}
+
+/* Infographic Image (Gemini) */
+.v2-infographic-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);max-width:540px;margin:0 auto;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.v2-infographic-wrap:hover{transform:scale(1.01);box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+.v2-infographic-wrap img{width:100%;height:auto;display:block;object-fit:contain;}
+.v2-infographic-loading{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:60px 20px;text-align:center;max-width:540px;margin:0 auto;}
+.v2-infographic-loading-text{color:var(--text-dim);font-size:14px;margin-top:12px;}
+
+/* Lightbox */
+.v2-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:v2LbIn .25s ease;}
+@keyframes v2LbIn{from{opacity:0;}to{opacity:1;}}
+.v2-lightbox-close{position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:2;}
+.v2-lightbox-close:hover{background:rgba(255,255,255,0.2);}
+.v2-lightbox-controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:2;}
+.v2-lightbox-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 16px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:background .2s;user-select:none;}
+.v2-lightbox-btn:hover{background:rgba(255,255,255,0.2);}
+.v2-lightbox-btn.active{background:rgba(61,214,140,0.2);border-color:rgba(61,214,140,0.4);color:#3dd68c;}
+.v2-lightbox-img-wrap{overflow:hidden;max-width:90vw;max-height:85vh;border-radius:12px;cursor:grab;touch-action:none;}
+.v2-lightbox-img-wrap:active{cursor:grabbing;}
+.v2-lightbox-img-wrap img{display:block;transform-origin:center center;transition:transform .15s ease;user-select:none;-webkit-user-drag:none;}
+
+@media(max-width:800px){
+  .v2-page{grid-template-columns:1fr;height:auto;}
+  .v2-sidebar{max-height:40vh;border-right:none;border-bottom:1px solid var(--border);}
   .v2-header{padding:10px 16px;flex-wrap:wrap;}
   .v2-nav{flex-wrap:nowrap;overflow-x:auto;width:100%;}
   .v2-ps-grid,.v2-pc-grid{grid-template-columns:1fr;}
   .v2-metrics-grid{grid-template-columns:1fr 1fr;}
   .v2-content{padding-left:16px;padding-right:16px;}
-  .v2-hero-title{font-size:28px;}
-  .v2-split{grid-template-columns:1fr;}
+  .v2-hero-title{font-size:22px;}
 }
 `
 
@@ -228,7 +288,49 @@ const SECTION_META = {
   ask: { icon: '❓', label: 'Ask' },
 }
 
-function VisualRenderer({ visual }) {
+// Parse transcript text into speaker blocks
+function parseTranscriptSpeakers(text) {
+  if (!text) return []
+  const lines = text.split('\n')
+  const blocks = []
+  // Match patterns: "Speaker 1:", "Speaker A:", "Name:", "SPEAKER 1:", etc.
+  const speakerRegex = /^(Speaker\s*\d+|[A-Z][a-zA-Z0-9 ]{0,20})\s*:\s*/i
+  const speakerMap = {}
+  let nextIdx = 0
+
+  for (const line of lines) {
+    const match = line.match(speakerRegex)
+    if (match) {
+      const name = match[1].trim()
+      if (!(name in speakerMap)) {
+        speakerMap[name] = nextIdx++
+      }
+      const text = line.slice(match[0].length).trim()
+      if (text) blocks.push({ speaker: speakerMap[name], name, text })
+    } else if (line.trim()) {
+      // Continue previous speaker's block or add as plain text
+      if (blocks.length > 0 && blocks[blocks.length - 1].speaker != null) {
+        blocks[blocks.length - 1].text += ' ' + line.trim()
+      } else {
+        blocks.push({ speaker: null, name: null, text: line.trim() })
+      }
+    }
+  }
+  return blocks
+}
+
+// ── Pipeline Log Panel ───────────────────────────────────
+function VisualRenderer({ visual, getTemplate }) {
+  // Template-based rendering (new system)
+  if (visual.template_slug) {
+    const tmpl = getTemplate(visual.template_slug)
+    if (tmpl) return <TemplateRenderer template={tmpl} schemaData={visual.schema_data || visual} />
+  }
+  // Legacy rendering (backward-compatible)
+  return <LegacyVisualRenderer visual={visual} />
+}
+
+function LegacyVisualRenderer({ visual }) {
   const t = visual.type
   if (t === 'takeaways') {
     return (
@@ -273,8 +375,7 @@ function VisualRenderer({ visual }) {
     )
   }
   if (t === 'mindmap') {
-    // Reshape branches format to root/children format for MindmapRenderer
-    const root = {
+    const root = visual.root || {
       label: visual.center || 'Topic',
       children: (visual.branches || []).map(b => ({
         label: b.label,
@@ -391,11 +492,58 @@ function VisualRenderer({ visual }) {
   return <div style={{color:'var(--text-dim)',fontStyle:'italic'}}>Unknown visual type: {t}</div>
 }
 
+// ── Console logger for pipeline data ─────────────────────
+const STEP_CONSOLE_COLORS = {
+  FETCH_TEMPLATES: '#5b9cf5', PRE_FILTER: '#f59e0b', SPLIT: '#a78bfa', LLM_SELECT: '#8b5cf6',
+  LLM_RETRY: '#f59e0b', LLM_RESULT: '#3dd68c', LLM_PARSE: '#ef4444',
+  CONFIDENCE_GATE: '#f59e0b', DEDUP: '#06b6d4', COMPLETE: '#3dd68c',
+  ERROR: '#ef4444', FALLBACK: '#f59e0b', LEGACY_MODE: '#6b7280',
+}
+const STEP_CONSOLE_ICONS = {
+  FETCH_TEMPLATES: '📦', PRE_FILTER: '🔍', SPLIT: '✂️', LLM_SELECT: '🤖', LLM_RETRY: '🔄',
+  LLM_RESULT: '📋', LLM_PARSE: '⚠️', CONFIDENCE_GATE: '🚦', DEDUP: '🧹',
+  COMPLETE: '✅', ERROR: '❌', FALLBACK: '↩️', LEGACY_MODE: '📜',
+}
+
+function logPipelineToConsole(pipeline) {
+  if (!pipeline) return
+  const { mode, log = [], candidateCount, selectedCount, timeMs } = pipeline
+
+  console.group(
+    `%c[VisualScript Pipeline] %c${(mode || 'unknown').toUpperCase()} %c${timeMs != null ? timeMs + 'ms' : ''}`,
+    'color:#8b5cf6;font-weight:bold',
+    `color:#fff;background:${mode === 'template' ? '#8b5cf6' : '#6b7280'};padding:1px 6px;border-radius:3px;font-weight:bold`,
+    'color:#6b7280'
+  )
+
+  if (candidateCount != null || selectedCount != null) {
+    console.log(
+      `%cSummary: %c${candidateCount ?? '?'} candidates → ${selectedCount ?? '?'} selected`,
+      'color:#6b7280', 'color:#3dd68c;font-weight:bold'
+    )
+  }
+
+  for (const entry of log) {
+    const color = STEP_CONSOLE_COLORS[entry.step] || '#6b7280'
+    const icon = STEP_CONSOLE_ICONS[entry.step] || '●'
+    console.groupCollapsed(
+      `%c${icon} ${entry.step} %c+${entry.ts}ms`,
+      `color:${color};font-weight:bold`,
+      'color:#6b7280;font-weight:normal'
+    )
+    if (entry.detail) console.log(entry.detail)
+    console.groupEnd()
+  }
+
+  console.groupEnd()
+}
+
 export default function Visualize2Page() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const state = location.state
+  const { getTemplate } = useTemplates()
   const historySessionId = searchParams.get('session')
 
   useEffect(() => {
@@ -406,16 +554,25 @@ export default function Visualize2Page() {
   const [title, setTitle] = useState('Analyzing...')
   const [subtitle, setSubtitle] = useState('')
   const [visuals, setVisuals] = useState([])
-  const [decisions, setDecisions] = useState([])
-  const [actions, setActions] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [pipelineData, setPipelineData] = useState(null)
   const [activeNav, setActiveNav] = useState(null)
   const [sessionSaved, setSessionSaved] = useState(false)
   const [isHistoryMode, setIsHistoryMode] = useState(!!historySessionId)
   const [qaInput, setQaInput] = useState('')
   const [qaLoading, setQaLoading] = useState(false)
   const [qaThreads, setQaThreads] = useState([])
+  const [selectedText, setSelectedText] = useState('')
+  const [selBtnPos, setSelBtnPos] = useState(null)
+  const [analyzedText, setAnalyzedText] = useState('')
+  const [infographicImage, setInfographicImage] = useState(null)
+  const [infographicLoading, setInfographicLoading] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxZoom, setLightboxZoom] = useState(1)
+  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 })
+  const lightboxDrag = useRef(null)
+  const txZoneRef = useRef(null)
   const sectionRefs = useRef({})
 
   useEffect(() => {
@@ -429,6 +586,15 @@ export default function Visualize2Page() {
     return () => { const el = document.getElementById(id); if (el) el.remove() }
   }, [])
 
+  // Close lightbox on Escape
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const onKey = e => { if (e.key === 'Escape') setLightboxOpen(false) }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [lightboxOpen])
+
   // Load from history
   useEffect(() => {
     if (!historySessionId) return
@@ -440,33 +606,33 @@ export default function Visualize2Page() {
       setContent(session.transcript || '')
       const canvas = session.canvas_data || {}
       setVisuals(canvas.visuals || [])
-      setDecisions(canvas.decisions || [])
-      setActions(canvas.actions || [])
+      if (canvas.infographic_image_url) {
+        setInfographicImage(canvas.infographic_image_url)
+      }
       setSessionSaved(true)
       setIsHistoryMode(true)
       setLoading(false)
     })
   }, [historySessionId])
 
-  // Auto-save after generation
-  useEffect(() => {
-    if (sessionSaved || isHistoryMode || loading || visuals.length === 0 || !content) return
-    saveCanvasSession({
+  // Manual save handler
+  const handleSaveCanvas = async () => {
+    if (sessionSaved || loading || visuals.length === 0) return
+    setSessionSaved(true)
+    const { sessionId, error: err } = await saveCanvasSession({
       title,
       subtitle,
-      transcript: content,
+      transcript: analyzedText || content,
       visuals,
-      decisions,
-      actions,
-    }).then(({ sessionId, error: err }) => {
-      if (err) {
-        console.error('Canvas save failed:', err)
-      } else {
-        console.log('Canvas session saved:', sessionId)
-        setSessionSaved(true)
-      }
+      infographicImage,
     })
-  }, [visuals, loading, sessionSaved, isHistoryMode])
+    if (err) {
+      console.error('Canvas save failed:', err)
+      setSessionSaved(false)
+    } else {
+      console.log('Canvas session saved:', sessionId)
+    }
+  }
 
   // Generate canvas
   useEffect(() => {
@@ -475,15 +641,42 @@ export default function Visualize2Page() {
     setLoading(true)
     setError(null)
 
-    generateCanvas(content).then(({ title: t, subtitle: s, visuals: v, decisions: d, actions: a, error: err }) => {
+    const t0 = performance.now()
+    console.log('%c[VisualScript] Starting canvas generation...', 'color:#8b5cf6;font-weight:bold')
+
+    generateCanvas(content).then(({ title: t, subtitle: s, visuals: v, error: err, _pipeline: p, infographic_data: ig }) => {
       if (cancelled) return
-      if (err) { setError(err); setLoading(false); return }
+      const elapsed = Math.round(performance.now() - t0)
+      console.log(`%c[VisualScript] Roundtrip: ${elapsed}ms`, 'color:#8b5cf6')
+      if (p) { setPipelineData(p); logPipelineToConsole(p) }
+      else { console.warn('[VisualScript] No pipeline data — API running in legacy mode (Supabase env vars missing or no templates seeded)') }
+      if (err) { console.error('[VisualScript] Error:', err); setError(err); setLoading(false); return }
+      console.log(`%c[VisualScript] Received ${(v || []).length} visuals`, 'color:#3dd68c')
       if (t) setTitle(t)
       if (s) setSubtitle(s)
       setVisuals(v || [])
-      setDecisions(d || [])
-      setActions(a || [])
       setLoading(false)
+
+      // Trigger Gemini Imagen infographic generation in parallel
+      if (ig && (ig.steps?.length > 0 || ig.stats?.length > 0)) {
+        console.log('%c[Gemini Imagen] Starting infographic image generation...', 'color:#f59e0b;font-weight:bold')
+        console.log('%c[Gemini Imagen] Infographic data:', 'color:#f59e0b', { title: ig.title, steps: ig.steps?.length || 0, stats: ig.stats?.length || 0 })
+        const geminiT0 = performance.now()
+        setInfographicLoading(true)
+        generateInfographicImage(ig).then(({ imageUrl, error: imgErr }) => {
+          if (cancelled) return
+          const geminiElapsed = Math.round(performance.now() - geminiT0)
+          if (imgErr) {
+            console.error(`%c[Gemini Imagen] Failed after ${geminiElapsed}ms:`, 'color:#ff5050;font-weight:bold', imgErr)
+          } else if (imageUrl) {
+            console.log(`%c[Gemini Imagen] Image received in ${geminiElapsed}ms`, 'color:#3dd68c;font-weight:bold')
+            setInfographicImage(imageUrl)
+          }
+          setInfographicLoading(false)
+        })
+      } else {
+        console.log('%c[Gemini Imagen] Skipped — no steps or stats in Claude response', 'color:#6b7280')
+      }
     })
 
     return () => { cancelled = true }
@@ -532,115 +725,239 @@ export default function Visualize2Page() {
     setQaLoading(false)
   }
 
+  const handleTextSelect = () => {
+    const sel = window.getSelection()
+    const text = sel?.toString().trim()
+    if (!text || !txZoneRef.current) { setSelBtnPos(null); setSelectedText(''); return }
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    const zone = txZoneRef.current.getBoundingClientRect()
+    setSelectedText(text)
+    setSelBtnPos({ top: rect.top - zone.top - 32, left: Math.min(rect.left - zone.left + rect.width / 2 - 14, zone.width - 36) })
+  }
+
+  const handleAnalyzeSelection = () => {
+    if (!selectedText) return
+    const textToAnalyze = selectedText
+    setAnalyzedText(textToAnalyze)
+    setLoading(true)
+    setError(null)
+    setVisuals([])
+    setDecisions([])
+    setActions([])
+    setSelBtnPos(null)
+    setSelectedText('')
+    window.getSelection()?.removeAllRanges()
+
+    const t0sel = performance.now()
+    console.log('%c[VisualScript] Starting canvas generation (selection)...', 'color:#8b5cf6;font-weight:bold')
+
+    generateCanvas(textToAnalyze).then(({ title: t, subtitle: s, visuals: v, error: err, _pipeline: p, infographic_data: ig }) => {
+      const elapsed = Math.round(performance.now() - t0sel)
+      console.log(`%c[VisualScript] Roundtrip (selection): ${elapsed}ms`, 'color:#8b5cf6')
+      if (p) { setPipelineData(p); logPipelineToConsole(p) }
+      else { console.warn('[VisualScript] No pipeline data — API running in legacy mode (Supabase env vars missing or no templates seeded)') }
+      if (err) { console.error('[VisualScript] Error:', err); setError(err); setLoading(false); return }
+      console.log(`%c[VisualScript] Received ${(v || []).length} visuals`, 'color:#3dd68c')
+      if (t) setTitle(t)
+      if (s) setSubtitle(s)
+      setVisuals(v || [])
+      setLoading(false)
+      setSessionSaved(false)
+
+      // Trigger Gemini Imagen infographic generation in parallel
+      if (ig && (ig.steps?.length > 0 || ig.stats?.length > 0)) {
+        console.log('%c[Gemini Imagen] Starting infographic image generation (selection)...', 'color:#f59e0b;font-weight:bold')
+        console.log('%c[Gemini Imagen] Infographic data:', 'color:#f59e0b', { title: ig.title, steps: ig.steps?.length || 0, stats: ig.stats?.length || 0 })
+        const geminiT0 = performance.now()
+        setInfographicLoading(true)
+        setInfographicImage(null)
+        generateInfographicImage(ig).then(({ imageUrl, error: imgErr }) => {
+          const geminiElapsed = Math.round(performance.now() - geminiT0)
+          if (imgErr) {
+            console.error(`%c[Gemini Imagen] Failed after ${geminiElapsed}ms:`, 'color:#ff5050;font-weight:bold', imgErr)
+          } else if (imageUrl) {
+            console.log(`%c[Gemini Imagen] Image received in ${geminiElapsed}ms`, 'color:#3dd68c;font-weight:bold')
+            setInfographicImage(imageUrl)
+          }
+          setInfographicLoading(false)
+        })
+      } else {
+        console.log('%c[Gemini Imagen] Skipped — no steps or stats in Claude response', 'color:#6b7280')
+      }
+    })
+  }
+
   if (!state?.content && !historySessionId) return null
 
-  const navItems = visuals.map(v => v.type).filter(t => SECTION_META[t])
-  if (decisions.length > 0) navItems.push('decisions')
-  if (actions.length > 0) navItems.push('actions')
-  navItems.push('ask')
+  const txBlocks = parseTranscriptSpeakers(content)
+  const hasSpeakers = txBlocks.some(b => b.speaker != null)
+
+  // Highlight analyzed text within a string
+  const highlightText = (text) => {
+    if (!analyzedText || !text.includes(analyzedText)) return text
+    const idx = text.indexOf(analyzedText)
+    return <>
+      {text.slice(0, idx)}
+      <mark className="v2-tx-highlight">{analyzedText}</mark>
+      {text.slice(idx + analyzedText.length)}
+    </>
+  }
+
+  // Build nav dynamically from ALL visuals (template-based or legacy)
+  const navItems = visuals.map(v => {
+    const slug = v.template_slug || v.type
+    const tmpl = v.template_slug ? getTemplate(v.template_slug) : null
+    const meta = SECTION_META[v.type] || SECTION_META[slug]
+    const label = meta?.label || (tmpl ? tmpl.name : slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+    return { key: slug, label }
+  })
+  if (infographicImage || infographicLoading) navItems.push({ key: 'infographic-image', label: 'Infographic' })
+  navItems.push({ key: 'ask', label: 'Ask' })
 
   return (
-    <div>
-      <header className="v2-header">
-        <div className="v2-logo" onClick={() => navigate('/')}>VisualScript <span>Canvas</span></div>
-        {!loading && visuals.length > 0 && (
-          <nav className="v2-nav">
-            {navItems.map(key => (
-              <button key={key} className={`v2-pill${activeNav === `v2-${key}` ? ' active' : ''}`} onClick={() => scrollTo(`v2-${key}`)}>
-                {SECTION_META[key]?.label || key.charAt(0).toUpperCase() + key.slice(1)}
-              </button>
-            ))}
-          </nav>
-        )}
-      </header>
-
-      <div className="v2-content">
-        <div className="v2-hero">
-          <div className="v2-hero-label">Meeting Canvas</div>
-          <h1 className="v2-hero-title">{title}</h1>
-          <p className="v2-hero-sub">{subtitle || (loading ? 'Generating canvas...' : '')}</p>
+    <div className="v2-page">
+      {/* Left Sidebar - Transcript */}
+      <aside className="v2-sidebar">
+        <div className="v2-sb-head">
+          <div className="v2-sb-logo">
+            <div className="v2-sb-logo-text" onClick={() => navigate('/')}>VisualScript</div>
+          </div>
+          <div className="v2-sb-label">Canvas View</div>
         </div>
-
-        {loading && (
-          <div className="v2-loading">
-            <div className="v2-spinner" />
-            <div className="v2-loading-text">Analyzing transcript and building canvas...</div>
+        <div className="v2-tx-zone" ref={txZoneRef}>
+          <div className="v2-tx-label">Full Transcript</div>
+          {selBtnPos && (
+            <button className="v2-sel-btn" style={{ top: selBtnPos.top, left: selBtnPos.left }} onClick={handleAnalyzeSelection} title="Analyze selected text">
+              ✦
+            </button>
+          )}
+          <div className="v2-tx-scroll" onMouseUp={handleTextSelect} onScroll={() => { setSelBtnPos(null); setSelectedText('') }}>
+            {!content ? 'No transcript loaded.' : hasSpeakers ? (
+              txBlocks.map((block, i) => (
+                <div key={i} className="v2-tx-block">
+                  {block.speaker != null && <span className={`v2-tx-speaker s${block.speaker % 6}`}>{block.name}</span>}
+                  <span className="v2-tx-text">{highlightText(block.text)}</span>
+                </div>
+              ))
+            ) : (
+              <span style={{color:'var(--text-dim)'}}>{highlightText(content)}</span>
+            )}
           </div>
+        </div>
+        <button className="v2-sb-back" onClick={() => navigate('/')}>← Back to Home</button>
+      </aside>
+
+      {/* Right Canvas */}
+      <main className="v2-canvas">
+        {!loading && visuals.length > 0 && (
+          <header className="v2-header">
+            <nav className="v2-nav">
+              {navItems.map(item => (
+                <button key={item.key} className={`v2-pill${activeNav === `v2-${item.key}` ? ' active' : ''}`} onClick={() => scrollTo(`v2-${item.key}`)}>
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+            <button className={`v2-save-btn${sessionSaved ? ' saved' : ''}`} onClick={handleSaveCanvas} disabled={sessionSaved}>
+              {sessionSaved ? '✓ SAVED' : 'SAVE'}
+            </button>
+          </header>
         )}
 
-        {error && <div className="v2-error">{error}</div>}
-
-        {/* Takeaways + Transcript side by side */}
-        {visuals.some(v => v.type === 'takeaways') && (
-          <div className="v2-split">
-            <div className="v2-section" id="v2-takeaways" ref={el => sectionRefs.current['v2-takeaways'] = el}>
-              <div className="v2-section-head">
-                <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>🎯</div>
-                <div><div className="v2-section-label">Key Takeaways</div></div>
-              </div>
-              <VisualRenderer visual={visuals.find(v => v.type === 'takeaways')} />
-              {visuals.find(v => v.type === 'takeaways')?.explanation && <div className="v2-explanation">{visuals.find(v => v.type === 'takeaways').explanation}</div>}
+        <div className="v2-content">
+          {loading && (
+            <div className="v2-loading">
+              <div className="v2-spinner" />
+              <div className="v2-loading-text">Analyzing transcript and building canvas...</div>
             </div>
-            <div className="v2-section" id="v2-transcript" ref={el => sectionRefs.current['v2-transcript'] = el}>
-              <div className="v2-section-head">
-                <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>📝</div>
-                <div><div className="v2-section-label">Full Transcript</div></div>
-              </div>
-              <div className="v2-transcript-panel">
-                <div className="v2-transcript-text">{content}</div>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Other sections */}
-        {visuals.filter(v => v.type !== 'takeaways').map((visual, idx) => {
-          const meta = SECTION_META[visual.type] || { icon: '📌', label: visual.type }
+          {error && <div className="v2-error">{error}</div>}
+
+          {/* Title & Subtitle */}
+          {!loading && visuals.length > 0 && (
+            <div className="v2-hero">
+              <div className="v2-hero-label">CANVAS VIEW</div>
+              <h1 className="v2-hero-title">{title}</h1>
+              {subtitle && <p className="v2-hero-sub">{subtitle}</p>}
+            </div>
+          )}
+
+          {/* All visual sections */}
+          {visuals.map((visual, idx) => {
+          const slug = visual.template_slug || visual.type
+          const tmpl = visual.template_slug ? getTemplate(visual.template_slug) : null
+          const meta = SECTION_META[visual.type] || (tmpl ? { icon: '📌', label: tmpl.name } : { icon: '📌', label: visual.type })
           return (
-            <div key={idx} className="v2-section" id={`v2-${visual.type}`} ref={el => sectionRefs.current[`v2-${visual.type}`] = el} style={{animationDelay: `${idx * 0.1}s`}}>
+            <div key={idx} className="v2-section" id={`v2-${slug}`} ref={el => sectionRefs.current[`v2-${slug}`] = el} style={{animationDelay: `${idx * 0.1}s`}}>
               <div className="v2-section-head">
                 <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>{meta.icon}</div>
                 <div>
                   <div className="v2-section-label">{meta.label}</div>
                 </div>
               </div>
-              <VisualRenderer visual={visual} />
+              <VisualRenderer visual={visual} getTemplate={getTemplate} />
               {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
+              {visual.template_id && !['eli5', 'takeaways', 'blindspots'].includes(visual.template_slug) && <VisualFeedback templateId={visual.template_id} sessionId={historySessionId} visualData={visual.schema_data} />}
             </div>
           )
         })}
 
-        {decisions.length > 0 && (
-          <div className="v2-section" id="v2-decisions" ref={el => sectionRefs.current['v2-decisions'] = el}>
+        {/* Infographic Image (Gemini Imagen) */}
+        {!loading && (infographicImage || infographicLoading) && (
+          <div className="v2-section" id="v2-infographic-image" ref={el => sectionRefs.current['v2-infographic-image'] = el} style={{ animationDelay: `${visuals.length * 0.1 + 0.1}s` }}>
             <div className="v2-section-head">
-              <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>🏛️</div>
-              <div><div className="v2-section-label">Decisions</div></div>
+              <div className="v2-section-icon" style={{ background: 'var(--accent-glow)', border: '1px solid var(--border)' }}>🎨</div>
+              <div>
+                <div className="v2-section-label">Infographic</div>
+              </div>
             </div>
-            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,padding:'8px 24px'}}>
-              {decisions.map((d, i) => (
-                <div key={i} className="v2-decision">
-                  <span className={`v2-decision-badge ${d.status}`}>{d.status}</span>
-                  <span className="v2-decision-text">{d.text}</span>
-                </div>
-              ))}
-            </div>
+            {infographicLoading ? (
+              <div className="v2-infographic-loading">
+                <div className="v2-spinner" />
+                <div className="v2-infographic-loading-text">Generating infographic image via Gemini...</div>
+              </div>
+            ) : infographicImage ? (
+              <div className="v2-infographic-wrap" onClick={() => { setLightboxOpen(true); setLightboxZoom(1); setLightboxPan({ x: 0, y: 0 }) }} title="Click to enlarge">
+                <img src={infographicImage} alt="AI-generated infographic" />
+              </div>
+            ) : null}
           </div>
         )}
 
-        {actions.length > 0 && (
-          <div className="v2-section" id="v2-actions" ref={el => sectionRefs.current['v2-actions'] = el}>
-            <div className="v2-section-head">
-              <div className="v2-section-icon" style={{background:'var(--accent-glow)',border:'1px solid var(--border)'}}>✅</div>
-              <div><div className="v2-section-label">Action Items</div></div>
+        {/* Infographic Lightbox */}
+        {lightboxOpen && infographicImage && (
+          <div className="v2-lightbox" onClick={e => { if (e.target === e.currentTarget) { setLightboxOpen(false) } }}>
+            <button className="v2-lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
+            <div
+              className="v2-lightbox-img-wrap"
+              onWheel={e => {
+                e.preventDefault()
+                setLightboxZoom(z => Math.min(5, Math.max(0.5, z + (e.deltaY < 0 ? 0.2 : -0.2))))
+              }}
+              onMouseDown={e => {
+                if (lightboxZoom <= 1) return
+                lightboxDrag.current = { startX: e.clientX - lightboxPan.x, startY: e.clientY - lightboxPan.y }
+              }}
+              onMouseMove={e => {
+                if (!lightboxDrag.current) return
+                setLightboxPan({ x: e.clientX - lightboxDrag.current.startX, y: e.clientY - lightboxDrag.current.startY })
+              }}
+              onMouseUp={() => { lightboxDrag.current = null }}
+              onMouseLeave={() => { lightboxDrag.current = null }}
+            >
+              <img
+                src={infographicImage}
+                alt="AI-generated infographic"
+                style={{ transform: `scale(${lightboxZoom}) translate(${lightboxPan.x / lightboxZoom}px, ${lightboxPan.y / lightboxZoom}px)`, maxWidth: '85vw', maxHeight: '82vh' }}
+                draggable={false}
+              />
             </div>
-            <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,padding:'8px 24px'}}>
-              {actions.map((a, i) => (
-                <div key={i} className="v2-action">
-                  <div className="v2-action-check" />
-                  <span className="v2-action-text">{a.text}</span>
-                  {a.owner && <span className="v2-action-owner">@{a.owner}</span>}
-                </div>
-              ))}
+            <div className="v2-lightbox-controls">
+              <button className="v2-lightbox-btn" onClick={() => setLightboxZoom(z => Math.max(0.5, z - 0.3))}>−</button>
+              <button className={`v2-lightbox-btn${lightboxZoom === 1 ? ' active' : ''}`} onClick={() => { setLightboxZoom(1); setLightboxPan({ x: 0, y: 0 }) }}>{Math.round(lightboxZoom * 100)}%</button>
+              <button className="v2-lightbox-btn" onClick={() => setLightboxZoom(z => Math.min(5, z + 0.3))}>+</button>
             </div>
           </div>
         )}
@@ -669,6 +986,7 @@ export default function Visualize2Page() {
           </div>
         )}
       </div>
+      </main>
     </div>
   )
 }

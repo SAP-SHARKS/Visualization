@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisualScript — 55 Templates</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080c;--s1:#0d1017;--s2:#141820;--s3:#1b2030;--bd:#222940;--tx:#e0e4ef;--dm:#586380;--gn:#00e08e;--bl:#3b8bff;--or:#ff8a3b;--rd:#ff4d5e;--pr:#9466ff;--yw:#ffc233;--pk:#ff5eac;--cy:#00d4e0;--lm:#a3e635;--in:#6366f1;--tl:#14b8a6;--rs:#f43f5e;--am:#f59e0b;--sk:#0ea5e9}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:'Instrument Sans',system-ui,sans-serif;line-height:1.6}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+.pg{max-width:880px;margin:0 auto;padding:30px 24px 140px}
+.t{background:var(--s1);border:1px solid var(--bd);border-radius:18px;overflow:hidden;margin-bottom:18px}
+.th{padding:9px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.tg{font-size:7px;padding:2px 7px;border-radius:3px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;font-weight:700}
+.ti{font-size:7px;color:var(--dm);font-family:'JetBrains Mono',monospace}
+.tb{padding:16px 20px}
+.hl{font-size:15px;font-weight:700;line-height:1.35;margin-bottom:12px}
+.ct{font-size:12px;color:var(--dm);line-height:1.6;margin:10px 0}
+.ct strong{color:var(--tx)}
+.co{padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;margin:10px 0;display:flex;gap:7px;align-items:flex-start}
+.sp{border:none;border-top:1px solid var(--bd);margin:36px 0}
+.cl{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;margin:44px 0 6px;border:1.5px solid}
+.cl:first-of-type{margin-top:10px}
+.cs{font-size:20px;font-weight:700;margin-bottom:16px}
+</style>
+</head>
+<body>
+<header style="position:sticky;top:0;z-index:100;background:rgba(6,8,12,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:9px 20px;display:flex;align-items:center;justify-content:space-between">
+  <div><span style="font-size:15px;font-weight:700;color:var(--gn)">VisualScript</span><span style="font-size:10px;color:var(--dm);margin-left:10px">55 Visual Templates</span></div>
+</header>
+<div class="pg">
+
+<!-- ================================================================ -->
+<!-- CAT 1: FLOW & PROCESS (8 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--gn);border-color:rgba(0,224,142,0.3);background:rgba(0,224,142,0.05)">⟶ FLOW & PROCESS</div>
+<div class="cs">8 templates for sequences, systems, and decisions</div>
+
+<!-- 1: Linear Flow -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T01 · LINEAR FLOW</span><span class="ti">process_flow</span></div><div class="tb">
+<div class="hl">How the round-up donation works</div>
+<div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 0">
+  <div style="min-width:105px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(59,139,255,0.07);border:1.5px solid rgba(59,139,255,0.22)"><div style="font-size:18px;margin-bottom:3px">📱</div><div style="font-size:10px;font-weight:700;color:var(--bl)">Download</div><div style="font-size:8px;color:var(--dm)">iOS/Android</div></div>
+  <svg width="24" height="10" style="flex-shrink:0;margin:0 -2px"><line x1="1" y1="5" x2="16" y2="5" stroke="#586380" stroke-width="1.2"/><polygon points="16,2 24,5 16,8" fill="#586380"/></svg>
+  <div style="min-width:105px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(148,102,255,0.07);border:1.5px solid rgba(148,102,255,0.22)"><div style="font-size:18px;margin-bottom:3px">🔗</div><div style="font-size:10px;font-weight:700;color:var(--pr)">Link Bank</div><div style="font-size:8px;color:var(--dm)">Plaid OAuth</div></div>
+  <svg width="24" height="10" style="flex-shrink:0;margin:0 -2px"><line x1="1" y1="5" x2="16" y2="5" stroke="#586380" stroke-width="1.2"/><polygon points="16,2 24,5 16,8" fill="#586380"/></svg>
+  <div style="min-width:105px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(255,138,59,0.07);border:1.5px solid rgba(255,138,59,0.22)"><div style="font-size:18px;margin-bottom:3px">🛍️</div><div style="font-size:10px;font-weight:700;color:var(--or)">Purchase</div><div style="font-size:8px;color:var(--dm)">$9.60</div></div>
+  <svg width="24" height="10" style="flex-shrink:0;margin:0 -2px"><line x1="1" y1="5" x2="16" y2="5" stroke="#586380" stroke-width="1.2"/><polygon points="16,2 24,5 16,8" fill="#586380"/></svg>
+  <div style="min-width:105px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(255,194,51,0.07);border:1.5px solid rgba(255,194,51,0.22)"><div style="font-size:18px;margin-bottom:3px">🔄</div><div style="font-size:10px;font-weight:700;color:var(--yw)">Round-Up</div><div style="font-size:8px;color:var(--dm)">$0.40</div></div>
+  <svg width="24" height="10" style="flex-shrink:0;margin:0 -2px"><line x1="1" y1="5" x2="16" y2="5" stroke="#586380" stroke-width="1.2"/><polygon points="16,2 24,5 16,8" fill="#586380"/></svg>
+  <div style="min-width:105px;padding:10px 8px;border-radius:12px;text-align:center;background:rgba(0,224,142,0.07);border:1.5px solid rgba(0,224,142,0.22)"><div style="font-size:18px;margin-bottom:3px">💚</div><div style="font-size:10px;font-weight:700;color:var(--gn)">Donate</div><div style="font-size:8px;color:var(--dm)">$0.35</div></div>
+</div></div></div>
+
+<!-- 2: Decision Tree -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(148,102,255,0.12);color:var(--pr)">T02 · DECISION TREE</span><span class="ti">decision_tree</span></div><div class="tb">
+<div class="hl">Year-end transaction classification logic</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0">
+  <div style="padding:10px 20px;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600">Transaction date Dec 27–31?</div>
+  <div style="display:flex;gap:50px;margin-top:-1px">
+    <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:16px;background:var(--gn)"></div><div style="font-size:8px;color:var(--gn);font-weight:700;margin:3px 0">YES</div><div style="width:2px;height:10px;background:var(--gn)"></div><div style="padding:8px 14px;background:rgba(255,194,51,0.07);border:1.5px solid rgba(255,194,51,0.22);border-radius:8px;font-size:10px;font-weight:600;color:var(--yw)">Clearing in Jan?</div>
+      <div style="display:flex;gap:30px;margin-top:-1px">
+        <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:12px;background:var(--or)"></div><div style="font-size:7px;color:var(--or);font-weight:700">YES</div><div style="width:2px;height:6px;background:var(--or)"></div><div style="padding:6px 10px;background:rgba(255,138,59,0.07);border:1.5px solid rgba(255,138,59,0.22);border-radius:7px;font-size:9px;font-weight:700;color:var(--or)">⚠ Flag for review</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:12px;background:var(--gn)"></div><div style="font-size:7px;color:var(--gn);font-weight:700">NO</div><div style="width:2px;height:6px;background:var(--gn)"></div><div style="padding:6px 10px;background:rgba(0,224,142,0.07);border:1.5px solid rgba(0,224,142,0.22);border-radius:7px;font-size:9px;font-weight:700;color:var(--gn)">✓ Auto-assign</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:16px;background:var(--dm)"></div><div style="font-size:8px;color:var(--dm);font-weight:700;margin:3px 0">NO</div><div style="width:2px;height:10px;background:var(--dm)"></div><div style="padding:6px 10px;background:var(--s2);border:1.5px solid var(--bd);border-radius:7px;font-size:9px;color:var(--dm)">Standard process</div></div>
+  </div>
+</div></div></div>
+
+<!-- 3: Vertical Waterfall -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,212,224,0.12);color:var(--cy)">T03 · VERTICAL WATERFALL</span><span class="ti">waterfall</span></div><div class="tb">
+<div class="hl">Implementation phases — each depends on the previous</div>
+<div style="position:relative;padding-left:24px">
+  <div style="position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(to bottom,var(--bl),var(--pr),var(--gn))"></div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px"><div style="width:18px;height:18px;border-radius:50%;background:var(--bl);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--bg);font-weight:800;flex-shrink:0;z-index:1">1</div><div style="flex:1;padding:10px 14px;background:var(--s2);border-radius:10px;border-left:3px solid var(--bl)"><div style="font-size:12px;font-weight:700">Audit existing data</div><div style="font-size:10px;color:var(--dm)">Week 1-2 · Marcus</div></div></div>
+    <div style="display:flex;align-items:center;gap:12px"><div style="width:18px;height:18px;border-radius:50%;background:var(--pr);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--bg);font-weight:800;flex-shrink:0;z-index:1">2</div><div style="flex:1;padding:10px 14px;background:var(--s2);border-radius:10px;border-left:3px solid var(--pr)"><div style="font-size:12px;font-weight:700">Build reconciliation tool</div><div style="font-size:10px;color:var(--dm)">Week 2-3 · Marcus</div></div></div>
+    <div style="display:flex;align-items:center;gap:12px"><div style="width:18px;height:18px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--bg);font-weight:800;flex-shrink:0;z-index:1">3</div><div style="flex:1;padding:10px 14px;background:var(--s2);border-radius:10px;border-left:3px solid var(--or)"><div style="font-size:12px;font-weight:700">Send corrected letters</div><div style="font-size:10px;color:var(--dm)">Week 3 · Sarah</div></div></div>
+    <div style="display:flex;align-items:center;gap:12px"><div style="width:18px;height:18px;border-radius:50%;background:var(--gn);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--bg);font-weight:800;flex-shrink:0;z-index:1">4</div><div style="flex:1;padding:10px 14px;background:var(--s2);border-radius:10px;border-left:3px solid var(--gn)"><div style="font-size:12px;font-weight:700">Deploy automated rules</div><div style="font-size:10px;color:var(--dm)">Week 4 · Marcus</div></div></div>
+  </div>
+</div></div></div>
+
+<!-- 4: Cause-Effect Chain -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T04 · CAUSE-EFFECT CHAIN</span><span class="ti">cause_effect</span></div><div class="tb">
+<div class="hl">Why donor receipts are wrong — the cascade</div>
+<div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 0">
+  <div style="min-width:130px;padding:10px;border-radius:10px;background:rgba(255,77,94,0.06);border:1px solid rgba(255,77,94,0.15);text-align:center"><div style="font-size:9px;color:var(--rd);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">ROOT CAUSE</div><div style="font-size:11px;font-weight:600">GiveNow API sends net</div></div>
+  <div style="font-size:12px;color:var(--dm);margin:0 4px">→</div>
+  <div style="min-width:130px;padding:10px;border-radius:10px;background:rgba(255,138,59,0.06);border:1px solid rgba(255,138,59,0.15);text-align:center"><div style="font-size:9px;color:var(--or);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">EFFECT 1</div><div style="font-size:11px;font-weight:600">CRM records $970 not $1,000</div></div>
+  <div style="font-size:12px;color:var(--dm);margin:0 4px">→</div>
+  <div style="min-width:130px;padding:10px;border-radius:10px;background:rgba(255,194,51,0.06);border:1px solid rgba(255,194,51,0.15);text-align:center"><div style="font-size:9px;color:var(--yw);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">EFFECT 2</div><div style="font-size:11px;font-weight:600">Tax receipts understated by 3%</div></div>
+  <div style="font-size:12px;color:var(--dm);margin:0 4px">→</div>
+  <div style="min-width:130px;padding:10px;border-radius:10px;background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.15);text-align:center"><div style="font-size:9px;color:var(--rs);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">IMPACT</div><div style="font-size:11px;font-weight:600">Donors lose tax deductions</div></div>
+</div></div></div>
+
+<!-- 5: Swim Lanes -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(59,139,255,0.12);color:var(--bl)">T05 · SWIM LANES</span><span class="ti">swim_lanes</span></div><div class="tb">
+<div class="hl">Parallel workstreams — who does what simultaneously</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center"><span style="font-size:10px;font-weight:700;color:var(--bl);text-align:right">Marcus</span><div style="display:flex;gap:4px"><div style="padding:6px 10px;background:rgba(59,139,255,0.07);border:1px solid rgba(59,139,255,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:2">Audit data (W1-2)</div><div style="padding:6px 10px;background:rgba(59,139,255,0.07);border:1px solid rgba(59,139,255,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:2">Build tool (W2-3)</div><div style="padding:6px 10px;background:rgba(59,139,255,0.07);border:1px solid rgba(59,139,255,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:1">Deploy (W4)</div></div></div>
+  <div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center"><span style="font-size:10px;font-weight:700;color:var(--or);text-align:right">Sarah</span><div style="display:flex;gap:4px"><div style="padding:6px 10px;background:var(--s2);border-radius:6px;font-size:9px;color:var(--dm);flex:2;text-align:center">Waiting...</div><div style="padding:6px 10px;background:rgba(255,138,59,0.07);border:1px solid rgba(255,138,59,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:2">Draft letters (W3)</div><div style="padding:6px 10px;background:rgba(255,138,59,0.07);border:1px solid rgba(255,138,59,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:1">Send (W3)</div></div></div>
+  <div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center"><span style="font-size:10px;font-weight:700;color:var(--pr);text-align:right">Legal</span><div style="display:flex;gap:4px"><div style="padding:6px 10px;background:rgba(148,102,255,0.07);border:1px solid rgba(148,102,255,0.2);border-radius:6px;font-size:9px;font-weight:600;flex:3">Review compliance implications</div><div style="padding:6px 10px;background:var(--s2);border-radius:6px;font-size:9px;color:var(--dm);flex:2;text-align:center">Standby</div></div></div>
+</div></div></div>
+
+<!-- 6: System Diagram -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,138,59,0.12);color:var(--or)">T06 · SYSTEM DIAGRAM</span><span class="ti">system_diagram</span></div><div class="tb">
+<div class="hl">GiveNow data flow — where the error occurs</div>
+<svg width="100%" viewBox="0 0 520 170" style="display:block">
+  <rect x="8" y="10" width="110" height="48" rx="10" fill="#141820" stroke="#222940" stroke-width="1.5"/><text x="63" y="30" text-anchor="middle" font-size="15">👤</text><text x="63" y="46" text-anchor="middle" fill="#e0e4ef" font-size="8.5" font-weight="700">Donor</text>
+  <rect x="195" y="10" width="110" height="48" rx="10" fill="#141820" stroke="#222940" stroke-width="1.5"/><text x="250" y="30" text-anchor="middle" font-size="15">🌐</text><text x="250" y="46" text-anchor="middle" fill="#e0e4ef" font-size="8.5" font-weight="700">GiveNow</text>
+  <rect x="382" y="10" width="110" height="48" rx="10" fill="#141820" stroke="#222940" stroke-width="1.5"/><text x="437" y="30" text-anchor="middle" font-size="15">💳</text><text x="437" y="46" text-anchor="middle" fill="#e0e4ef" font-size="8.5" font-weight="700">Processor</text>
+  <rect x="382" y="108" width="110" height="48" rx="10" fill="rgba(255,77,94,0.08)" stroke="rgba(255,77,94,0.3)" stroke-width="1.5"/><text x="437" y="128" text-anchor="middle" font-size="15">🏦</text><text x="437" y="144" text-anchor="middle" fill="#ff4d5e" font-size="8.5" font-weight="700">Bank $970</text>
+  <rect x="195" y="108" width="110" height="48" rx="10" fill="rgba(255,77,94,0.08)" stroke="rgba(255,77,94,0.3)" stroke-width="1.5"/><text x="250" y="128" text-anchor="middle" font-size="15">🔌</text><text x="250" y="144" text-anchor="middle" fill="#ff4d5e" font-size="8.5" font-weight="700">API</text>
+  <rect x="8" y="108" width="110" height="48" rx="10" fill="rgba(255,77,94,0.08)" stroke="rgba(255,77,94,0.3)" stroke-width="1.5"/><text x="63" y="128" text-anchor="middle" font-size="15">📊</text><text x="63" y="144" text-anchor="middle" fill="#ff4d5e" font-size="8.5" font-weight="700">CRM $970⚠</text>
+  <line x1="118" y1="34" x2="195" y2="34" stroke="#3b8bff" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.5"/>
+  <line x1="305" y1="34" x2="382" y2="34" stroke="#3b8bff" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.5"/>
+  <line x1="437" y1="58" x2="437" y2="108" stroke="#ff4d5e" stroke-width="1.2" opacity="0.5"/>
+  <line x1="382" y1="132" x2="305" y2="132" stroke="#ff4d5e" stroke-width="1.2" opacity="0.5"/>
+  <line x1="195" y1="132" x2="118" y2="132" stroke="#ff4d5e" stroke-width="1.2" opacity="0.5"/>
+</svg></div></div>
+
+<!-- 7: Circular Process -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T07 · CIRCULAR PROCESS</span><span class="ti">circular_flow</span></div><div class="tb">
+<div class="hl">Monthly donation cycle — repeats every billing period</div>
+<div style="display:flex;justify-content:center;padding:8px 0">
+  <div style="position:relative;width:260px;height:260px">
+    <svg width="260" height="260" viewBox="0 0 260 260" style="position:absolute;top:0;left:0"><circle cx="130" cy="130" r="100" fill="none" stroke="#222940" stroke-width="2" stroke-dasharray="6 4"/></svg>
+    <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:8px 12px;background:rgba(59,139,255,0.07);border:1.5px solid rgba(59,139,255,0.22);border-radius:10px;text-align:center"><div style="font-size:14px">🛍️</div><div style="font-size:9px;font-weight:700;color:var(--bl)">User buys</div></div>
+    <div style="position:absolute;top:50%;right:0;transform:translateY(-50%);padding:8px 12px;background:rgba(255,194,51,0.07);border:1.5px solid rgba(255,194,51,0.22);border-radius:10px;text-align:center"><div style="font-size:14px">🔄</div><div style="font-size:9px;font-weight:700;color:var(--yw)">Round-up</div></div>
+    <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);padding:8px 12px;background:rgba(0,224,142,0.07);border:1.5px solid rgba(0,224,142,0.22);border-radius:10px;text-align:center"><div style="font-size:14px">💚</div><div style="font-size:9px;font-weight:700;color:var(--gn)">Donate</div></div>
+    <div style="position:absolute;top:50%;left:0;transform:translateY(-50%);padding:8px 12px;background:rgba(148,102,255,0.07);border:1.5px solid rgba(148,102,255,0.22);border-radius:10px;text-align:center"><div style="font-size:14px">📊</div><div style="font-size:9px;font-weight:700;color:var(--pr)">Report</div></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:18px;font-weight:800;color:var(--tx);font-family:'JetBrains Mono'">~$15</div><div style="font-size:8px;color:var(--dm)">/month</div></div>
+  </div>
+</div></div></div>
+
+<!-- 8: Error/Success Path -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(244,63,94,0.12);color:var(--rs)">T08 · ERROR vs SUCCESS PATH</span><span class="ti">dual_path</span></div><div class="tb">
+<div class="hl">Two outcomes from the same starting point</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0">
+  <div style="padding:10px 20px;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600">Wire transfer received</div>
+  <div style="display:flex;gap:40px;margin-top:-1px">
+    <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:14px;background:var(--gn)"></div><div style="padding:8px 14px;background:rgba(0,224,142,0.06);border:1.5px solid rgba(0,224,142,0.2);border-radius:10px;text-align:center;min-width:130px"><div style="font-size:8px;color:var(--gn);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">✓ WITH DONOR ID</div><div style="font-size:11px;font-weight:600;color:var(--gn)">Auto-attributed</div><div style="font-size:9px;color:var(--dm);margin-top:2px">Correct receipt issued</div></div></div>
+    <div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:14px;background:var(--rd)"></div><div style="padding:8px 14px;background:rgba(255,77,94,0.06);border:1.5px solid rgba(255,77,94,0.2);border-radius:10px;text-align:center;min-width:130px"><div style="font-size:8px;color:var(--rd);font-weight:700;font-family:'JetBrains Mono';margin-bottom:3px">✗ NO DONOR ID</div><div style="font-size:11px;font-weight:600;color:var(--rd)">Goes to Anonymous</div><div style="font-size:9px;color:var(--dm);margin-top:2px">Manual fix required</div></div></div>
+  </div>
+</div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 2: NUMBERS (10 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--or);border-color:rgba(255,138,59,0.3);background:rgba(255,138,59,0.05)">◈ NUMBERS & DATA</div>
+<div class="cs">10 templates for metrics, money, and measurements</div>
+
+<!-- 9: Metric Dashboard -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,138,59,0.12);color:var(--or)">T09 · METRIC DASHBOARD</span><span class="ti">metric_dashboard</span></div><div class="tb">
+<div class="hl">Q2 performance snapshot — 4 KPIs</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">-12%</div><div style="font-size:9px;color:var(--dm);margin-top:3px">vs Target</div></div><div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--yw);font-family:'JetBrains Mono'">47d</div><div style="font-size:9px;color:var(--dm);margin-top:3px">Sales Cycle</div></div><div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">18%</div><div style="font-size:9px;color:var(--dm);margin-top:3px">MQL→SQL</div></div><div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">4.2%</div><div style="font-size:9px;color:var(--dm);margin-top:3px">Churn</div></div></div></div></div>
+
+<!-- 10: Single Hero Number -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T10 · HERO NUMBER</span><span class="ti">hero_number</span></div><div class="tb">
+<div style="text-align:center;padding:12px 0"><div style="font-size:48px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">342</div><div style="font-size:14px;color:var(--dm);margin-top:4px">Failed payments per hour during the incident</div><div style="font-size:11px;color:var(--rd);margin-top:6px">▲ from 0 — lasted 75 minutes</div></div></div></div>
+
+<!-- 11: Side-by-Side Comparison -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(59,139,255,0.12);color:var(--bl)">T11 · SIDE-BY-SIDE</span><span class="ti">comparison</span></div><div class="tb">
+<div class="hl">Gross vs Net — what donors sent vs what CRM recorded</div>
+<div style="display:grid;grid-template-columns:1fr 48px 1fr;align-items:center"><div style="padding:16px;background:rgba(0,224,142,0.05);border:1.5px solid rgba(0,224,142,0.16);border-radius:12px;text-align:center"><div style="font-size:9px;color:var(--gn);font-weight:700;margin-bottom:4px">DONORS SENT</div><div style="font-size:30px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">$1,000</div><div style="font-size:9px;color:var(--dm);margin-top:3px">Gross</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:800;color:var(--yw);font-family:'JetBrains Mono'">3%</div><div style="font-size:14px;color:var(--dm)">≠</div></div><div style="padding:16px;background:rgba(255,77,94,0.05);border:1.5px solid rgba(255,77,94,0.16);border-radius:12px;text-align:center"><div style="font-size:9px;color:var(--rd);font-weight:700;margin-bottom:4px">CRM RECORDED</div><div style="font-size:30px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">$970</div><div style="font-size:9px;color:var(--dm);margin-top:3px">Net</div></div></div></div></div>
+
+<!-- 12: Donut Split -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T12 · DONUT SPLIT</span><span class="ti">pie_split</span></div><div class="tb">
+<div class="hl">Where the $0.40 round-up goes</div>
+<div style="display:flex;align-items:center;gap:28px;justify-content:center;padding:6px 0">
+  <svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="44" fill="none" stroke="var(--s2)" stroke-width="18"/><circle cx="60" cy="60" r="44" fill="none" stroke="var(--gn)" stroke-width="18" stroke-dasharray="242 276" stroke-dashoffset="69" stroke-linecap="round"/><circle cx="60" cy="60" r="44" fill="none" stroke="var(--or)" stroke-width="18" stroke-dasharray="35 242" stroke-dashoffset="-173" stroke-linecap="round"/><text x="60" y="56" text-anchor="middle" fill="var(--tx)" font-size="17" font-weight="800" font-family="JetBrains Mono">40¢</text><text x="60" y="70" text-anchor="middle" fill="var(--dm)" font-size="8">total</text></svg>
+  <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:16px">💚</span><div><div style="font-size:12px;font-weight:700;color:var(--gn)">35¢ → Charity</div><div style="font-size:9px;color:var(--dm)">87.5%</div></div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">🏢</span><div><div style="font-size:12px;font-weight:700;color:var(--or)">5¢ → Platform</div><div style="font-size:9px;color:var(--dm)">12.5%</div></div></div></div>
+</div></div></div>
+
+<!-- 13: ROI Calculator -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(148,102,255,0.12);color:var(--pr)">T13 · ROI CALCULATOR</span><span class="ti">roi_calculator</span></div><div class="tb">
+<div class="hl">ABM campaign: $85K → $300K ARR</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:6px 0">
+  <div style="text-align:center;padding:14px 18px;background:rgba(255,77,94,0.05);border-radius:12px;border:1.5px solid rgba(255,77,94,0.18)"><div style="font-size:8px;color:var(--rd);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:2px">INVEST</div><div style="font-size:24px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">$85K</div></div>
+  <div style="font-size:16px;color:var(--dm)">→</div>
+  <div style="text-align:center;padding:14px 18px;background:rgba(255,194,51,0.05);border-radius:12px;border:1.5px dashed rgba(255,194,51,0.2)"><div style="font-size:8px;color:var(--yw);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:2px">PIPELINE</div><div style="font-size:24px;font-weight:800;color:var(--yw);font-family:'JetBrains Mono'">$1.2M</div></div>
+  <div style="font-size:16px;color:var(--dm)">→</div>
+  <div style="text-align:center;padding:14px 18px;background:rgba(0,224,142,0.05);border-radius:12px;border:1.5px solid rgba(0,224,142,0.18)"><div style="font-size:8px;color:var(--gn);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:2px">RETURN</div><div style="font-size:24px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">$300K</div></div>
+</div></div></div>
+
+<!-- 14: Scale Bars -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,212,224,0.12);color:var(--cy)">T14 · SCALE BARS</span><span class="ti">scale_chart</span></div><div class="tb">
+<div class="hl">Revenue at different user volumes</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:38px;text-align:right;font-size:10px;font-weight:700;color:var(--gn);font-family:'JetBrains Mono'">10K</div><div style="flex:1;height:24px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:10%;height:100%;background:linear-gradient(90deg,rgba(0,224,142,0.2),rgba(0,224,142,0.06));border-right:2px solid var(--gn);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:700;font-family:'JetBrains Mono'">$180K</span></div></div></div>
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:38px;text-align:right;font-size:10px;font-weight:700;color:var(--bl);font-family:'JetBrains Mono'">100K</div><div style="flex:1;height:24px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:55%;height:100%;background:linear-gradient(90deg,rgba(59,139,255,0.2),rgba(59,139,255,0.06));border-right:2px solid var(--bl);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:700;font-family:'JetBrains Mono'">$1.8M</span></div></div></div>
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:38px;text-align:right;font-size:10px;font-weight:700;color:var(--or);font-family:'JetBrains Mono'">500K</div><div style="flex:1;height:24px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:100%;height:100%;background:linear-gradient(90deg,rgba(255,138,59,0.2),rgba(255,138,59,0.06));border-right:2px solid var(--or);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:700;font-family:'JetBrains Mono'">$9M</span></div></div></div>
+</div></div></div>
+
+<!-- 15: Conversion Funnel -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,94,172,0.12);color:var(--pk)">T15 · FUNNEL</span><span class="ti">funnel</span></div><div class="tb">
+<div class="hl">MQL→SQL bottleneck — 18% vs 28% benchmark</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+  <div style="width:100%;padding:10px 14px;background:rgba(0,224,142,0.04);border:1px solid rgba(0,224,142,0.14);border-radius:8px;display:flex;justify-content:space-between;font-size:12px"><div>🌐 <strong>Visitors</strong></div><span style="font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">24,000</span></div>
+  <div style="width:75%;padding:10px 14px;background:rgba(59,139,255,0.04);border:1px solid rgba(59,139,255,0.14);border-radius:8px;display:flex;justify-content:space-between;font-size:12px"><div>📩 <strong>MQLs</strong></div><span style="font-weight:800;color:var(--bl);font-family:'JetBrains Mono'">2,400</span></div>
+  <div style="width:48%;padding:10px 14px;background:rgba(255,77,94,0.06);border:1.5px solid rgba(255,77,94,0.25);border-radius:8px;display:flex;justify-content:space-between;font-size:12px"><div>🎯 <strong style="color:var(--rd)">SQLs</strong> <span style="font-size:9px;color:var(--rd)">⚠18%</span></div><span style="font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">432</span></div>
+  <div style="width:28%;padding:10px 14px;background:rgba(148,102,255,0.04);border:1px solid rgba(148,102,255,0.14);border-radius:8px;display:flex;justify-content:space-between;font-size:12px"><div>✅ <strong>Won</strong></div><span style="font-weight:800;color:var(--pr);font-family:'JetBrains Mono'">54</span></div>
+</div></div></div>
+
+<!-- 16: Before/After -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,194,51,0.12);color:var(--yw)">T16 · BEFORE / AFTER</span><span class="ti">before_after</span></div><div class="tb">
+<div class="hl">Churn — getting worse</div>
+<div style="display:grid;grid-template-columns:1fr 36px 1fr;align-items:center"><div style="padding:14px;background:var(--s2);border-radius:12px;text-align:center"><div style="font-size:9px;color:var(--dm);font-weight:600;margin-bottom:4px">LAST Q</div><div style="font-size:30px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">3.1%</div></div><div style="text-align:center"><div style="font-size:14px;color:var(--rd)">→</div><div style="font-size:8px;color:var(--rd);font-weight:700;font-family:'JetBrains Mono'">+35%</div></div><div style="padding:14px;background:rgba(255,77,94,0.05);border:1.5px solid rgba(255,77,94,0.16);border-radius:12px;text-align:center"><div style="font-size:9px;color:var(--rd);font-weight:600;margin-bottom:4px">THIS Q</div><div style="font-size:30px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">4.2%</div></div></div></div></div>
+
+<!-- 17: Trend Arrow -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(163,230,53,0.12);color:var(--lm)">T17 · TREND ARROW</span><span class="ti">trend_card</span></div><div class="tb">
+<div style="display:flex;align-items:center;gap:16px;padding:4px 0">
+  <div style="font-size:36px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">$150K</div>
+  <div><div style="font-size:12px;font-weight:600">Monthly revenue at 100K users</div><div style="font-size:11px;color:var(--gn);margin-top:2px">▲ Projected from current trajectory</div><div style="font-size:10px;color:var(--dm);margin-top:2px">Formula: 100K × 30 tx × $0.05</div></div>
+</div></div></div>
+
+<!-- 18: Feature Table -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(14,165,233,0.12);color:var(--sk)">T18 · FEATURE TABLE</span><span class="ti">feature_table</span></div><div class="tb">
+<div class="hl">Competitor feature comparison</div>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+  <tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--bd);color:var(--dm)">Feature</th><th style="padding:8px;border-bottom:1px solid var(--bd);color:var(--gn)">Us</th><th style="padding:8px;border-bottom:1px solid var(--bd);color:var(--dm)">Acorns</th><th style="padding:8px;border-bottom:1px solid var(--bd);color:var(--dm)">Coin Up</th></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid rgba(34,41,64,0.5)">Real-time detection</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td><td style="text-align:center;padding:6px;color:var(--rd)">✗</td><td style="text-align:center;padding:6px;color:var(--rd)">✗</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid rgba(34,41,64,0.5)">Plaid integration</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td><td style="text-align:center;padding:6px;color:var(--rd)">✗</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid rgba(34,41,64,0.5)">Charity donations</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td><td style="text-align:center;padding:6px;color:var(--rd)">✗</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td></tr>
+  <tr><td style="padding:6px 8px">Premium tiers</td><td style="text-align:center;padding:6px;color:var(--yw)">Soon</td><td style="text-align:center;padding:6px;color:var(--gn)">✓</td><td style="text-align:center;padding:6px;color:var(--rd)">✗</td></tr>
+</table></div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 3: PROBLEMS & DECISIONS (8 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--rd);border-color:rgba(255,77,94,0.3);background:rgba(255,77,94,0.05)">↔ PROBLEMS & DECISIONS</div>
+<div class="cs">8 templates for issues, fixes, and agreements</div>
+
+<!-- 19: Problem → Solution -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T19 · PROBLEM → SOLUTION</span><span class="ti">problem_solution</span></div><div class="tb">
+<div class="hl">Demo overwhelms mid-market → streamlined version in 3 weeks</div>
+<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:stretch"><div style="padding:10px;background:rgba(255,77,94,0.04);border:1px solid rgba(255,77,94,0.12);border-radius:9px 0 0 9px"><div style="font-size:7px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:2px">⚠ PROBLEM</div><div style="font-size:11px;line-height:1.4">Enterprise demo overwhelms smaller teams</div></div><div style="display:flex;align-items:center;justify-content:center;background:var(--s2)"><span style="color:var(--gn);font-size:12px">→</span></div><div style="padding:10px;background:rgba(0,224,142,0.04);border:1px solid rgba(0,224,142,0.12);border-radius:0 9px 9px 0"><div style="font-size:7px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:2px">✓ FIX</div><div style="font-size:11px;line-height:1.4">Streamlined demo — fewer features, faster value</div></div></div></div></div>
+
+<!-- 20: Decision Log -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T20 · DECISION LOG</span><span class="ti">decision_log</span></div><div class="tb">
+<div class="hl">Do Now vs Build Next</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  <div><div style="font-size:9px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:8px">🔥 NOW</div><div style="padding:9px 11px;background:rgba(0,224,142,0.04);border:1px solid rgba(0,224,142,0.12);border-radius:8px;font-size:11px;margin-bottom:5px;display:flex;gap:6px"><span style="color:var(--gn);font-weight:800">✓</span>Override Patterson to 2025</div><div style="padding:9px 11px;background:rgba(0,224,142,0.04);border:1px solid rgba(0,224,142,0.12);border-radius:8px;font-size:11px;display:flex;gap:6px"><span style="color:var(--gn);font-weight:800">✓</span>Send corrected letters</div></div>
+  <div><div style="font-size:9px;font-weight:800;color:var(--bl);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:8px">📋 NEXT</div><div style="padding:9px 11px;background:rgba(59,139,255,0.04);border:1px solid rgba(59,139,255,0.12);border-radius:8px;font-size:11px;margin-bottom:5px;display:flex;gap:6px"><span style="color:var(--bl)">◷</span>Year-end flagging rule</div><div style="padding:9px 11px;background:rgba(59,139,255,0.04);border:1px solid rgba(59,139,255,0.12);border-radius:8px;font-size:11px;display:flex;gap:6px"><span style="color:var(--bl)">◷</span>Auto-gross-up rule</div></div>
+</div></div></div>
+
+<!-- 21: Action Items -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,138,59,0.12);color:var(--or)">T21 · ACTION ITEMS</span><span class="ti">action_items</span></div><div class="tb">
+<div class="hl">3 tasks assigned</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;gap:8px;padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--rd)"><span style="font-size:14px;flex-shrink:0">✉️</span><div><div style="font-size:12px;font-weight:600">Corrected donor letters</div><div style="display:flex;gap:4px;margin-top:4px"><span style="font-size:7px;padding:1px 6px;border-radius:3px;background:var(--s3);color:var(--dm);font-family:'JetBrains Mono'">Sarah</span><span style="font-size:7px;padding:1px 6px;border-radius:3px;background:rgba(255,77,94,0.1);color:var(--rd);font-family:'JetBrains Mono';font-weight:700">CRITICAL</span></div></div></div>
+  <div style="display:flex;gap:8px;padding:10px 12px;background:var(--s2);border-radius:8px;border-left:3px solid var(--or)"><span style="font-size:14px;flex-shrink:0">🔄</span><div><div style="font-size:12px;font-weight:600">VLOOKUP reconciliation (Aug-Dec)</div><div style="display:flex;gap:4px;margin-top:4px"><span style="font-size:7px;padding:1px 6px;border-radius:3px;background:var(--s3);color:var(--dm);font-family:'JetBrains Mono'">Marcus</span><span style="font-size:7px;padding:1px 6px;border-radius:3px;background:rgba(255,138,59,0.1);color:var(--or);font-family:'JetBrains Mono';font-weight:700">HIGH</span></div></div></div>
+</div></div></div>
+
+<!-- 22: Risk Matrix -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(244,63,94,0.12);color:var(--rs)">T22 · RISK MATRIX</span><span class="ti">risk_matrix</span></div><div class="tb">
+<div class="hl">Residual risks after temporary fix</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="padding:10px;background:rgba(255,77,94,0.04);border:1px solid rgba(255,77,94,0.12);border-radius:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><strong style="font-size:11px">Timeout masks deeper issue</strong><span style="font-size:6px;padding:1px 5px;border-radius:2px;background:rgba(255,77,94,0.1);color:var(--rd);font-family:'JetBrains Mono'">HIGH</span></div><div style="font-size:10px;color:var(--dm)">Processor still slow</div></div><div style="padding:10px;background:rgba(255,138,59,0.04);border:1px solid rgba(255,138,59,0.12);border-radius:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><strong style="font-size:11px">No retry mechanism</strong><span style="font-size:6px;padding:1px 5px;border-radius:2px;background:rgba(255,138,59,0.1);color:var(--or);font-family:'JetBrains Mono'">MED</span></div><div style="font-size:10px;color:var(--dm)">Failed payments don't auto-retry</div></div></div></div></div>
+
+<!-- 23: Priority Matrix (2×2) -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(99,102,241,0.12);color:var(--in)">T23 · PRIORITY MATRIX</span><span class="ti">priority_matrix</span></div><div class="tb">
+<div class="hl">Effort vs Impact — where to focus</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bd);border-radius:12px;overflow:hidden">
+  <div style="background:rgba(0,224,142,0.06);padding:12px;text-align:center"><div style="font-size:8px;font-weight:700;color:var(--gn);font-family:'JetBrains Mono';margin-bottom:6px">🎯 DO FIRST</div><div style="font-size:10px;line-height:1.5">Corrected letters<br>Override Patterson</div></div>
+  <div style="background:rgba(59,139,255,0.06);padding:12px;text-align:center"><div style="font-size:8px;font-weight:700;color:var(--bl);font-family:'JetBrains Mono';margin-bottom:6px">📋 PLAN</div><div style="font-size:10px;line-height:1.5">Auto-gross-up rule<br>Year-end flagging</div></div>
+  <div style="background:rgba(255,194,51,0.06);padding:12px;text-align:center"><div style="font-size:8px;font-weight:700;color:var(--yw);font-family:'JetBrains Mono';margin-bottom:6px">⚡ QUICK WIN</div><div style="font-size:10px;line-height:1.5">Update CRM field label<br>Add memo line reminder</div></div>
+  <div style="background:var(--s2);padding:12px;text-align:center"><div style="font-size:8px;font-weight:700;color:var(--dm);font-family:'JetBrains Mono';margin-bottom:6px">🗓️ LATER</div><div style="font-size:10px;color:var(--dm);line-height:1.5">Full portal overhaul<br>Multi-processor failover</div></div>
+</div></div></div>
+
+<!-- 24: Approval Status -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T24 · APPROVAL STATUS</span><span class="ti">approval_status</span></div><div class="tb">
+<div class="hl">Budget and headcount requests — where they stand</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--s2);border-radius:8px;align-items:center"><span style="font-size:12px">ABM campaign — $85K budget</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">Sarah</span><span style="font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(0,224,142,0.12);color:var(--gn);font-family:'JetBrains Mono';font-weight:700">APPROVED ✓</span></div></div>
+  <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--s2);border-radius:8px;align-items:center"><span style="font-size:12px">2 new CSMs — $180K/yr</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">Sarah</span><span style="font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(0,224,142,0.12);color:var(--gn);font-family:'JetBrains Mono';font-weight:700">APPROVED ✓</span></div></div>
+  <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--s2);border-radius:8px;align-items:center"><span style="font-size:12px">10-15% price increase</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">Sarah</span><span style="font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(255,194,51,0.12);color:var(--yw);font-family:'JetBrains Mono';font-weight:700">DEFERRED ◷</span></div></div>
+</div></div></div>
+
+<!-- 25: Objection Tracker -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,94,172,0.12);color:var(--pk)">T25 · OBJECTION TRACKER</span><span class="ti">objection_tracker</span></div><div class="tb">
+<div class="hl">3 objections — 2 handled, 1 pending</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="padding:9px 12px;background:rgba(0,224,142,0.03);border:1px solid rgba(0,224,142,0.12);border-radius:8px;display:flex;gap:7px;font-size:11px"><span style="color:var(--gn);font-weight:800;flex-shrink:0">✓</span><div><strong>"Team won't adopt another tool"</strong><div style="font-size:10px;color:var(--dm);font-style:italic;margin-top:1px">Showed Slack integration — works in background</div></div></div>
+  <div style="padding:9px 12px;background:rgba(255,194,51,0.03);border:1px solid rgba(255,194,51,0.15);border-radius:8px;display:flex;gap:7px;font-size:11px"><span style="color:var(--yw);font-weight:800;flex-shrink:0">◷</span><div><strong>"Need SOC 2 docs"</strong><div style="font-size:10px;color:var(--yw);margin-top:1px">⚡ Send report to Tom by Friday</div></div></div>
+</div></div></div>
+
+<!-- 26: New Issue Flag -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,194,51,0.12);color:var(--yw)">T26 · NEW ISSUE FLAG</span><span class="ti">new_issue</span></div><div class="tb">
+<div style="padding:12px 14px;background:rgba(255,194,51,0.04);border:1.5px solid rgba(255,194,51,0.16);border-radius:10px"><div style="display:flex;align-items:center;gap:5px;margin-bottom:6px"><span style="font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(255,194,51,0.15);color:var(--yw);font-family:'JetBrains Mono';font-weight:700">🆕 NEW ISSUE</span></div><div style="font-size:14px;font-weight:700;margin-bottom:3px">Tax Year Boundary Problem</div><div style="font-size:12px;color:var(--dm);line-height:1.5">Mrs. Patterson donated <strong style="color:var(--tx)">$2,500 on Dec 31</strong> but cleared <strong style="color:var(--tx)">Jan 2</strong>. System assigned 2026 — needs 2025.</div></div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 4: PEOPLE (7 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--pr);border-color:rgba(148,102,255,0.3);background:rgba(148,102,255,0.05)">◉ PEOPLE & COMMUNICATION</div>
+<div class="cs">7 templates for stakeholders, quotes, and dynamics</div>
+
+<!-- 27: Stakeholder Map -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(148,102,255,0.12);color:var(--pr)">T27 · STAKEHOLDER MAP</span><span class="ti">stakeholder_map</span></div><div class="tb">
+<div class="hl">3 decision-makers — champion, evaluator, blocker</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;gap:10px;padding:10px;background:var(--s2);border-radius:8px;border-left:3px solid var(--gn)"><div style="width:30px;height:30px;border-radius:7px;background:rgba(0,224,142,0.1);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">👩‍💼</div><div><div style="font-size:12px;font-weight:700">Linda Chen <span style="font-size:7px;padding:1px 5px;background:rgba(0,224,142,0.12);color:var(--gn);border-radius:2px;font-family:'JetBrains Mono'">CHAMPION</span></div><div style="font-size:10px;color:var(--dm)">VP Ops · Wants automation</div></div></div>
+  <div style="display:flex;gap:10px;padding:10px;background:var(--s2);border-radius:8px;border-left:3px solid var(--yw)"><div style="width:30px;height:30px;border-radius:7px;background:rgba(255,194,51,0.1);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">👨‍💻</div><div><div style="font-size:12px;font-weight:700">Tom Rivera <span style="font-size:7px;padding:1px 5px;background:rgba(255,194,51,0.12);color:var(--yw);border-radius:2px;font-family:'JetBrains Mono'">EVALUATOR</span></div><div style="font-size:10px;color:var(--dm)">IT · Needs SOC 2</div></div></div>
+  <div style="display:flex;gap:10px;padding:10px;background:var(--s2);border-radius:8px;border-left:3px solid var(--rd)"><div style="width:30px;height:30px;border-radius:7px;background:rgba(255,77,94,0.1);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">👨‍💼</div><div><div style="font-size:12px;font-weight:700">CFO <span style="font-size:7px;padding:1px 5px;background:rgba(255,77,94,0.12);color:var(--rd);border-radius:2px;font-family:'JetBrains Mono'">BLOCKER</span></div><div style="font-size:10px;color:var(--dm)">Budget authority · Skeptical</div></div></div>
+</div></div></div>
+
+<!-- 28: Key Quote -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(99,102,241,0.12);color:var(--in)">T28 · KEY QUOTE</span><span class="ti">quote_highlight</span></div><div class="tb">
+<div style="padding:12px 16px;background:var(--s2);border-radius:10px;border-left:4px solid var(--gn);position:relative"><div style="font-size:22px;color:var(--gn);opacity:0.12;position:absolute;top:3px;right:10px;font-family:serif">"</div><div style="font-size:14px;font-style:italic;line-height:1.6;padding-right:16px">"If this saves my team 5 hours a week, I'll get budget approved by end of month."</div><div style="display:flex;gap:6px;margin-top:8px;align-items:center"><span style="font-size:9px;font-weight:600;color:var(--gn)">Linda Chen</span><span style="font-size:8px;color:var(--dm)">VP Ops</span></div></div>
+<div class="co" style="background:rgba(0,224,142,0.03);border:1px solid rgba(0,224,142,0.1);color:var(--gn);margin-top:8px"><span>💡</span><div><strong>Signal:</strong> Strong buying intent + short timeline.</div></div></div></div>
+
+<!-- 29: Speaker Breakdown -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,212,224,0.12);color:var(--cy)">T29 · SPEAKER BREAKDOWN</span><span class="ti">speaker_breakdown</span></div><div class="tb">
+<div class="hl">Talk time — Sarah led the conversation</div>
+<div style="display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden;margin-bottom:12px"><div style="flex:45;background:var(--bl)"></div><div style="flex:30;background:var(--or)"></div><div style="flex:15;background:var(--pr)"></div><div style="flex:10;background:var(--cy)"></div></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:6px;background:rgba(59,139,255,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--bl)">S</div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;font-weight:600">Sarah</span><span style="font-size:13px;font-weight:800;color:var(--bl);font-family:'JetBrains Mono'">45%</span></div><div style="height:3px;background:var(--s3);border-radius:2px;margin-top:2px;overflow:hidden"><div style="width:45%;height:100%;background:var(--bl)"></div></div></div></div>
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:6px;background:rgba(255,138,59,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--or)">M</div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;font-weight:600">Mike</span><span style="font-size:13px;font-weight:800;color:var(--or);font-family:'JetBrains Mono'">30%</span></div><div style="height:3px;background:var(--s3);border-radius:2px;margin-top:2px;overflow:hidden"><div style="width:30%;height:100%;background:var(--or)"></div></div></div></div>
+</div></div></div>
+
+<!-- 30: RACI Matrix -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,94,172,0.12);color:var(--pk)">T30 · RACI MATRIX</span><span class="ti">raci_matrix</span></div><div class="tb">
+<div class="hl">Who's responsible for what</div>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px;text-align:center">
+  <tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--bd);color:var(--dm)">Task</th><th style="padding:6px;border-bottom:1px solid var(--bd);color:var(--bl)">Marcus</th><th style="padding:6px;border-bottom:1px solid var(--bd);color:var(--or)">Sarah</th><th style="padding:6px;border-bottom:1px solid var(--bd);color:var(--pr)">Legal</th></tr>
+  <tr><td style="text-align:left;padding:5px 6px;border-bottom:1px solid rgba(34,41,64,0.5)">Reconciliation</td><td style="padding:5px;color:var(--gn);font-weight:700">R</td><td style="padding:5px;color:var(--bl)">I</td><td style="padding:5px;color:var(--dm)">—</td></tr>
+  <tr><td style="text-align:left;padding:5px 6px;border-bottom:1px solid rgba(34,41,64,0.5)">Donor letters</td><td style="padding:5px;color:var(--bl)">C</td><td style="padding:5px;color:var(--gn);font-weight:700">R</td><td style="padding:5px;color:var(--yw)">C</td></tr>
+  <tr><td style="text-align:left;padding:5px 6px">Compliance review</td><td style="padding:5px;color:var(--bl)">I</td><td style="padding:5px;color:var(--yw)">A</td><td style="padding:5px;color:var(--gn);font-weight:700">R</td></tr>
+</table></div>
+<div style="display:flex;gap:12px;margin-top:8px;font-size:8px;color:var(--dm)"><span><strong style="color:var(--gn)">R</strong> Responsible</span><span><strong style="color:var(--yw)">A</strong> Accountable</span><span><strong style="color:var(--bl)">C</strong> Consulted</span><span><strong style="color:var(--dm)">I</strong> Informed</span></div></div></div>
+
+<!-- 31: Sentiment Tracker -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(245,158,11,0.12);color:var(--am)">T31 · SENTIMENT TRACKER</span><span class="ti">sentiment</span></div><div class="tb">
+<div class="hl">Emotional temperature of the meeting</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:60px;font-size:10px;font-weight:600;text-align:right;color:var(--bl)">Sarah</div><div style="flex:1;height:16px;background:var(--s2);border-radius:4px;overflow:hidden;display:flex"><div style="width:20%;background:rgba(0,224,142,0.3)"></div><div style="width:50%;background:rgba(255,194,51,0.3)"></div><div style="width:30%;background:rgba(255,77,94,0.3)"></div></div><div style="width:50px;font-size:8px;color:var(--yw)">Concerned</div></div>
+  <div style="display:flex;align-items:center;gap:8px"><div style="width:60px;font-size:10px;font-weight:600;text-align:right;color:var(--or)">Marcus</div><div style="flex:1;height:16px;background:var(--s2);border-radius:4px;overflow:hidden;display:flex"><div style="width:60%;background:rgba(0,224,142,0.3)"></div><div style="width:30%;background:rgba(255,194,51,0.3)"></div><div style="width:10%;background:rgba(255,77,94,0.3)"></div></div><div style="width:50px;font-size:8px;color:var(--gn)">Confident</div></div>
+</div>
+<div style="display:flex;gap:10px;margin-top:8px;font-size:8px;color:var(--dm)"><span>🟢 Positive</span><span>🟡 Neutral</span><span>🔴 Tense</span></div></div></div>
+
+<!-- 32-33: Feedback + Retro -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(163,230,53,0.12);color:var(--lm)">T32 · FEEDBACK NOTES</span><span class="ti">feedback_notes</span></div><div class="tb">
+<div class="hl">Positive feedback and growth areas</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div><div style="font-size:8px;font-weight:700;color:var(--gn);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:6px">👏 POSITIVE</div><div style="padding:7px 9px;background:rgba(0,224,142,0.03);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:2px solid rgba(0,224,142,0.25);line-height:1.4">"Auth module — on time, zero bugs"</div><div style="padding:7px 9px;background:rgba(0,224,142,0.03);border-radius:6px;font-size:10px;border-left:2px solid rgba(0,224,142,0.25);line-height:1.4">"Others seek you for code reviews"</div></div>
+  <div><div style="font-size:8px;font-weight:700;color:var(--yw);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:6px">🎯 GROWTH</div><div style="padding:7px 9px;background:rgba(255,194,51,0.03);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:2px solid rgba(255,194,51,0.25);line-height:1.4">"Improve visibility to leadership"</div><div style="padding:7px 9px;background:rgba(255,194,51,0.03);border-radius:6px;font-size:10px;border-left:2px solid rgba(255,194,51,0.25);line-height:1.4">"Document architecture decisions"</div></div>
+</div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 5: BRAINSTORM (6 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--yw);border-color:rgba(255,194,51,0.3);background:rgba(255,194,51,0.05)">💡 BRAINSTORM & IDEAS</div>
+<div class="cs">6 templates for ideas, options, and trade-offs</div>
+
+<!-- 33: Idea Cluster -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,194,51,0.12);color:var(--yw)">T33 · IDEA CLUSTER</span><span class="ti">idea_cluster</span></div><div class="tb">
+<div class="hl">7 onboarding ideas generated</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(0,224,142,0.06);border:1.5px solid rgba(0,224,142,0.18);font-size:11px;font-weight:600;color:var(--gn)">Interactive tour</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(59,139,255,0.06);border:1.5px solid rgba(59,139,255,0.18);font-size:11px;font-weight:600;color:var(--bl)">Sample data pre-fill</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(148,102,255,0.06);border:1.5px solid rgba(148,102,255,0.18);font-size:11px;font-weight:600;color:var(--pr)">5-min wizard</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(255,138,59,0.06);border:1.5px solid rgba(255,138,59,0.18);font-size:11px;font-weight:600;color:var(--or)">Video walkthroughs</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(255,94,172,0.06);border:1.5px solid rgba(255,94,172,0.18);font-size:11px;font-weight:600;color:var(--pk)">Industry templates</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(0,212,224,0.06);border:1.5px solid rgba(0,212,224,0.18);font-size:11px;font-weight:600;color:var(--cy)">Slack bot</div>
+  <div style="padding:10px 14px;border-radius:24px;background:rgba(163,230,53,0.06);border:1.5px solid rgba(163,230,53,0.18);font-size:11px;font-weight:600;color:var(--lm)">Gamified checklist</div>
+</div></div></div>
+
+<!-- 34: Pros/Cons -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(20,184,166,0.12);color:var(--tl)">T34 · PROS / CONS</span><span class="ti">pros_cons</span></div><div class="tb">
+<div class="hl">Interactive tour vs video walkthroughs</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  <div><div style="font-size:9px;font-weight:700;color:var(--bl);font-family:'JetBrains Mono';margin-bottom:6px">🎯 INTERACTIVE TOUR</div><div style="padding:5px 9px;background:rgba(0,224,142,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(0,224,142,0.25);display:flex;gap:4px"><span style="color:var(--gn)">✓</span>Hands-on, higher retention</div><div style="padding:5px 9px;background:rgba(255,77,94,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(255,77,94,0.25);display:flex;gap:4px"><span style="color:var(--rd)">✗</span>4-6 weeks to build</div></div>
+  <div><div style="font-size:9px;font-weight:700;color:var(--pr);font-family:'JetBrains Mono';margin-bottom:6px">🎬 VIDEO</div><div style="padding:5px 9px;background:rgba(0,224,142,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(0,224,142,0.25);display:flex;gap:4px"><span style="color:var(--gn)">✓</span>Ship in 1 week</div><div style="padding:5px 9px;background:rgba(255,77,94,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(255,77,94,0.25);display:flex;gap:4px"><span style="color:var(--rd)">✗</span>Passive, lower engagement</div></div>
+</div></div></div>
+
+<!-- 35: Competitive Grid -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(245,158,11,0.12);color:var(--am)">T35 · COMPETITIVE GRID</span><span class="ti">competitive</span></div><div class="tb">
+<div class="hl">How we compare to alternatives</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><div style="background:rgba(0,224,142,0.05);border:1.5px solid rgba(0,224,142,0.22);border-radius:12px;padding:12px;text-align:center;position:relative"><div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:var(--gn);color:var(--bg);font-size:6px;font-weight:800;padding:1px 6px;border-radius:6px;font-family:'JetBrains Mono'">YOU</div><div style="font-size:12px;font-weight:800;color:var(--gn);margin-top:3px">RoundUp</div><div style="font-size:9px;color:var(--gn);margin-top:4px">✓ Real-time</div><div style="font-size:9px;color:var(--gn)">✓ Deep Plaid</div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px;text-align:center"><div style="font-size:12px;font-weight:800;margin-top:3px">Acorns</div><div style="font-size:9px;color:var(--gn);margin-top:4px">✓ Big user base</div><div style="font-size:9px;color:var(--rd)">✗ Investing only</div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px;text-align:center"><div style="font-size:12px;font-weight:800;margin-top:3px">Coin Up</div><div style="font-size:9px;color:var(--gn);margin-top:4px">✓ Charity</div><div style="font-size:9px;color:var(--rd)">✗ Weak integration</div></div><div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px;text-align:center"><div style="font-size:12px;font-weight:800;margin-top:3px">RoundUp App</div><div style="font-size:9px;color:var(--gn);margin-top:4px">✓ Simple</div><div style="font-size:9px;color:var(--rd)">✗ No real-time</div></div></div></div></div>
+
+<!-- 36: Voting Results -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,212,224,0.12);color:var(--cy)">T36 · VOTING / RANKING</span><span class="ti">voting_results</span></div><div class="tb">
+<div class="hl">Team ranked the ideas by preference</div>
+<div style="display:flex;flex-direction:column;gap:5px">
+  <div style="display:flex;align-items:center;gap:8px"><span style="width:20px;font-size:14px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono';text-align:right">1</span><div style="flex:1;height:26px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:85%;height:100%;background:rgba(0,224,142,0.12);border-right:2px solid var(--gn);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:600">Interactive product tour</span></div></div><span style="font-size:9px;color:var(--gn);font-family:'JetBrains Mono';width:30px">4 votes</span></div>
+  <div style="display:flex;align-items:center;gap:8px"><span style="width:20px;font-size:14px;font-weight:800;color:var(--bl);font-family:'JetBrains Mono';text-align:right">2</span><div style="flex:1;height:26px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:60%;height:100%;background:rgba(59,139,255,0.12);border-right:2px solid var(--bl);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:600">Pre-fill sample data</span></div></div><span style="font-size:9px;color:var(--bl);font-family:'JetBrains Mono';width:30px">3 votes</span></div>
+  <div style="display:flex;align-items:center;gap:8px"><span style="width:20px;font-size:14px;font-weight:800;color:var(--pr);font-family:'JetBrains Mono';text-align:right">3</span><div style="flex:1;height:26px;background:var(--s2);border-radius:5px;overflow:hidden"><div style="width:40%;height:100%;background:rgba(148,102,255,0.12);border-right:2px solid var(--pr);display:flex;align-items:center;padding-left:8px"><span style="font-size:10px;font-weight:600">5-min wizard</span></div></div><span style="font-size:9px;color:var(--pr);font-family:'JetBrains Mono';width:30px">2 votes</span></div>
+</div></div></div>
+
+<!-- 37: Spectrum/Slider -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(99,102,241,0.12);color:var(--in)">T37 · SPECTRUM / RANGE</span><span class="ti">spectrum</span></div><div class="tb">
+<div class="hl">Where does our pricing sit in the market?</div>
+<div style="padding:8px 0">
+  <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dm);margin-bottom:4px"><span>Budget</span><span>Mid-Market</span><span>Enterprise</span></div>
+  <div style="height:8px;background:linear-gradient(90deg,rgba(0,224,142,0.15),rgba(255,194,51,0.15),rgba(255,77,94,0.15));border-radius:4px;position:relative;margin-bottom:12px">
+    <div style="position:absolute;top:-4px;left:35%;width:16px;height:16px;border-radius:50%;background:var(--gn);border:3px solid var(--bg)"></div>
+    <div style="position:absolute;top:-4px;left:55%;width:16px;height:16px;border-radius:50%;background:var(--or);border:3px solid var(--bg)"></div>
+    <div style="position:absolute;top:-4px;left:78%;width:16px;height:16px;border-radius:50%;background:var(--rd);border:3px solid var(--bg)"></div>
+  </div>
+  <div style="display:flex;gap:12px;font-size:9px"><span style="color:var(--gn)">● Us ($29/mo)</span><span style="color:var(--or)">● Acorns ($35/mo)</span><span style="color:var(--rd)">● Competitor X ($99/mo)</span></div>
+</div></div></div>
+
+<!-- 38: Affinity Groups -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,94,172,0.12);color:var(--pk)">T38 · AFFINITY GROUPS</span><span class="ti">affinity_groups</span></div><div class="tb">
+<div class="hl">Ideas sorted into two themes</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  <div style="padding:12px;background:rgba(59,139,255,0.04);border:1px solid rgba(59,139,255,0.12);border-radius:10px"><div style="font-size:9px;font-weight:700;color:var(--bl);font-family:'JetBrains Mono';margin-bottom:8px">🧠 REDUCE COGNITIVE LOAD</div><div style="display:flex;flex-direction:column;gap:4px"><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">Pre-fill sample data</div><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">Industry templates</div><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">5-minute wizard</div></div></div>
+  <div style="padding:12px;background:rgba(148,102,255,0.04);border:1px solid rgba(148,102,255,0.12);border-radius:10px"><div style="font-size:9px;font-weight:700;color:var(--pr);font-family:'JetBrains Mono';margin-bottom:8px">🧭 PROVIDE GUIDANCE</div><div style="display:flex;flex-direction:column;gap:4px"><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">Interactive tour</div><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">Video walkthroughs</div><div style="padding:5px 8px;background:var(--s2);border-radius:5px;font-size:10px">Slack bot</div></div></div>
+</div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 6: TIME & STATUS (8 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--cy);border-color:rgba(0,212,224,0.3);background:rgba(0,212,224,0.05)">◷ TIME & STATUS</div>
+<div class="cs">8 templates for timelines, standups, goals, and retros</div>
+
+<!-- 39: Horizontal Timeline -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,212,224,0.12);color:var(--cy)">T39 · TIMELINE</span><span class="ti">timeline</span></div><div class="tb">
+<div class="hl">Incident: first alert to resolution</div>
+<div style="display:flex;gap:8px;overflow-x:auto;padding:4px 0">
+  <div style="min-width:130px;padding:10px;background:var(--s2);border-radius:8px;border-top:3px solid var(--yw);flex:0 0 auto"><div style="font-size:9px;font-weight:800;color:var(--yw);font-family:'JetBrains Mono';margin-bottom:3px">2:15 PM</div><div style="font-size:10px;line-height:1.3">PagerDuty alert</div></div>
+  <div style="min-width:130px;padding:10px;background:var(--s2);border-radius:8px;border-top:3px solid var(--rd);flex:0 0 auto"><div style="font-size:9px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono';margin-bottom:3px">2:45 PM</div><div style="font-size:10px;line-height:1.3">Processor confirms issue</div></div>
+  <div style="min-width:130px;padding:10px;background:var(--s2);border-radius:8px;border-top:3px solid var(--gn);flex:0 0 auto"><div style="font-size:9px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono';margin-bottom:3px">3:30 PM</div><div style="font-size:10px;line-height:1.3">Resolved — 0.2%</div></div>
+</div></div></div>
+
+<!-- 40: Status Board -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(163,230,53,0.12);color:var(--lm)">T40 · STATUS BOARD</span><span class="ti">status_board</span></div><div class="tb">
+<div class="hl">Standup: 3 on track, 1 blocked</div>
+<div style="display:flex;flex-direction:column;gap:5px">
+  <div style="display:flex;gap:7px;padding:8px 10px;background:var(--s2);border-radius:7px;border-left:3px solid var(--gn)"><div style="width:22px;height:22px;border-radius:5px;background:rgba(0,224,142,0.1);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:var(--gn)">AK</div><div><div style="font-size:11px;font-weight:600">Alex — <span style="color:var(--gn)">On track</span></div><div style="font-size:9px;color:var(--dm)">Finished auth, starting rate limiting</div></div></div>
+  <div style="display:flex;gap:7px;padding:8px 10px;background:rgba(255,77,94,0.02);border-radius:7px;border-left:3px solid var(--rd)"><div style="width:22px;height:22px;border-radius:5px;background:rgba(255,77,94,0.1);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:var(--rd)">MJ</div><div><div style="font-size:11px;font-weight:600">Marcus — <span style="color:var(--rd)">Blocked ⚠</span></div><div style="font-size:9px;color:var(--dm)">Waiting on staging creds — 2 days</div></div></div>
+</div></div></div>
+
+<!-- 41: Goal Tracker -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,94,172,0.12);color:var(--pk)">T41 · GOAL TRACKER</span><span class="ti">goal_tracker</span></div><div class="tb">
+<div class="hl">Q1 goals — 1 done, 1 in progress, 1 behind</div>
+<div style="display:flex;flex-direction:column;gap:7px">
+  <div style="padding:10px;background:var(--s2);border-radius:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:600">Lead cross-team project</span><span style="font-size:8px;color:var(--gn);font-family:'JetBrains Mono'">DONE ✓</span></div><div style="height:4px;background:var(--s3);border-radius:2px;overflow:hidden"><div style="width:100%;height:100%;background:var(--gn)"></div></div></div>
+  <div style="padding:10px;background:var(--s2);border-radius:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:600">Ship 3 features</span><span style="font-size:8px;color:var(--bl);font-family:'JetBrains Mono'">2/3</span></div><div style="height:4px;background:var(--s3);border-radius:2px;overflow:hidden"><div style="width:66%;height:100%;background:var(--bl)"></div></div></div>
+  <div style="padding:10px;background:rgba(255,77,94,0.02);border:1px solid rgba(255,77,94,0.08);border-radius:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:600">Give 2 tech talks</span><span style="font-size:8px;color:var(--rd);font-family:'JetBrains Mono'">0/2 ⚠</span></div><div style="height:4px;background:var(--s3);border-radius:2px"></div></div>
+</div></div></div>
+
+<!-- 42: Retrospective -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(99,102,241,0.12);color:var(--in)">T42 · RETROSPECTIVE</span><span class="ti">retro</span></div><div class="tb">
+<div class="hl">Sprint retro — went well vs improve</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div><div style="font-size:8px;font-weight:700;color:var(--gn);font-family:'JetBrains Mono';margin-bottom:6px">✅ WENT WELL</div><div style="padding:6px 8px;background:rgba(0,224,142,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(0,224,142,0.22)">Auth shipped 2 days early</div><div style="padding:6px 8px;background:rgba(0,224,142,0.03);border-radius:5px;font-size:10px;border-left:2px solid rgba(0,224,142,0.22)">Zero prod incidents</div></div>
+  <div><div style="font-size:8px;font-weight:700;color:var(--or);font-family:'JetBrains Mono';margin-bottom:6px">🔧 IMPROVE</div><div style="padding:6px 8px;background:rgba(255,138,59,0.03);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:2px solid rgba(255,138,59,0.22)">PR reviews: 3d avg (target 1d)</div><div style="padding:6px 8px;background:rgba(255,138,59,0.03);border-radius:5px;font-size:10px;border-left:2px solid rgba(255,138,59,0.22)">Standup running 20 min</div></div>
+</div></div></div>
+
+<!-- 43: Countdown -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T43 · COUNTDOWN</span><span class="ti">countdown</span></div><div class="tb">
+<div style="text-align:center;padding:8px 0"><div style="font-size:40px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">12 days</div><div style="font-size:13px;color:var(--dm);margin-top:4px">until tax deadline — corrected letters must be sent</div><div style="font-size:10px;color:var(--rd);margin-top:6px">⚠ Blocked on reconciliation — Marcus targeting end of next week</div></div></div></div>
+
+<!-- 44: Gantt-style -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(14,165,233,0.12);color:var(--sk)">T44 · GANTT CHART</span><span class="ti">gantt</span></div><div class="tb">
+<div class="hl">Project timeline — parallel workstreams</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:10px">
+  <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;text-align:right;color:var(--dm)">W1</div><div style="width:80px;text-align:right;color:var(--dm)">W2</div><div style="width:80px;text-align:right;color:var(--dm)">W3</div><div style="width:80px;text-align:right;color:var(--dm)">W4</div></div>
+  <div style="display:flex;align-items:center;gap:6px"><span style="width:60px;text-align:right;font-size:9px;font-weight:600;color:var(--bl)">Audit</span><div style="display:flex;gap:1px;flex:1"><div style="flex:2;height:18px;background:rgba(59,139,255,0.2);border-radius:4px;border-right:2px solid var(--bl)"></div><div style="flex:2;height:18px"></div></div></div>
+  <div style="display:flex;align-items:center;gap:6px"><span style="width:60px;text-align:right;font-size:9px;font-weight:600;color:var(--pr)">Build</span><div style="display:flex;gap:1px;flex:1"><div style="flex:1;height:18px"></div><div style="flex:2;height:18px;background:rgba(148,102,255,0.2);border-radius:4px;border-right:2px solid var(--pr)"></div><div style="flex:1;height:18px"></div></div></div>
+  <div style="display:flex;align-items:center;gap:6px"><span style="width:60px;text-align:right;font-size:9px;font-weight:600;color:var(--or)">Letters</span><div style="display:flex;gap:1px;flex:1"><div style="flex:2;height:18px"></div><div style="flex:1;height:18px;background:rgba(255,138,59,0.2);border-radius:4px;border-right:2px solid var(--or)"></div><div style="flex:1;height:18px"></div></div></div>
+  <div style="display:flex;align-items:center;gap:6px"><span style="width:60px;text-align:right;font-size:9px;font-weight:600;color:var(--gn)">Deploy</span><div style="display:flex;gap:1px;flex:1"><div style="flex:3;height:18px"></div><div style="flex:1;height:18px;background:rgba(0,224,142,0.2);border-radius:4px;border-right:2px solid var(--gn)"></div></div></div>
+</div></div></div>
+
+<!-- 45: Milestone Checklist -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(20,184,166,0.12);color:var(--tl)">T45 · MILESTONE CHECKLIST</span><span class="ti">milestones</span></div><div class="tb">
+<div class="hl">Regulatory path — 12 of 50 states licensed</div>
+<div style="display:flex;align-items:center;gap:12px;padding:4px 0">
+  <div style="position:relative;width:70px;height:70px"><svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="var(--s2)" stroke-width="8"/><circle cx="35" cy="35" r="28" fill="none" stroke="var(--gn)" stroke-width="8" stroke-dasharray="42 176" stroke-dashoffset="44" stroke-linecap="round"/><text x="35" y="38" text-anchor="middle" fill="var(--gn)" font-size="14" font-weight="800" font-family="JetBrains Mono">24%</text></svg></div>
+  <div><div style="font-size:20px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">12 / 50</div><div style="font-size:11px;color:var(--dm)">states licensed</div><div style="font-size:10px;color:var(--yw);margin-top:3px">Goal: 50-state coverage by Q3</div></div>
+</div></div></div>
+
+<!-- 46: Phase Diagram -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,194,51,0.12);color:var(--yw)">T46 · PHASE DIAGRAM</span><span class="ti">phase_diagram</span></div><div class="tb">
+<div class="hl">We're in Phase 2 of 4</div>
+<div style="display:flex;gap:4px;align-items:center;padding:4px 0">
+  <div style="flex:1;padding:10px 8px;background:rgba(0,224,142,0.06);border:1px solid rgba(0,224,142,0.15);border-radius:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--gn)">Phase 1</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Discovery</div><div style="font-size:7px;color:var(--gn);margin-top:3px">✓ Complete</div></div>
+  <div style="flex:1;padding:10px 8px;background:rgba(255,194,51,0.08);border:2px solid rgba(255,194,51,0.3);border-radius:8px;text-align:center;box-shadow:0 0 12px rgba(255,194,51,0.08)"><div style="font-size:9px;font-weight:700;color:var(--yw)">Phase 2</div><div style="font-size:8px;color:var(--tx);margin-top:2px;font-weight:600">Build</div><div style="font-size:7px;color:var(--yw);margin-top:3px">◉ Current</div></div>
+  <div style="flex:1;padding:10px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--dm)">Phase 3</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Test</div></div>
+  <div style="flex:1;padding:10px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--dm)">Phase 4</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Launch</div></div>
+</div></div></div>
+
+<hr class="sp">
+
+<!-- ================================================================ -->
+<!-- CAT 7: REFERENCE (9 templates) -->
+<!-- ================================================================ -->
+<div class="cl" style="color:var(--sk);border-color:rgba(14,165,233,0.3);background:rgba(14,165,233,0.05)">◎ REFERENCE & CONTEXT</div>
+<div class="cs">9 templates for definitions, blindspots, summaries, and alerts</div>
+
+<!-- 47: Definition Cards -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(14,165,233,0.12);color:var(--sk)">T47 · DEFINITION CARDS</span><span class="ti">definitions</span></div><div class="tb">
+<div class="hl">Key terms explained</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+  <div style="padding:10px;background:var(--s2);border-radius:8px;border-top:2px solid var(--gn)"><div style="display:flex;gap:5px;margin-bottom:3px"><span style="font-size:12px">📅</span><span style="font-size:11px;font-weight:700">Date of Gift</span></div><div style="font-size:9px;color:var(--dm);line-height:1.4">Recognized when donor initiates, not when it clears</div><span style="font-size:6px;padding:1px 4px;border-radius:2px;background:rgba(0,224,142,0.1);color:var(--gn);font-family:'JetBrains Mono';margin-top:4px;display:inline-block">IN CALL</span></div>
+  <div style="padding:10px;background:var(--s2);border-radius:8px;border-top:2px solid var(--or)"><div style="display:flex;gap:5px;margin-bottom:3px"><span style="font-size:12px">🔄</span><span style="font-size:11px;font-weight:700">CRM Reconciliation</span></div><div style="font-size:9px;color:var(--dm);line-height:1.4">Matching CRM records against external sources for accuracy</div><span style="font-size:6px;padding:1px 4px;border-radius:2px;background:rgba(255,138,59,0.1);color:var(--or);font-family:'JetBrains Mono';margin-top:4px;display:inline-block">CONTEXT</span></div>
+</div></div></div>
+
+<!-- 48: Blindspots -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T48 · BLINDSPOTS</span><span class="ti">blindspots</span></div><div class="tb">
+<div class="hl">What was NOT discussed but should have been</div>
+<div style="display:flex;flex-direction:column;gap:5px">
+  <div style="padding:8px 10px;background:var(--s2);border-radius:7px;border-left:3px solid var(--rd)"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:11px;font-weight:700">📋 Donor count unknown</span><span style="font-size:6px;padding:1px 4px;border-radius:2px;background:rgba(255,77,94,0.1);color:var(--rd);font-family:'JetBrains Mono'">HIGH</span></div><div style="font-size:9px;color:var(--dm)">Could be 50 or 5,000 affected</div></div>
+  <div style="padding:8px 10px;background:var(--s2);border-radius:7px;border-left:3px solid var(--or)"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:11px;font-weight:700">✉️ Communication tone</span><span style="font-size:6px;padding:1px 4px;border-radius:2px;background:rgba(255,138,59,0.1);color:var(--or);font-family:'JetBrains Mono'">MED</span></div><div style="font-size:9px;color:var(--dm)">Messaging not discussed</div></div>
+</div></div></div>
+
+<!-- 49: Summary Stats Bar -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(0,224,142,0.12);color:var(--gn)">T49 · SUMMARY STATS BAR</span><span class="ti">summary_stats</span></div><div class="tb">
+<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+  <div style="padding:8px 14px;background:var(--s2);border-radius:7px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">5</div><div style="font-size:8px;color:var(--dm)">Insights</div></div>
+  <div style="padding:8px 14px;background:var(--s2);border-radius:7px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--bl);font-family:'JetBrains Mono'">3</div><div style="font-size:8px;color:var(--dm)">Issues</div></div>
+  <div style="padding:8px 14px;background:var(--s2);border-radius:7px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--or);font-family:'JetBrains Mono'">4</div><div style="font-size:8px;color:var(--dm)">Actions</div></div>
+  <div style="padding:8px 14px;background:var(--s2);border-radius:7px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--pr);font-family:'JetBrains Mono'">2</div><div style="font-size:8px;color:var(--dm)">Decisions</div></div>
+  <div style="padding:8px 14px;background:var(--s2);border-radius:7px;text-align:center"><div style="font-size:16px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">5</div><div style="font-size:8px;color:var(--dm)">Blindspots</div></div>
+</div></div></div>
+
+<!-- 50: Warning Card -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(255,77,94,0.12);color:var(--rd)">T50 · CRITICAL ALERT</span><span class="ti">alert_card</span></div><div class="tb">
+<div style="padding:14px;background:rgba(255,77,94,0.05);border:1.5px solid rgba(255,77,94,0.2);border-radius:10px;display:flex;gap:10px">
+  <span style="font-size:22px;flex-shrink:0">🚨</span>
+  <div><div style="font-size:14px;font-weight:700;color:var(--rd)">Every GiveNow donation since August has the wrong amount</div><div style="font-size:12px;color:var(--dm);margin-top:4px;line-height:1.5">The API records net amounts instead of gross. All affected donors will receive incorrect tax receipts unless corrected before the filing deadline.</div></div>
+</div></div></div>
+
+<!-- 51: FAQ / Q&A -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(148,102,255,0.12);color:var(--pr)">T51 · FAQ / Q&A PAIRS</span><span class="ti">faq</span></div><div class="tb">
+<div class="hl">Questions raised and answers given</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="padding:10px 12px;background:var(--s2);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:3px">Q: Can we automate the VLOOKUP?</div><div style="font-size:11px;color:var(--dm)"><strong style="color:var(--gn)">A:</strong> Yes — Marcus can automate it. Needs 1 week. Will cross-reference GiveNow CSV against CRM for Aug–Dec.</div></div>
+  <div style="padding:10px 12px;background:var(--s2);border-radius:8px"><div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:3px">Q: Does the gift date rule apply to wire transfers too?</div><div style="font-size:11px;color:var(--dm)"><strong style="color:var(--gn)">A:</strong> Yes — the IRS rule is based on when the donor initiates, regardless of transfer method.</div></div>
+</div></div></div>
+
+<!-- 52: Topic Heatmap -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(20,184,166,0.12);color:var(--tl)">T52 · TOPIC HEATMAP</span><span class="ti">topic_heatmap</span></div><div class="tb">
+<div class="hl">What the conversation focused on</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+  <div style="padding:6px 11px;border-radius:8px;background:rgba(0,224,142,0.1);border:1px solid rgba(0,224,142,0.2)"><span style="font-size:10px;font-weight:700;color:var(--gn)">Revenue</span><span style="font-size:8px;color:var(--dm);margin-left:4px;font-family:'JetBrains Mono'">14×</span></div>
+  <div style="padding:6px 11px;border-radius:8px;background:rgba(59,139,255,0.08);border:1px solid rgba(59,139,255,0.18)"><span style="font-size:10px;font-weight:700;color:var(--bl)">Product</span><span style="font-size:8px;color:var(--dm);margin-left:4px;font-family:'JetBrains Mono'">11×</span></div>
+  <div style="padding:6px 11px;border-radius:8px;background:rgba(255,77,94,0.06);border:1px solid rgba(255,77,94,0.15)"><span style="font-size:10px;font-weight:700;color:var(--rd)">Churn</span><span style="font-size:8px;color:var(--dm);margin-left:4px;font-family:'JetBrains Mono'">8×</span></div>
+  <div style="padding:6px 11px;border-radius:8px;background:rgba(148,102,255,0.04);border:1px solid rgba(148,102,255,0.12)"><span style="font-size:10px;font-weight:700;color:var(--pr)">Marketing</span><span style="font-size:8px;color:var(--dm);margin-left:4px;font-family:'JetBrains Mono'">6×</span></div>
+  <div style="padding:6px 11px;border-radius:8px;background:rgba(255,138,59,0.03);border:1px solid rgba(255,138,59,0.1)"><span style="font-size:10px;font-weight:700;color:var(--or)">Pricing</span><span style="font-size:8px;color:var(--dm);margin-left:4px;font-family:'JetBrains Mono'">3×</span></div>
+</div></div></div>
+
+<!-- 53: Glossary Strip -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(163,230,53,0.12);color:var(--lm)">T53 · GLOSSARY STRIP</span><span class="ti">glossary</span></div><div class="tb">
+<div style="display:flex;gap:8px;overflow-x:auto;padding:2px 0">
+  <div style="min-width:110px;padding:8px;background:var(--s2);border-radius:8px;flex:0 0 auto"><div style="font-size:10px;font-weight:700;color:var(--gn)">MQL</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Marketing Qualified Lead</div></div>
+  <div style="min-width:110px;padding:8px;background:var(--s2);border-radius:8px;flex:0 0 auto"><div style="font-size:10px;font-weight:700;color:var(--bl)">SQL</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Sales Qualified Lead</div></div>
+  <div style="min-width:110px;padding:8px;background:var(--s2);border-radius:8px;flex:0 0 auto"><div style="font-size:10px;font-weight:700;color:var(--or)">ARR</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Annual Recurring Revenue</div></div>
+  <div style="min-width:110px;padding:8px;background:var(--s2);border-radius:8px;flex:0 0 auto"><div style="font-size:10px;font-weight:700;color:var(--pr)">ABM</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Account-Based Marketing</div></div>
+  <div style="min-width:110px;padding:8px;background:var(--s2);border-radius:8px;flex:0 0 auto"><div style="font-size:10px;font-weight:700;color:var(--pk)">CSM</div><div style="font-size:8px;color:var(--dm);margin-top:2px">Customer Success Manager</div></div>
+</div></div></div>
+
+<!-- 54: Meeting Comparison (vs last time) -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(245,158,11,0.12);color:var(--am)">T54 · MEETING vs LAST TIME</span><span class="ti">meeting_comparison</span></div><div class="tb">
+<div class="hl">What changed since the last meeting</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;gap:0;padding:8px 10px;background:var(--s2);border-radius:8px"><div style="text-align:center"><div style="font-size:8px;color:var(--dm);margin-bottom:2px">Last meeting</div><div style="font-size:16px;font-weight:800;color:var(--dm);font-family:'JetBrains Mono'">3.1%</div></div><div style="text-align:center;font-size:12px;color:var(--rd)">→</div><div style="text-align:center"><div style="font-size:8px;color:var(--rd);margin-bottom:2px">This meeting</div><div style="font-size:16px;font-weight:800;color:var(--rd);font-family:'JetBrains Mono'">4.2%</div></div></div>
+  <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;gap:0;padding:8px 10px;background:var(--s2);border-radius:8px"><div style="text-align:center"><div style="font-size:8px;color:var(--dm);margin-bottom:2px">Last meeting</div><div style="font-size:16px;font-weight:800;color:var(--dm);font-family:'JetBrains Mono'">2,100</div></div><div style="text-align:center;font-size:12px;color:var(--gn)">→</div><div style="text-align:center"><div style="font-size:8px;color:var(--gn);margin-bottom:2px">This meeting</div><div style="font-size:16px;font-weight:800;color:var(--gn);font-family:'JetBrains Mono'">2,400</div></div></div>
+</div>
+<div class="ct"><strong>Churn worsened</strong> (3.1%→4.2%), but <strong>MQL generation improved</strong> (2,100→2,400). Net situation: pipeline is growing but leaking faster.</div></div></div>
+
+<!-- 55: Recurring Issue Flag -->
+<div class="t"><div class="th"><span class="tg" style="background:rgba(244,63,94,0.12);color:var(--rs)">T55 · RECURRING ISSUE</span><span class="ti">recurring_issue</span></div><div class="tb">
+<div style="padding:12px 14px;background:rgba(244,63,94,0.04);border:1.5px solid rgba(244,63,94,0.16);border-radius:10px;display:flex;gap:10px">
+  <span style="font-size:18px;flex-shrink:0">🔁</span>
+  <div><div style="font-size:13px;font-weight:700;color:var(--rs)">This issue has been raised 3 meetings in a row</div><div style="font-size:11px;color:var(--dm);margin-top:3px;line-height:1.5">"Staging credentials from DevOps" — assigned to Marcus on Jan 15, raised again Feb 3 and Feb 17. Still unresolved after 5 weeks.</div><div style="display:flex;gap:4px;margin-top:6px"><span style="font-size:7px;padding:2px 6px;border-radius:3px;background:rgba(244,63,94,0.1);color:var(--rs);font-family:'JetBrains Mono';font-weight:700">ESCALATE</span><span style="font-size:7px;padding:2px 6px;border-radius:3px;background:var(--s3);color:var(--dm);font-family:'JetBrains Mono'">3 meetings · 5 weeks</span></div></div>
+</div></div></div>
+
+</div>
+</body>
+</html>

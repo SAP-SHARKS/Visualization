@@ -3,309 +3,335 @@
 ## Architecture Overview
 
 ```
-=== LIVE MODE (LivePage) ===
+=== CANVAS MODE (Visualize2Page — primary) ===
 
-Mic/Audio File → WebSocket (localhost:3001) → Deepgram STT → finalized sentences
-                                                                    ↓
-                                                    evolvingChartController.js
-                                                    (debounce, filler filter, batch)
-                                                                    ↓
-                                                POST /api/generate-chart-claude
-                                                (Claude picks action: new/update/skip)
-                                                                    ↓
-                                         ┌──────────────────────────┴──────────────────────────┐
-                                         ↓                                                      ↓
-                              Claude chart added to feed                            POST /api/generate-chart
-                              (scrollable card per topic)                           (Napkin AI visual, parallel)
-                                         ↓                                          + napkinVisualType hint
-                              LivePage renders scrollable feed                               ↓
-                              of chart cards with toggle                           Napkin image stored per card
-                              + per-card transcript section                        (toggle to view)
+Upload/Paste transcript → Visualize2Page
+                              ↓
+                    POST /api/generate-canvas
+                    (template pipeline or legacy fallback)
+                              ↓
+          ┌───────────────────┴───────────────────┐
+          ↓                                       ↓
+   Template Pipeline                        Legacy Fallback
+   (Supabase configured)                   (no Supabase/no templates)
+          ↓                                       ↓
+   FETCH_TEMPLATES → SPLIT                  Hardcoded 11-type
+   → PRE_FILTER → LLM_SELECT               system prompt
+   → CONFIDENCE_GATE → DEDUP                     ↓
+          ↓                                 Returns visuals[]
+   Returns visuals[]
+          ↓
+   Visualize2Page renders all sections
+   via TemplateRenderer (HTML templates)
+   or legacy VisualRenderer (built-in components)
 
-=== UPLOAD MODE (VisualizePage) ===
+=== TEMPLATE PIPELINE (5-step selection) ===
 
-Upload/Paste transcript → Parse
-                            ↓
-            POST /api/generate-transcript-visuals
-            (Claude analyzes full transcript, returns title + subtitle + 1-8 charts per topic)
-                            ↓
-            ┌───────────────┴───────────────┐
-            ↓                               ↓
- Claude charts displayed          POST /api/generate-chart (per chart)
- in scrollable feed               (Napkin AI visual, parallel)
-            ↓                     + napkinVisualType hint
- VisualizePage dual-panel layout            ↓
- AI Visuals (left) | Transcript (right)   Napkin image stored per card
+1. FETCH_TEMPLATES  — Load active templates from Supabase visual_templates table
+2. SPLIT            — Separate always-included (eli5, takeaways, blindspots) from selectable
+3. PRE_FILTER       — Score selectable templates against transcript keywords using trigger_signals
+4. LLM_SELECT       — Claude picks 3-5 best candidates + fills all schemas (always + selected)
+5. CONFIDENCE_GATE  — Suppress visuals with confidence < 60, warn < 75
+6. DEDUP            — Remove duplicates, enforce max 2 per category
 
- Title + Subtitle from Claude response displayed in hero section
+=== LIVE MODE (LivePage2) ===
 
-=== SECTIONS (generated in parallel) ===
+Mic/Audio → Deepgram STT → diarized sentences
+                              ↓
+                    evolvingChartController.js
+                    (debounce, filler filter, batch)
+                              ↓
+                    POST /api/generate-chart-claude
+                    (Claude picks action: new/update/skip)
+                              ↓
+                    LivePage2 renders evolving canvas
+                    with real-time transcript diarization
 
-POST /api/generate-sections → Claude returns:
-  takeaways, eli5, blindspots, concepts, suggestions, actionItems, quizData, suggestedQs
+=== UPLOAD MODE — LEGACY (VisualizePage) ===
+
+Upload/Paste transcript → VisualizePage
+                              ↓
+              POST /api/generate-transcript-visuals
+              (Claude: title + subtitle + 1-8 charts)
+                              ↓
+              Napkin AI fired in parallel per chart
+              VisualizePage renders chart feed + sections
 
 === PERSISTENCE (Supabase) ===
 
-Session save triggers:
-  Upload mode → after charts + sections generated
-  Live mode → when recording stops
-
-Flow:
-  1. Create session record (sessions table)
-  2. Insert chart rows (charts table) with chart_data, napkin base64, transcript
-  3. Insert sections row (sections table)
-  4. Upload audio file to Supabase Storage (audio-files bucket)
-  5. Capture Claude chart DOM → PNG → upload to Supabase Storage (chart-images bucket)
-  6. Convert Napkin base64 SVG → blob → upload to Supabase Storage (chart-images bucket)
-  7. Update chart rows with storage URLs (chart_image_url, napkin_image_url)
+Tables: sessions, charts, sections, visual_templates, template_usage, visual_feedback
+Buckets: audio-files, chart-images
 ```
 
 ## What's Been Done
 
-### 1. evolvingChartController.js (DONE)
-- Replaces old 4s setInterval + 5-sentence sliding window
-- Filters filler locally (um, uh, greetings) — never reaches API
+### 1. Template System (DONE)
+- **55+ visual templates** in `seedTemplates.js` across 8 categories: always, structural, analytical, data, status, reference, people, brainstorm
+- **Always-included sections**: eli5, takeaways, blindspots — filled by LLM every time, not part of selection
+- **All other sections decided by Claude**: action_items, decision_log, flowchart, comparison, mindmap, proscons, metrics, timeline, etc.
+- No hardcoded decisions/actions sections — everything is template-driven
+- Templates stored in Supabase `visual_templates` table with schema, HTML template, CSS, trigger signals
+- **TemplateRenderer** processes Handlebars-like syntax (`{{var}}`, `{{#each}}`, `{{#if}}`) with nested loop support
+- **VisualFeedback** (thumbs up/down) shown on LLM-selected sections only, not on always-included
+
+### 2. Canvas Generation Pipeline (DONE)
+- **`/api/generate-canvas`** — dual mode: template pipeline or legacy fallback
+- **Template mode**: fetches templates → splits always/selectable → pre-filters by keyword scoring → Claude selects + fills → confidence gating → dedup
+- **`promptBuilder.js`**: builds dynamic system prompt with always-included schemas + candidate schemas
+- **Pipeline logging**: detailed step-by-step logs in browser console (FETCH_TEMPLATES, SPLIT, PRE_FILTER, LLM_SELECT, CONFIDENCE_GATE, DEDUP, COMPLETE)
+- **Legacy mode**: hardcoded 11-type system prompt, used when Supabase not configured or no templates seeded
+
+### 3. Visualize2Page (DONE)
+- **Canvas view**: left sidebar (transcript) + right panel (visual sections)
+- **Dynamic navbar**: populated from all visuals in response (template_slug or type), plus Ask section
+- **Section rendering**: TemplateRenderer for template-based visuals, legacy VisualRenderer for built-in types
+- **Section headings**: icon + label from SECTION_META or template name
+- **Console pipeline logging**: colored grouped output with step details and timing
+- **Ask Q&A**: inline question/answer about the transcript
+- **Text selection analysis**: select transcript text → analyze just that portion
+- **Save to Supabase**: manual save button stores canvas session
+
+### 4. Admin Panel (DONE)
+- **`/admin`** — AdminLayout with sidebar navigation
+- **Template List** (`/admin/templates`): grid view, category filter, active toggle, seed defaults button
+- **Template Editor** (`/admin/templates/:id`): edit schema, HTML, CSS, triggers, live preview
+- **Brand Settings** (`/admin/brand`): colors, fonts, brand persistence
+- **Analytics** (`/admin/analytics`): template usage stats, confidence scores, user ratings
+- **Test Sandbox** (`/admin/sandbox`): paste transcript, run pipeline step-by-step
+
+### 5. evolvingChartController.js — Live Mode (DONE)
+- Filters filler locally (um, uh, greetings)
 - Debounces: 3s for first chart, 5s after last sentence for subsequent
 - Max-wait cap: 12s forces a call even during continuous speech
 - Rate-limits: 6s minimum between API calls
 - Tracks ALL sentences for current topic (capped at 60)
-- On "new": appends new card to feed, resets topic tracking
-- On "update": replaces last card in feed in-place
-- On "skip": does nothing
-- On failure: puts sentences back in buffer
-- Flush on stream end
-- Passes `topicSentences` array with `onChartUpdate` and `onChartNew` callbacks
-- Extracts `transformedTranscript` from Claude response, passes as 3rd argument to callbacks
+- Actions: new (append card), update (replace last card), skip (do nothing)
 
-### 2. Claude System Prompt — Live Mode (DONE)
-- Single prompt handles chart-worthiness, topic detection, AND chart generation
-- Three actions: SKIP, UPDATE (same visual structure), NEW (different topic or aspect)
-- 6 chart types: mermaid_flowchart, mermaid_sequence, timeline, comparison, mindmap, infographic
-- **Flowcharts consolidated into mermaid_flowchart** — all flowcharts render via Mermaid.js
-- Topic Continuity Rule, Subtopic Guideline
-- Transformed Transcript field in every response (cumulative on UPDATE)
-- `napkinVisualType` field in every response — tells Napkin AI what visual to generate
-- Anti-infographic rule, variety rule
-- All output enforced in English (LANGUAGE RULE)
-
-### 3. Claude System Prompt — Upload Mode (DONE)
-- `/api/generate-transcript-visuals` — takes complete transcript, returns `{title, subtitle, charts: [...]}`
-- **Title**: AI-generated 3-8 word descriptive title for the entire transcript
-- **Subtitle**: AI-generated one-sentence summary of what was discussed and why it matters
-- Claude analyzes the FULL transcript at once and identifies key topics
-- **ONE CHART PER TOPIC** — never duplicates charts for the same topic
-- Generates diverse chart types across topics (variety rule enforced)
-- Each chart includes `transformedTranscript` (clean prose for Napkin AI)
-- Each chart includes `topicSummary` (2-6 word summary)
-- Each chart includes `napkinVisualType` — visual type hint for Napkin AI
-- Same 6 chart types and size limits as live mode
-- Max tokens 8192 to handle multiple charts in one response
-- All output enforced in English (LANGUAGE RULE)
-- Timeout: 100s server-side, 120s frontend
-
-### 4. Generate Sections (DONE)
-- `/api/generate-sections` — extracts structured data from transcript
-- **Always includes**: takeaways, eli5, blindspots (required fields)
-- takeaways: 3-6 key takeaways with icon + text
-- eli5: Explain Like I'm 5 — simple language summary
-- blindspots: 2-4 gaps, risks, or blindspots with icon + title + description
-- concepts: 2-6 key terms with definitions and tags
-- suggestions: 3-5 actionable suggestions with badges (UX/Tech/Biz)
-- actionItems: 3-5 follow-up tasks with priority (HIGH/MEDIUM/LOW)
-- quizData: 3 quiz questions with options and feedback
-- suggestedQs: 4 follow-up questions
-- All output enforced in English
-
-### 5. API Handlers (DONE)
-- **`/api/generate-chart-claude`** — Live mode: newSentences, allTopicSentences, currentChart, topicSummary, existingTypes
-- **`/api/generate-transcript-visuals`** — Upload mode: full transcript text → title + subtitle + array of charts
-- **`/api/generate-chart`** — Napkin AI visual generation (both modes), accepts `forcedType` → `visual_query`
-- **`/api/generate-sections`** — Section extraction (takeaways, eli5, blindspots, concepts, suggestions, actions, quiz, suggestedQs)
+### 6. API Handlers (DONE)
+- **`/api/generate-canvas`** — Canvas mode: template pipeline or legacy
+- **`/api/generate-chart-claude`** — Live mode: evolving chart generation
+- **`/api/generate-transcript-visuals`** — Legacy upload mode: full transcript → charts
+- **`/api/generate-chart`** — Napkin AI visual generation
+- **`/api/generate-sections`** — Section extraction (takeaways, eli5, blindspots, etc.)
 - **`/api/ask-question`** — Q&A about transcript
 - All endpoints have both Vercel serverless (`frontend/api/`) and Vite dev middleware (`vite.config.js`)
+- Vite middleware delegates to actual `api/generate-canvas.js` handler via `server.ssrLoadModule`
 
-### 6. MermaidRenderer (DONE)
-- Renders ALL flowcharts (mermaid_flowchart, mermaid_sequence, and legacy flowchart type)
-- Dynamic mermaid import, theme-aware (dark/light)
-- Smooth opacity crossfade on update re-renders
-- Fallback shows raw mermaid code on render error
+### 7. Server-side Supabase (DONE)
+- **`api/lib/supabaseServer.js`**: server-side client with service role key
+  - `isServerSupabaseConfigured()` — checks env vars
+  - `fetchActiveTemplates()` — queries visual_templates where is_active = true
+  - `recordTemplateUsages()` — logs template selections
+- **`api/lib/promptBuilder.js`**: builds dynamic prompts from template schemas
+  - `buildCanvasPrompt(candidates, alwaysTemplates)` — canvas mode
+  - `buildLivePrompt(candidates)` — live mode
 
-### 7. ChartRouter (DONE)
-- `flowchart`, `mermaid_flowchart`, `mermaid_sequence` all route → MermaidRenderer
+### 8. Frontend Services (DONE)
+- **`chartAI.js`**: generateCanvas, generateTranscriptVisuals, generateNapkinVisual, generateSections, askAI
+- **`templateService.js`**: CRUD + caching for visual_templates, brand settings, feedback, usage stats
+- **`sessionStorage.js`**: save/load canvas sessions, charts, sections to Supabase
+- **`chartCapture.js`**: DOM-to-PNG capture + Supabase Storage upload
+- **`supabase.js`**: client initialization
 
-### 8. LivePage.jsx (DONE)
-- **Side-by-side dual panel layout**:
-  - Left: Scrollable AI Visuals feed (chart cards)
-  - Right: Live Transcript (340px)
-- Each card: header (title + type badge + LIVE indicator), body (chart or Napkin image), collapsible transcripts
-- Source toggle: Claude / Napkin AI
-- Napkin AI generation fires in parallel (receives transformedTranscript + napkinVisualType)
-- Pulsing "Evolving..." indicator, "Listening..." placeholder
-- Auto-scroll to newest card, active card highlighted
-- `data-chart-id` attribute on chart body elements for image capture
+### 9. Hooks (DONE)
+- **`useTemplates.js`**: loads visual templates from Supabase, provides `getTemplate(slug)`
+- **`useChartGeneration.js`**: single chart generation lifecycle
+- **`useSectionGeneration.js`**: section data from Claude
+- **`useBackgroundPregen.js`** / **`useBackgroundPregenClaude.js`**: background pre-generation
+- **`useMultiChartGeneration.js`** / **`useMultiChartGenerationClaude.js`**: cached chart polling
 
-### 9. VisualizePage.jsx (DONE)
-- **Fixed navbar** at top with section pills — highlights active section on scroll (IntersectionObserver)
-- **Title + Subtitle** from Claude's generate-transcript-visuals response (AI-generated)
-- **Side-by-side dual panel layout**:
-  - Left: Scrollable AI Visuals feed (chart cards)
-  - Right: Transcript panel (340px, plain text)
-- On page load, sends full transcript to `/api/generate-transcript-visuals`
-- Claude returns title, subtitle, and 1-8 charts covering key topics (one per topic)
-- Napkin AI fired in parallel for each chart (using transformedTranscript + napkinVisualType)
-- `AIVisualCard` component: header (title + type badge), body (Claude chart or Napkin image), collapsible transcript context
-- Claude/Napkin toggle in the AI Visuals panel header
-- **Sections below** (nav: Transcript → Takeaways → ELI5 → Blindspots → Concepts → Suggestions → Actions → Quiz → Ask)
-- No title input on upload page — title comes from AI
-- `data-chart-id` attribute on chart body elements for image capture
+### 10. Chart Renderers (DONE)
+- **MermaidRenderer**: flowchart, sequence, class, ER, state, gantt via Mermaid.js
+- **MindmapRenderer**: hierarchical mindmaps via Mermaid
+- **TimelineRenderer**: chronological timelines with diff animations
+- **ComparisonRenderer**: comparison matrices with diff animations
+- **InfographicRenderer**: data infographics with diff animations
+- **FlowchartRenderer**: process flows and decision trees
+- **TemplateRenderer**: renders any HTML template from visual_templates with CSS injection
 
-### 10. Upload Page (DONE)
-- Drag & drop or paste transcript (no title field — title generated by AI)
-- File upload (.txt) or manual paste
-- Label: "Transcript" with appropriate placeholder
-- Navigates to VisualizePage with content + graphData
+### 11. LivePage2 (DONE)
+- Real-time transcript diarization
+- Canvas-based multi-visual system with template support
+- Dual panel: live transcript + evolving visuals
 
-### 11. Frontend Service Functions (DONE)
-- `chartAI.js` exports:
-  - `generateTranscriptVisuals(text)` — full transcript → `{title, subtitle, charts: [...]}`
-  - `generateNapkinVisual(text, forcedType)` — text → Napkin AI image URL (accepts visual type hint)
-  - `generateChart(text, forcedType)` — legacy Napkin generation
-  - `generateChartClaude(text, forcedType)` — legacy Claude generation
-  - `generateSections(text)` — section extraction
-  - `askAI(text, question)` — Q&A
+### 12. Supabase Persistence (DONE)
+- **Sessions**: title, transcript, mode, duration, word_count, audio URLs
+- **Charts**: chart_data JSONB, napkin_image_url, transcript, topic_summary
+- **Sections**: takeaways, eli5, blindspots, concepts, suggestions, action_items, quiz_data
+- **Visual Templates**: slug, schema, html_template, css_template, trigger_signals, category
+- **Template Usage**: template_id, session_id, confidence_score, selection_time_ms
+- **Visual Feedback**: template_id, session_id, rating, visual_data
 
-### 12. Diff-Based Animations (DONE)
-- TimelineRenderer: new events slide in, existing get highlight flash
-- ComparisonRenderer: new cards slide in, new pros/cons animate in
-- InfographicRenderer: new sections scale in, updated values flash
-- MindmapRenderer: D3 has 600ms enter transitions built in
-- MermaidRenderer: opacity crossfade on re-render
+## Routes
 
-### 13. Napkin AI Integration (DONE)
-- `/api/generate-chart` endpoint (Napkin API with polling)
-- Accepts `forcedType` → maps to `visual_query` in Napkin API for chart type hints
-- **Live mode**: on each `onChartNew`, transformedTranscript + napkinVisualType sent to Napkin in parallel
-- **Upload mode**: after Claude returns charts, Napkin fired for each using transformedTranscript + napkinVisualType
-- Napkin image stored per feed card (`napkinImage`, `napkinLoading`, `napkinError`)
-- Toggle switches all cards between Claude charts and Napkin AI images
-- Loading spinner shown while Napkin generates; error state if it fails
-- English-only instruction prefix on all Napkin content
-
-### 14. Transformed Transcript (DONE)
-- Claude returns `transformedTranscript` in every NEW/UPDATE response (both modes)
-- Clean, professional prose — filler removed, key facts preserved
-- **Cumulative on UPDATE**: Claude appends new info to existing transformedTranscript, never truncates
-- Optimized for Napkin AI visual generation
-- Displayed in card view as collapsible "View Transcript Context" section
-- Data flows: Claude response → stored per card → Napkin uses + UI displays
-
-### 15. Supabase Persistence (DONE)
-- **Database tables**: `sessions`, `charts`, `sections`
-- **Storage buckets**: `audio-files` (audio uploads), `chart-images` (chart PNGs + Napkin SVGs)
-- **Session save flow**:
-  1. Upload audio file to `audio-files` bucket (if present)
-  2. Create `sessions` row (title, transcript, mode, duration, word_count, audio URLs)
-  3. Insert `charts` rows (chart_data JSONB, napkin_image_url, transcript, transformed_transcript, topic_summary)
-  4. Insert `sections` row (takeaways, eli5, blindspots, concepts, suggestions, action_items, quiz_data, suggested_qs)
-  5. Non-blocking: capture Claude chart DOM → PNG → upload to `chart-images` bucket
-  6. Non-blocking: convert Napkin base64 SVG → blob → upload to `chart-images` bucket
-  7. Update chart rows with Supabase Storage URLs (`chart_image_url`, `napkin_image_url`)
-- **Services**:
-  - `sessionStorage.js` — `saveUploadSession()`, `saveLiveSession()`, `updateChartNapkinImage()`
-  - `chartCapture.js` — `captureAndUploadCharts()` (DOM capture + Napkin blob upload)
-  - `supabase.js` — Supabase client init + `isSupabaseConfigured()` check
-
-### 16. Napkin Visual Type Suggestion (DONE)
-- Claude includes `napkinVisualType` in every chart response (NEW and UPDATE)
-- Mapping: mermaid_flowchart→"flowchart", mermaid_sequence→"sequence diagram", timeline→"timeline", comparison→"comparison table", mindmap→"mind map", infographic→"infographic"
-- Passed through to Napkin API as `visual_query` parameter
-- Both LivePage and VisualizePage extract from chart data and forward to Napkin
+| Path | Page | Description |
+|------|------|-------------|
+| `/` | UploadPage | Transcript upload (drag & drop, paste, file) |
+| `/visualize` | VisualizePage | Legacy chart feed + sections |
+| `/visualize2` | Visualize2Page | Canvas view with template pipeline |
+| `/live` | LivePage | Legacy real-time meeting |
+| `/live2` | LivePage2 | Enhanced real-time with diarization + templates |
+| `/history` | HistoryPage | Saved session list |
+| `/admin` | AdminLayout → TemplateList | Template management grid |
+| `/admin/templates/:id` | TemplateEditor | Edit individual template |
+| `/admin/brand` | BrandSettings | Brand customization |
+| `/admin/analytics` | Analytics | Usage statistics |
+| `/admin/sandbox` | TestSandbox | Pipeline testing tool |
 
 ## Files Summary
 
-| File | Status | Description |
-|------|--------|-------------|
-| `frontend/src/services/evolvingChartController.js` | DONE | Intelligent batching + topic tracking (live mode) |
-| `frontend/src/services/chartAI.js` | DONE | API client — generateTranscriptVisuals returns {title, subtitle, charts} |
-| `frontend/src/services/sessionStorage.js` | DONE | Supabase persistence — save sessions, charts, sections, audio |
-| `frontend/src/services/chartCapture.js` | DONE | Chart image capture (DOM→PNG) + Napkin SVG upload to Supabase Storage |
-| `frontend/src/services/supabase.js` | DONE | Supabase client initialization |
-| `frontend/api/generate-chart-claude.js` | DONE | Live mode prompt + handler (Vercel) |
-| `frontend/api/generate-transcript-visuals.js` | DONE | Upload mode — full transcript → title + subtitle + charts (Vercel) |
-| `frontend/api/generate-chart.js` | DONE | Napkin AI visual generation with forcedType→visual_query (Vercel) |
-| `frontend/api/generate-sections.js` | DONE | Section extraction — takeaways, eli5, blindspots, concepts, etc. (Vercel) |
-| `frontend/api/ask-question.js` | DONE | Q&A endpoint (Vercel) |
-| `frontend/vite.config.js` | DONE | All API middleware synced (dev) |
-| `frontend/vercel.json` | DONE | All serverless function configs |
-| `frontend/src/components/charts/MermaidRenderer.jsx` | DONE | Mermaid renderer (flowcharts + sequences) |
-| `frontend/src/components/ChartRouter.jsx` | DONE | Routes all flowcharts to MermaidRenderer |
-| `frontend/src/pages/LivePage.jsx` | DONE | Dual-panel: AI Visuals feed + Live Transcript |
-| `frontend/src/pages/VisualizePage.jsx` | DONE | Fixed navbar, AI title+subtitle, dual-panel + sections |
-| `frontend/src/pages/UploadPage.jsx` | DONE | Transcript upload (no title field) |
-| `frontend/src/components/charts/TimelineRenderer.jsx` | DONE | Diff animations |
-| `frontend/src/components/charts/ComparisonRenderer.jsx` | DONE | Diff animations |
-| `frontend/src/components/charts/InfographicRenderer.jsx` | DONE | Diff animations |
-| `backend/server.py` | NO CHANGE | Deepgram WebSocket proxy |
+| File | Description |
+|------|-------------|
+| **Pages** | |
+| `src/pages/Visualize2Page.jsx` | Canvas view — template pipeline, dynamic navbar, console logging |
+| `src/pages/LivePage2.jsx` | Real-time meeting with diarization + templates |
+| `src/pages/VisualizePage.jsx` | Legacy chart feed + sections |
+| `src/pages/LivePage.jsx` | Legacy real-time meeting |
+| `src/pages/UploadPage.jsx` | Transcript upload |
+| `src/pages/HistoryPage.jsx` | Session history list |
+| `src/pages/admin/AdminLayout.jsx` | Admin panel layout |
+| `src/pages/admin/TemplateList.jsx` | Template grid + seed |
+| `src/pages/admin/TemplateEditor.jsx` | Template editor + live preview |
+| `src/pages/admin/BrandSettings.jsx` | Brand customization |
+| `src/pages/admin/Analytics.jsx` | Usage stats dashboard |
+| `src/pages/admin/TestSandbox.jsx` | Pipeline sandbox |
+| **API Handlers** | |
+| `api/generate-canvas.js` | Canvas generation (template pipeline + legacy) |
+| `api/generate-chart-claude.js` | Live mode evolving charts |
+| `api/generate-transcript-visuals.js` | Legacy upload mode charts |
+| `api/generate-chart.js` | Napkin AI visual generation |
+| `api/generate-sections.js` | Section extraction |
+| `api/ask-question.js` | Q&A endpoint |
+| `api/lib/supabaseServer.js` | Server-side Supabase client |
+| `api/lib/promptBuilder.js` | Dynamic prompt builder |
+| **Services** | |
+| `src/services/chartAI.js` | API client (generateCanvas, etc.) |
+| `src/services/templateService.js` | Template CRUD + caching |
+| `src/services/sessionStorage.js` | Supabase persistence |
+| `src/services/evolvingChartController.js` | Live mode batching |
+| `src/services/chartCapture.js` | DOM-to-PNG capture |
+| `src/services/supabase.js` | Supabase client init |
+| **Components** | |
+| `src/components/TemplateRenderer.jsx` | HTML template engine (nested #each, #if) |
+| `src/components/VisualFeedback.jsx` | Thumbs up/down rating |
+| `src/components/ChartRouter.jsx` | Routes to chart renderers |
+| `src/components/charts/*.jsx` | Mermaid, Mindmap, Timeline, Comparison, Infographic, Flowchart renderers |
+| **Data** | |
+| `src/data/seedTemplates.js` | 55+ template definitions + DB schema SQL |
+| **Config** | |
+| `vite.config.js` | Dev middleware (delegates to api/generate-canvas.js) |
+| `vercel.json` | Serverless function configs |
 
-## Tuning Knobs (evolvingChartController.js — Live Mode)
+## Template Categories
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| MIN_API_INTERVAL_MS | 6000 | Minimum ms between API calls |
-| DEBOUNCE_FIRST_MS | 3000 | Debounce for first chart |
-| DEBOUNCE_MS | 5000 | Debounce for subsequent charts |
-| MAX_WAIT_MS | 12000 | Max wait before forcing call |
-| MIN_SENTENCES_TO_TRIGGER | 1 | Min sentences to trigger API call |
-| MAX_TOPIC_SENTENCES | 60 | Cap sentences sent to Claude |
+| Category | Purpose | Examples |
+|----------|---------|---------|
+| `always` | Included in every canvas | eli5, takeaways, blindspots |
+| `structural` | Process and architecture | flowchart, system_diagram, process_flow, dependency_map |
+| `analytical` | Analysis and comparison | proscons, comparison, decision_log, action_items, risk_matrix |
+| `data` | Numbers and metrics | metrics, budget_tracker, kpi_dashboard |
+| `status` | Progress tracking | milestones, sprint_status, progress_tracker |
+| `reference` | Information lookup | definitions, glossary, acronym_decoder |
+| `people` | Team and roles | stakeholder_map, raci_matrix, team_workload |
+| `brainstorm` | Ideas and creativity | brainstorm_cloud, what_if_scenarios |
 
 ## Database Schema
 
 ```sql
+-- Core tables
 CREATE TABLE sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT,
-  transcript TEXT,
+  title TEXT, subtitle TEXT, transcript TEXT,
   mode TEXT NOT NULL CHECK (mode IN ('live', 'upload')),
-  duration INTEGER DEFAULT 0,
-  word_count INTEGER DEFAULT 0,
-  audio_file_url TEXT,
-  audio_file_name TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  duration INTEGER DEFAULT 0, word_count INTEGER DEFAULT 0,
+  canvas_data JSONB, audio_file_url TEXT, audio_file_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE charts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
   position INTEGER NOT NULL DEFAULT 0,
-  chart_type TEXT,
-  chart_data JSONB,
-  napkin_image_url TEXT,
-  topic_summary TEXT,
-  transcript TEXT,
-  transformed_transcript TEXT,
-  chart_image_url TEXT,
+  chart_type TEXT, chart_data JSONB,
+  napkin_image_url TEXT, chart_image_url TEXT,
+  topic_summary TEXT, transcript TEXT, transformed_transcript TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE sections (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
-  takeaways JSONB DEFAULT '[]',
-  eli5 JSONB DEFAULT '{}',
-  blindspots JSONB DEFAULT '[]',
-  concepts JSONB DEFAULT '[]',
-  suggestions JSONB DEFAULT '[]',
-  action_items JSONB DEFAULT '[]',
-  quiz_data JSONB DEFAULT '[]',
-  suggested_qs JSONB DEFAULT '[]',
+  takeaways JSONB DEFAULT '[]', eli5 JSONB DEFAULT '{}',
+  blindspots JSONB DEFAULT '[]', concepts JSONB DEFAULT '[]',
+  suggestions JSONB DEFAULT '[]', action_items JSONB DEFAULT '[]',
+  quiz_data JSONB DEFAULT '[]', suggested_qs JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Template system tables
+CREATE TABLE visual_templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
+  category TEXT NOT NULL, version INTEGER DEFAULT 1,
+  schema JSONB NOT NULL, html_template TEXT NOT NULL,
+  css_template TEXT DEFAULT '', css_variables_used TEXT[] DEFAULT '{}',
+  render_type TEXT DEFAULT 'html',
+  trigger_signals TEXT[] DEFAULT '{}',
+  meeting_affinity TEXT[] DEFAULT '{}',
+  conversation_pattern TEXT,
+  min_data_points INTEGER DEFAULT 1, max_data_points INTEGER DEFAULT 10,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE template_usage (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  template_id UUID REFERENCES visual_templates(id),
+  session_id UUID, confidence_score NUMERIC,
+  selection_time_ms INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE visual_feedback (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  template_id UUID REFERENCES visual_templates(id),
+  session_id TEXT, rating INTEGER CHECK (rating IN (-1, 1)),
+  visual_data JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-## Storage Buckets
+## Environment Variables
 
-| Bucket | Access | Contents |
-|--------|--------|----------|
-| `audio-files` | Public | Uploaded audio files (.webm, .mp3, etc.) |
-| `chart-images` | Public | Claude chart PNGs (`{sessionId}/{position}.png`) + Napkin SVGs (`{sessionId}/{position}-napkin.svg`) |
+| Variable | Side | Purpose |
+|----------|------|---------|
+| `ANTHROPIC_API_KEY` | Server | Claude API key |
+| `VITE_ANTHROPIC_API_KEY` | Client | Claude API key (for legacy client-side calls) |
+| `VITE_DEEPGRAM_API_KEY` | Client | Deepgram STT for live mode |
+| `NAPKIN_API_KEY` | Server | Napkin AI visual generation |
+| `VITE_SUPABASE_URL` | Client | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Client | Supabase anonymous key |
+| `SUPABASE_URL` | Server | Supabase project URL (for serverless functions) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | Supabase service role key (for serverless functions) |
+
+## Tuning Knobs
+
+### evolvingChartController.js (Live Mode)
+| Constant | Default | Description |
+|----------|---------|-------------|
+| MIN_API_INTERVAL_MS | 6000 | Minimum ms between API calls |
+| DEBOUNCE_FIRST_MS | 3000 | Debounce for first chart |
+| DEBOUNCE_MS | 5000 | Debounce for subsequent charts |
+| MAX_WAIT_MS | 12000 | Max wait before forcing call |
+| MAX_TOPIC_SENTENCES | 60 | Cap sentences sent to Claude |
+
+### Template Pipeline (generate-canvas.js)
+| Setting | Value | Description |
+|---------|-------|-------------|
+| Always-included slugs | eli5, takeaways, blindspots | Filled every time, bypass selection |
+| LLM selection target | 3-5 candidates | From pre-filtered pool |
+| Confidence suppress | < 60 | Visual dropped |
+| Confidence warn | < 75 | Visual kept with warning |
+| Category cap | 2 per category | Dedup variety enforcement |
+| LLM timeout | 100s | AbortController timeout |
+| LLM model | claude-sonnet-4-20250514 | For canvas generation |

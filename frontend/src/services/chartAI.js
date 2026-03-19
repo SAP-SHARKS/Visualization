@@ -183,7 +183,7 @@ export async function generateCanvas(text) {
     const res = await fetch('/api/generate-canvas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, useTemplates: true }),
       signal: controller.signal,
     })
 
@@ -203,14 +203,14 @@ export async function generateCanvas(text) {
       title: data.title || null,
       subtitle: data.subtitle || null,
       visuals: data.visuals,
-      decisions: data.decisions || [],
-      actions: data.actions || [],
+      infographic_data: data.infographic_data || null,
+      _pipeline: data._pipeline || null,
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      return { error: 'Request timed out. Please try again.' }
+      return { error: 'Request timed out. Please try again.', _pipeline: null }
     }
-    return { error: err.message || 'Network error. Check your connection.' }
+    return { error: err.message || 'Network error. Check your connection.', _pipeline: null }
   }
 }
 
@@ -271,6 +271,40 @@ export async function askAI(text, question) {
   } catch (err) {
     if (err.name === 'AbortError') {
       return { error: 'Request timed out. Please try again.' }
+    }
+    return { error: err.message || 'Network error. Check your connection.' }
+  }
+}
+
+/**
+ * Generate an infographic image using Gemini Imagen API.
+ * @param {{ title?: string, subtitle?: string, steps?: object[], stats?: any[] }} infographicData
+ * @returns {Promise<{imageUrl?: string, error?: string}>}
+ */
+export async function generateInfographicImage(infographicData) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000)
+
+    const res = await fetch('/api/generate-infographic-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ infographicData }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      return { error: errBody.error || `Server error (${res.status})` }
+    }
+
+    const data = await res.json()
+    return { imageUrl: data.imageUrl || null, error: data.imageUrl ? null : 'No image returned' }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { error: 'Image generation timed out. Please try again.' }
     }
     return { error: err.message || 'Network error. Check your connection.' }
   }

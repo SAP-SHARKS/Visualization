@@ -1,0 +1,147 @@
+/**
+ * Seed data for infographic configuration tables.
+ * 11 topics, 52 color palettes, 52 layout styles.
+ */
+
+// ── 11 Topic Keyword Groups ──────────────────────────────
+
+export const SEED_TOPICS = [
+  { name: 'tech', keywords: ['api', 'code', 'server', 'docker', 'cloud', 'software', 'deploy', 'pipeline', 'database', 'devops', 'microservice', 'kubernetes', 'frontend', 'backend', 'bug', 'repository', 'sprint', 'agile', 'scrum'] },
+  { name: 'finance', keywords: ['revenue', 'profit', 'bank', 'payment', 'invoice', 'budget', 'cost', 'cash', 'roi', 'margin', 'expense', 'funding', 'investment', 'quarterly', 'fiscal', 'earnings', 'valuation', 'arpu'] },
+  { name: 'health', keywords: ['patient', 'medical', 'therapy', 'hospital', 'diagnosis', 'treatment', 'clinical', 'symptom', 'health', 'wellness', 'mental', 'prescription', 'doctor', 'nurse', 'ehr', 'telemedicine'] },
+  { name: 'education', keywords: ['student', 'learn', 'course', 'training', 'curriculum', 'teacher', 'classroom', 'university', 'degree', 'certification', 'workshop', 'module', 'assessment', 'onboarding', 'coaching'] },
+  { name: 'product', keywords: ['user', 'ux', 'design', 'wireframe', 'prototype', 'feature', 'roadmap', 'backlog', 'persona', 'journey', 'interface', 'usability', 'accessibility', 'iteration', 'release'] },
+  { name: 'sales', keywords: ['lead', 'pipeline', 'marketing', 'funnel', 'prospect', 'demo', 'conversion', 'close', 'deal', 'crm', 'outreach', 'quota', 'churn', 'retention', 'campaign', 'brand', 'social media'] },
+  { name: 'security', keywords: ['risk', 'compliance', 'breach', 'encryption', 'vulnerability', 'audit', 'firewall', 'threat', 'access', 'permission', 'authentication', 'zero-trust', 'soc', 'gdpr', 'siem'] },
+  { name: 'operations', keywords: ['process', 'workflow', 'logistics', 'supply', 'shipping', 'vendor', 'sla', 'escalation', 'incident', 'runbook', 'ops', 'fleet', 'warehouse', 'carrier', 'routing', 'capacity'] },
+  { name: 'hr', keywords: ['employee', 'hiring', 'recruit', 'onboard', 'performance', 'review', 'culture', 'engagement', 'talent', 'compensation', 'benefits', 'retention', 'diversity', 'team', 'manager'] },
+  { name: 'legal', keywords: ['contract', 'agreement', 'clause', 'liability', 'regulation', 'compliance', 'ip', 'trademark', 'patent', 'litigation', 'jurisdiction', 'counsel', 'policy', 'terms'] },
+  { name: 'strategy', keywords: ['objective', 'okr', 'kpi', 'goal', 'initiative', 'priority', 'quarter', 'stakeholder', 'alignment', 'vision', 'mission', 'competitive', 'market', 'growth', 'expansion'] },
+]
+
+// ── 52 Color Palettes ────────────────────────────────────
+
+export const SEED_PALETTES = [
+  { name: 'electric-ocean', bg: '#F0F9FF', accent: '#0EA5E9', secondary: '#6366F1', highlight: '#22D3EE', text_color: '#0C1445', card: '#E0F2FE' },
+  { name: 'neon-terminal', bg: '#F8FFF8', accent: '#10B981', secondary: '#8B5CF6', highlight: '#34D399', text_color: '#064E3B', card: '#ECFDF5' },
+  { name: 'slate-chrome', bg: '#F8FAFC', accent: '#475569', secondary: '#3B82F6', highlight: '#94A3B8', text_color: '#1E293B', card: '#F1F5F9' },
+  { name: 'indigo-spark', bg: '#FAFAFF', accent: '#4F46E5', secondary: '#06B6D4', highlight: '#818CF8', text_color: '#1E1B4B', card: '#EEF2FF' },
+  { name: 'cyber-violet', bg: '#FDF4FF', accent: '#9333EA', secondary: '#0EA5E9', highlight: '#C084FC', text_color: '#3B0764', card: '#FAF5FF' },
+  { name: 'gold-rush', bg: '#FFFBEB', accent: '#D97706', secondary: '#059669', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'emerald-bank', bg: '#F0FDF4', accent: '#16A34A', secondary: '#CA8A04', highlight: '#4ADE80', text_color: '#052E16', card: '#DCFCE7' },
+  { name: 'navy-gold', bg: '#F0F4FF', accent: '#1D4ED8', secondary: '#B45309', highlight: '#93C5FD', text_color: '#0F172A', card: '#DBEAFE' },
+  { name: 'sterling-teal', bg: '#F0FDFA', accent: '#0F766E', secondary: '#7C3AED', highlight: '#2DD4BF', text_color: '#042F2E', card: '#CCFBF1' },
+  { name: 'rose-gold', bg: '#FFF5F5', accent: '#E11D48', secondary: '#CA8A04', highlight: '#FB7185', text_color: '#4C0519', card: '#FFE4E6' },
+  { name: 'mint-care', bg: '#F0FDF9', accent: '#0D9488', secondary: '#7C3AED', highlight: '#5EEAD4', text_color: '#042F2E', card: '#CCFBF1' },
+  { name: 'sky-pulse', bg: '#F0F9FF', accent: '#0284C7', secondary: '#EC4899', highlight: '#38BDF8', text_color: '#0C4A6E', card: '#E0F2FE' },
+  { name: 'lavender-wellness', bg: '#FAF5FF', accent: '#7C3AED', secondary: '#0D9488', highlight: '#C4B5FD', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'coral-vitality', bg: '#FFF7F3', accent: '#EA580C', secondary: '#0891B2', highlight: '#FB923C', text_color: '#431407', card: '#FFEDD5' },
+  { name: 'sage-balance', bg: '#F7FEE7', accent: '#65A30D', secondary: '#0E7490', highlight: '#A3E635', text_color: '#1A2E05', card: '#ECFCCB' },
+  { name: 'amber-school', bg: '#FFFBEB', accent: '#B45309', secondary: '#7C3AED', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'purple-wisdom', bg: '#FAF5FF', accent: '#6D28D9', secondary: '#D97706', highlight: '#A78BFA', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'rose-learn', bg: '#FFF1F2', accent: '#BE185D', secondary: '#0369A1', highlight: '#F472B6', text_color: '#500724', card: '#FFE4E6' },
+  { name: 'teal-knowledge', bg: '#F0FDFA', accent: '#0F766E', secondary: '#DC2626', highlight: '#2DD4BF', text_color: '#042F2E', card: '#CCFBF1' },
+  { name: 'sunshine-growth', bg: '#FEFCE8', accent: '#CA8A04', secondary: '#0369A1', highlight: '#FDE047', text_color: '#422006', card: '#FEF9C3' },
+  { name: 'figma-violet', bg: '#FAF5FF', accent: '#7C3AED', secondary: '#F97316', highlight: '#C4B5FD', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'tangerine-ink', bg: '#FFF7ED', accent: '#EA580C', secondary: '#4F46E5', highlight: '#FB923C', text_color: '#431407', card: '#FFEDD5' },
+  { name: 'pink-system', bg: '#FDF2F8', accent: '#BE185D', secondary: '#0EA5E9', highlight: '#F472B6', text_color: '#500724', card: '#FCE7F3' },
+  { name: 'midnight-pop', bg: '#F8F7FF', accent: '#4338CA', secondary: '#10B981', highlight: '#818CF8', text_color: '#1E1B4B', card: '#EEF2FF' },
+  { name: 'olive-studio', bg: '#FAFAF0', accent: '#65A30D', secondary: '#DB2777', highlight: '#BEF264', text_color: '#1A2E05', card: '#F7FEE7' },
+  { name: 'fire-orange', bg: '#FFF7ED', accent: '#C2410C', secondary: '#7C3AED', highlight: '#F97316', text_color: '#431407', card: '#FFEDD5' },
+  { name: 'magenta-charge', bg: '#FDF2F8', accent: '#C026D3', secondary: '#16A34A', highlight: '#E879F9', text_color: '#4A044E', card: '#FAE8FF' },
+  { name: 'lime-energy', bg: '#F7FCEA', accent: '#4D7C0F', secondary: '#DC2626', highlight: '#A3E635', text_color: '#1A2E05', card: '#ECFCCB' },
+  { name: 'crimson-power', bg: '#FFF1F2', accent: '#BE123C', secondary: '#0369A1', highlight: '#FDA4AF', text_color: '#4C0519', card: '#FFE4E6' },
+  { name: 'sunset-drive', bg: '#FFF8F0', accent: '#D97706', secondary: '#BE185D', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'shield-red', bg: '#FFF5F5', accent: '#DC2626', secondary: '#475569', highlight: '#FCA5A5', text_color: '#450A0A', card: '#FEE2E2' },
+  { name: 'slate-lock', bg: '#F8FAFC', accent: '#334155', secondary: '#DC2626', highlight: '#64748B', text_color: '#0F172A', card: '#F1F5F9' },
+  { name: 'amber-alert', bg: '#FFFBEB', accent: '#D97706', secondary: '#DC2626', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'dark-compliance', bg: '#F5F3FF', accent: '#4C1D95', secondary: '#B91C1C', highlight: '#8B5CF6', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'steel-blue', bg: '#EFF6FF', accent: '#1D4ED8', secondary: '#374151', highlight: '#93C5FD', text_color: '#1E3A5F', card: '#DBEAFE' },
+  { name: 'logistics-green', bg: '#F0FDF4', accent: '#15803D', secondary: '#1D4ED8', highlight: '#4ADE80', text_color: '#052E16', card: '#DCFCE7' },
+  { name: 'warehouse-amber', bg: '#FFFBEB', accent: '#92400E', secondary: '#1D4ED8', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'people-purple', bg: '#FAF5FF', accent: '#7E22CE', secondary: '#0369A1', highlight: '#C4B5FD', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'warm-culture', bg: '#FFF7F3', accent: '#C2410C', secondary: '#16A34A', highlight: '#FB923C', text_color: '#431407', card: '#FFEDD5' },
+  { name: 'trust-teal', bg: '#F0FDFA', accent: '#0F766E', secondary: '#7E22CE', highlight: '#2DD4BF', text_color: '#042F2E', card: '#CCFBF1' },
+  { name: 'executive-navy', bg: '#EFF6FF', accent: '#1E3A8A', secondary: '#CA8A04', highlight: '#3B82F6', text_color: '#0F172A', card: '#DBEAFE' },
+  { name: 'vision-jade', bg: '#F0FDF4', accent: '#166534', secondary: '#1E3A8A', highlight: '#4ADE80', text_color: '#052E16', card: '#DCFCE7' },
+  { name: 'bold-coral', bg: '#FFF5F5', accent: '#DC2626', secondary: '#1E3A8A', highlight: '#FB923C', text_color: '#450A0A', card: '#FEE2E2' },
+  { name: 'aurora', bg: '#F8F0FF', accent: '#8B5CF6', secondary: '#06B6D4', highlight: '#F472B6', text_color: '#1A0536', card: '#F3E8FF' },
+  { name: 'nordic-frost', bg: '#F0F9FF', accent: '#0369A1', secondary: '#059669', highlight: '#7DD3FC', text_color: '#0C1E35', card: '#E0F2FE' },
+  { name: 'terracotta-sand', bg: '#FDF8F4', accent: '#C2410C', secondary: '#4F46E5', highlight: '#FB923C', text_color: '#431407', card: '#FFEDD5' },
+  { name: 'mango-storm', bg: '#FFFBEB', accent: '#D97706', secondary: '#7C3AED', highlight: '#34D399', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'cherry-blossom', bg: '#FFF0F5', accent: '#DB2777', secondary: '#0EA5E9', highlight: '#F9A8D4', text_color: '#500724', card: '#FCE7F3' },
+  { name: 'forest-dew', bg: '#F0FDF9', accent: '#047857', secondary: '#7C3AED', highlight: '#6EE7B7', text_color: '#022C22', card: '#D1FAE5' },
+  { name: 'dusk-gradient', bg: '#FEF3FF', accent: '#9D174D', secondary: '#1D4ED8', highlight: '#C084FC', text_color: '#3B0764', card: '#FAE8FF' },
+  { name: 'copper-blue', bg: '#F5F3FF', accent: '#6D28D9', secondary: '#D97706', highlight: '#93C5FD', text_color: '#2E1065', card: '#EDE9FE' },
+  { name: 'lush-pink', bg: '#FFF5FB', accent: '#BE185D', secondary: '#0F766E', highlight: '#FCA5A5', text_color: '#500724', card: '#FCE7F3' },
+  { name: 'arctic-citrus', bg: '#F0FFFE', accent: '#0891B2', secondary: '#CA8A04', highlight: '#A5F3FC', text_color: '#042F38', card: '#CFFAFE' },
+  { name: 'eclipse', bg: '#F8F7FF', accent: '#312E81', secondary: '#DC2626', highlight: '#6366F1', text_color: '#0F172A', card: '#E0E7FF' },
+  { name: 'melon-mint', bg: '#F0FFF8', accent: '#059669', secondary: '#DB2777', highlight: '#6EE7B7', text_color: '#022C22', card: '#D1FAE5' },
+  { name: 'spice-route', bg: '#FFFAF0', accent: '#B45309', secondary: '#0F766E', highlight: '#FCD34D', text_color: '#451A03', card: '#FEF3C7' },
+  { name: 'ultraviolet', bg: '#F5F0FF', accent: '#5B21B6', secondary: '#0284C7', highlight: '#C4B5FD', text_color: '#2E1065', card: '#EDE9FE' },
+]
+
+// ── 52 Layout Styles ─────────────────────────────────────
+
+// Content context tags used for layout matching:
+//   many-steps (5+), few-steps (1-4), stats-heavy (3+), stats-light (0-2),
+//   process-flow, hierarchy, comparison, overview, narrative, data-dense
+
+export const SEED_LAYOUTS = [
+  // --- VERTICAL ---
+  { name: 'numbered-steps', category: 'vertical', content_affinity: ['many-steps', 'process-flow'], description: 'Vertical numbered cards connected by a dotted path with circular step indicators' },
+  { name: 'stacked-ribbons', category: 'vertical', content_affinity: ['many-steps', 'overview'], description: 'Full-width ribbon banners stacked vertically, alternating accent and white, with icons on alternating sides' },
+  { name: 'timeline-left', category: 'vertical', content_affinity: ['many-steps', 'process-flow', 'narrative'], description: 'Left-aligned vertical timeline with connector line, circular nodes, and content boxes extending right' },
+  { name: 'checklist-cards', category: 'vertical', content_affinity: ['many-steps', 'few-steps', 'overview'], description: 'Checklist-style cards with large checkboxes, bold item titles, and supporting body text below' },
+  { name: 'accordion-expand', category: 'vertical', content_affinity: ['many-steps', 'overview'], description: 'Collapsed accordion rows, each with a number badge, title, and expandable detail panel' },
+  { name: 'pyramid-stack', category: 'vertical', content_affinity: ['few-steps', 'hierarchy'], description: 'Triangular pyramid layers from base (wide) to apex (narrow), each layer a step or priority level' },
+  { name: 'progress-bar-steps', category: 'vertical', content_affinity: ['many-steps', 'stats-heavy', 'data-dense'], description: 'Each step shown as a labeled progress bar row, bars fill left-to-right with percentage completion' },
+  { name: 'subway-map', category: 'vertical', content_affinity: ['many-steps', 'process-flow'], description: 'Vertical subway/metro map with colored line, station dots, and station-name cards branching out' },
+  // --- GRID / CARD ---
+  { name: 'icon-grid', category: 'grid', content_affinity: ['few-steps', 'stats-heavy', 'overview'], description: '2-column card grid with large icons centered on top, stat callout pills at bottom of each card' },
+  { name: 'bento-box', category: 'grid', content_affinity: ['few-steps', 'stats-heavy', 'overview'], description: 'Asymmetric bento-style grid: one large hero card top-left, smaller cards filling remaining space' },
+  { name: 'polaroid-wall', category: 'grid', content_affinity: ['few-steps', 'narrative', 'overview'], description: 'Polaroid-style photo cards arranged in a slight random tilt grid, each with a handwritten-style caption' },
+  { name: 'mosaic-tiles', category: 'grid', content_affinity: ['few-steps', 'many-steps', 'overview'], description: 'Overlapping angled cards with pastel tints, pill badges, and a decorative geometric background pattern' },
+  { name: 'stat-dashboard', category: 'grid', content_affinity: ['stats-heavy', 'data-dense', 'few-steps'], description: 'Dashboard layout: large KPI metric cards top row, supporting detail cards in a 3-column grid below' },
+  { name: 'sticky-notes', category: 'grid', content_affinity: ['few-steps', 'overview', 'stats-light'], description: 'Sticky note cards in varying pastel colors, slightly rotated, pinned to a cork-board texture background' },
+  { name: 'hexagon-grid', category: 'grid', content_affinity: ['few-steps', 'overview', 'hierarchy'], description: 'Hexagonal tiles in a honeycomb pattern, each hex containing an icon and a short label' },
+  { name: 'card-flip', category: 'grid', content_affinity: ['few-steps', 'overview'], description: 'Front-facing cards with icon + title; flipped cards reveal detail text — shown as split view' },
+  { name: 'glass-cards', category: 'grid', content_affinity: ['few-steps', 'stats-light', 'overview'], description: 'Frosted glass-effect cards with subtle borders, layered depth, icons in colored circle badges' },
+  // --- FLOW / PROCESS ---
+  { name: 'timeline-flow', category: 'flow', content_affinity: ['many-steps', 'process-flow', 'narrative'], description: 'Zigzag horizontal timeline with circle nodes, curved connector arrows, and alternating content above/below' },
+  { name: 'funnel-flow', category: 'flow', content_affinity: ['few-steps', 'process-flow', 'stats-heavy'], description: 'Inverted funnel shape with labeled stages, narrowing from top (awareness) to bottom (conversion)' },
+  { name: 'circular-loop', category: 'flow', content_affinity: ['few-steps', 'process-flow'], description: 'Steps arranged in a circle with curved arrows creating a continuous loop, center holds the core concept' },
+  { name: 'swimlane-process', category: 'flow', content_affinity: ['many-steps', 'process-flow', 'comparison'], description: 'Horizontal swimlanes for different actors/teams, process steps flow left-to-right across lanes' },
+  { name: 'decision-tree', category: 'flow', content_affinity: ['few-steps', 'process-flow', 'hierarchy'], description: 'Tree diagram with branching yes/no decisions, diamond nodes for decisions, rectangle nodes for actions' },
+  { name: 'flowchart-arrows', category: 'flow', content_affinity: ['many-steps', 'process-flow'], description: 'Classic flowchart with shapes and directional arrows showing flow' },
+  { name: 'concentric-rings', category: 'flow', content_affinity: ['few-steps', 'hierarchy'], description: 'Concentric circles from core outward, each ring a category or layer, like an onion diagram' },
+  { name: 'pipeline-stages', category: 'flow', content_affinity: ['many-steps', 'process-flow'], description: 'Horizontal pipeline with connected stage boxes using chevron/arrow shapes, color-coded by phase' },
+  { name: 'hourglass-flow', category: 'flow', content_affinity: ['few-steps', 'process-flow', 'comparison'], description: 'Hourglass shape: inputs funnel into a narrow middle (key process), then expand into outputs' },
+  // --- EDITORIAL / MAGAZINE ---
+  { name: 'magazine-spread', category: 'editorial', content_affinity: ['stats-heavy', 'overview', 'narrative'], description: 'Editorial layout with large hero title block, pull-quote callouts, and asymmetric two-column body' },
+  { name: 'newspaper-broadsheet', category: 'editorial', content_affinity: ['many-steps', 'stats-heavy', 'overview'], description: 'Classic broadsheet newspaper layout: banner headline, multi-column text, boxed sidebars' },
+  { name: 'infomercial-poster', category: 'editorial', content_affinity: ['few-steps', 'stats-heavy'], description: 'Bold promotional poster style: huge callouts, starburst shapes, bold headings' },
+  { name: 'recipe-card', category: 'editorial', content_affinity: ['many-steps', 'process-flow'], description: 'Recipe card layout with ingredients column on left and step-by-step instructions on right' },
+  { name: 'resume-style', category: 'editorial', content_affinity: ['stats-heavy', 'many-steps', 'overview'], description: 'Two-column resume layout: left sidebar with stats/key facts, right main column with detailed steps' },
+  { name: 'letterhead-report', category: 'editorial', content_affinity: ['many-steps', 'stats-light', 'narrative'], description: 'Formal report layout with logo header bar, section dividers, and footnote-style source citations' },
+  { name: 'zine-cutout', category: 'editorial', content_affinity: ['few-steps', 'overview', 'narrative'], description: 'DIY zine aesthetic: mixed font sizes, cutout-style boxes, hand-drawn arrows, rough borders' },
+  { name: 'annual-report', category: 'editorial', content_affinity: ['stats-heavy', 'data-dense', 'overview'], description: 'Corporate annual report: hero stat banner, quote callout, three-column summary, footer bar' },
+  // --- SPATIAL / NARRATIVE ---
+  { name: 'roadmap-path', category: 'spatial', content_affinity: ['many-steps', 'process-flow', 'narrative'], description: 'Winding road with milestone stops, road-sign stats, and destination flag at the end' },
+  { name: 'mountain-climb', category: 'spatial', content_affinity: ['many-steps', 'process-flow', 'hierarchy'], description: 'Mountain silhouette with steps marked as waypoints going from base to summit' },
+  { name: 'treasure-map', category: 'spatial', content_affinity: ['many-steps', 'narrative', 'process-flow'], description: 'Illustrated map with path, landmarks at each step, X marks the goal, compass rose corner detail' },
+  { name: 'solar-system', category: 'spatial', content_affinity: ['few-steps', 'hierarchy', 'overview'], description: 'Central concept as a sun, related items as orbiting planets of varying sizes' },
+  { name: 'city-skyline', category: 'spatial', content_affinity: ['stats-heavy', 'data-dense', 'comparison'], description: 'Buildings of different heights represent different metrics or steps, skyline silhouette background' },
+  { name: 'iceberg-diagram', category: 'spatial', content_affinity: ['few-steps', 'hierarchy', 'comparison'], description: 'Iceberg half above/below waterline: visible tip = surface metrics, submerged = hidden complexity' },
+  { name: 'tree-of-knowledge', category: 'spatial', content_affinity: ['few-steps', 'hierarchy', 'overview'], description: 'Tree illustration: roots = foundations, trunk = core process, branches = outcomes/categories' },
+  { name: 'world-map-pins', category: 'spatial', content_affinity: ['few-steps', 'overview', 'data-dense'], description: 'World or regional map with pin markers for locations or categories, legend sidebar' },
+  // --- DATA / CHART-FORWARD ---
+  { name: 'data-story', category: 'data', content_affinity: ['stats-heavy', 'data-dense', 'narrative'], description: 'Large chart center-stage, annotated with callout boxes explaining key findings' },
+  { name: 'scorecard', category: 'data', content_affinity: ['stats-heavy', 'data-dense'], description: 'Rows of metrics with RAG status dots, trend arrows, and target vs actual columns' },
+  { name: 'waffle-chart', category: 'data', content_affinity: ['stats-heavy', 'data-dense'], description: 'Grid of 100 squares with colored segments representing percentages, legend below' },
+  { name: 'radial-burst', category: 'data', content_affinity: ['stats-heavy', 'few-steps', 'comparison'], description: 'Radial/spider chart with labeled axes, colored fill polygon, and surrounding stat callouts' },
+  { name: 'bubble-map', category: 'data', content_affinity: ['stats-heavy', 'data-dense', 'comparison'], description: 'Bubble chart layout: circles sized by value, colored by category, arranged in cluster groups' },
+  { name: 'comparison-matrix', category: 'data', content_affinity: ['few-steps', 'comparison', 'stats-light'], description: '2x2 matrix quadrant with axis labels, items placed as dots/cards in each quadrant' },
+  { name: 'before-after', category: 'data', content_affinity: ['few-steps', 'comparison'], description: 'Split vertical layout: left half = before state, right half = after state, center divider with arrows' },
+  { name: 'gantt-timeline', category: 'data', content_affinity: ['many-steps', 'process-flow', 'data-dense'], description: 'Horizontal Gantt-style chart with tasks as bars on a timeline, milestones as diamond markers' },
+]
