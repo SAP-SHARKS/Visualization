@@ -215,28 +215,35 @@ export async function generateCanvas(text) {
 }
 
 /**
- * Generate a Napkin AI visual from text.
- * @param {string} text - The text to visualize
- * @param {string} [forcedType] - Optional visual type hint (e.g. "flowchart", "timeline")
- * @returns {Promise<{imageUrl?: string, error?: string}>}
+ * Generate 2 Napkin AI visual variations for a specific canvas visual card.
+ * @param {string} slug - The template slug or visual type
+ * @param {object} schemaData - The visual's schema data
+ * @param {string} [title] - Optional title for context
+ * @param {string} [explanation] - Optional explanation for context
+ * @returns {Promise<{images?: string[], error?: string}>}
  */
-export async function generateNapkinVisual(text, forcedType) {
+export async function generateNapkinVisual(slug, schemaData, title, explanation) {
   try {
-    const body = { text }
-    if (forcedType) body.forcedType = forcedType
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60000)
 
-    const res = await fetch('/api/generate-chart', {
+    const res = await fetch('/api/generate-napkin-visual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ slug, schemaData, title, explanation }),
+      signal: controller.signal,
     })
+
+    clearTimeout(timeout)
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       return { error: err.error || `Napkin API error (${res.status})` }
     }
     const data = await res.json()
-    return { imageUrl: data.imageUrl || null, error: data.imageUrl ? null : 'No image returned' }
+    return { images: data.images || [], error: data.images?.length ? null : 'No images returned' }
   } catch (err) {
+    if (err.name === 'AbortError') return { error: 'Napkin generation timed out' }
     return { error: err.message || 'Network error' }
   }
 }

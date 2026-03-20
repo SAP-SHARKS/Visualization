@@ -956,6 +956,42 @@ Return ONLY valid JSON. No markdown. No explanation. No code fences.`
           res.end(JSON.stringify({ error: 'Server error: ' + err.message }))
         }
       })
+
+      // /api/generate-napkin-visual — Napkin.ai visual generation
+      server.middlewares.use('/api/generate-napkin-visual', async (req, res) => {
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+          res.end()
+          return
+        }
+
+        process.env.NAPKIN_API_KEY = process.env.NAPKIN_API_KEY || envVars.NAPKIN_API_KEY
+
+        let body = ''
+        for await (const chunk of req) body += chunk
+        try { req.body = JSON.parse(body) } catch { req.body = {} }
+
+        try {
+          const mod = await server.ssrLoadModule('./api/generate-napkin-visual.js')
+          const handler = mod.default
+          const fakeRes = {
+            _status: 200,
+            _headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            setHeader(k, v) { this._headers[k] = v },
+            status(code) { this._status = code; return this },
+            json(data) {
+              res.writeHead(this._status, this._headers)
+              res.end(JSON.stringify(data))
+            },
+            end() { res.end() },
+          }
+          await handler(req, fakeRes)
+        } catch (err) {
+          console.error('[vite-api] generate-napkin-visual error:', err)
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Server error: ' + err.message }))
+        }
+      })
     }
   }
 }

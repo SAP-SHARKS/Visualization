@@ -90,6 +90,7 @@ Buckets: audio-files, chart-images
 - **Ask Q&A**: inline question/answer about the transcript
 - **Text selection analysis**: select transcript text → analyze just that portion
 - **Save to Supabase**: manual save button stores canvas session
+- **Napkin integration**: auto-generates Napkin visuals for all sections on canvas load; user selects preferred variation (defaults to first); selected variation saved to Supabase on save; restored in history mode with Canvas/Napkin toggle
 
 ### 4. Admin Panel (DONE)
 - **`/admin`** — AdminLayout with sidebar navigation
@@ -156,11 +157,13 @@ Buckets: audio-files, chart-images
 
 ### 12. Supabase Persistence (DONE)
 - **Sessions**: title, transcript, mode, duration, word_count, audio URLs
+- **Sessions canvas_data**: visuals, decisions, actions, infographic_image_url, napkin_images (map of visual index → Storage URL)
 - **Charts**: chart_data JSONB, napkin_image_url, transcript, topic_summary
 - **Sections**: takeaways, eli5, blindspots, concepts, suggestions, action_items, quiz_data
 - **Visual Templates**: slug, schema, html_template, css_template, trigger_signals, category
 - **Template Usage**: template_id, session_id, confidence_score, selection_time_ms
 - **Visual Feedback**: template_id, session_id, rating, visual_data
+- **Storage**: `chart-images/infographics/` (Gemini infographics), `chart-images/napkin/` (Napkin AI selected variations)
 
 ## Routes
 
@@ -200,6 +203,7 @@ Buckets: audio-files, chart-images
 | `api/generate-chart-claude.js` | Live mode evolving charts |
 | `api/generate-transcript-visuals.js` | Legacy upload mode charts |
 | `api/generate-chart.js` | Napkin AI visual generation |
+| `api/generate-napkin-visual.js` | Napkin AI visual (canvas mode) |
 | `api/generate-sections.js` | Section extraction |
 | `api/ask-question.js` | Q&A endpoint |
 | `api/lib/supabaseServer.js` | Server-side Supabase client |
@@ -207,7 +211,7 @@ Buckets: audio-files, chart-images
 | **Services** | |
 | `src/services/chartAI.js` | API client (generateCanvas, etc.) |
 | `src/services/templateService.js` | Template CRUD + caching |
-| `src/services/sessionStorage.js` | Supabase persistence |
+| `src/services/sessionStorage.js` | Supabase persistence (canvas sessions, napkin image upload) |
 | `src/services/evolvingChartController.js` | Live mode batching |
 | `src/services/chartCapture.js` | DOM-to-PNG capture |
 | `src/services/supabase.js` | Supabase client init |

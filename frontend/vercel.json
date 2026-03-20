@@ -5,7 +5,9 @@
     "api/generate-sections.js": { "maxDuration": 60 },
     "api/ask-question.js": { "maxDuration": 30 },
     "api/generate-transcript-visuals.js": { "maxDuration": 60 },
-    "api/generate-canvas.js": { "maxDuration": 120 }
+    "api/generate-canvas.js": { "maxDuration": 120 },
+    "api/generate-infographic-image.js": { "maxDuration": 120 },
+    "api/generate-napkin-visual.js": { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },

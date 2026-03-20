@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { generateCanvas, generateInfographicImage } from '../services/chartAI'
+import { generateCanvas, generateInfographicImage, generateNapkinVisual } from '../services/chartAI'
 import { saveCanvasSession, getSession } from '../services/sessionStorage'
 import TemplateRenderer from '../components/TemplateRenderer'
 import VisualFeedback from '../components/VisualFeedback'
@@ -261,6 +261,33 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .v2-lightbox-img-wrap:active{cursor:grabbing;}
 .v2-lightbox-img-wrap img{display:block;transform-origin:center center;transition:transform .15s ease;user-select:none;-webkit-user-drag:none;}
 
+/* Napkin Toggle */
+.v2-napkin-toggle{display:flex;gap:2px;background:rgba(14,17,23,0.6);border-radius:8px;padding:2px;border:1px solid var(--border);margin-left:auto;}
+.v2-toggle-btn{padding:4px 12px;border-radius:6px;font-size:10px;font-weight:600;color:var(--text-dim);cursor:pointer;transition:all 0.2s;border:none;background:none;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;text-transform:uppercase;}
+.v2-toggle-btn:hover{color:var(--text);}
+.v2-toggle-btn.active{background:var(--accent);color:#06080c;box-shadow:0 1px 6px rgba(61,214,140,0.3);}
+[data-theme="light"] .v2-napkin-toggle{background:rgba(99,102,241,0.04);}
+[data-theme="light"] .v2-toggle-btn.active{background:#6366f1;color:#fff;}
+/* Napkin View */
+.v2-napkin-view{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.v2-napkin-img-wrap{position:relative;height:450px;overflow:hidden;cursor:grab;user-select:none;background:var(--bg);}
+.v2-napkin-img-wrap.grabbing{cursor:grabbing;}
+.v2-napkin-img-wrap img{position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none;border-radius:8px;max-width:none;}
+.v2-napkin-toolbar{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface);}
+.v2-napkin-zoom-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-weight:700;}
+.v2-napkin-zoom-btn:hover{border-color:var(--accent);color:var(--accent);}
+.v2-napkin-zoom-label{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;min-width:40px;text-align:center;}
+.v2-napkin-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;border-top:1px solid var(--border);}
+.v2-napkin-nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.v2-napkin-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.v2-napkin-nav-label{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;}
+.v2-napkin-loading{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;}
+.v2-napkin-error{background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);color:#ff5050;padding:16px 24px;border-radius:14px;font-size:13px;text-align:center;}
+.v2-napkin-select-btn{margin-left:auto;padding:4px 14px;border-radius:6px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all 0.2s;}
+.v2-napkin-select-btn:hover{border-color:var(--accent);color:var(--accent);}
+.v2-napkin-select-btn.selected{background:var(--accent);color:#06080c;border-color:var(--accent);}
+[data-theme="light"] .v2-napkin-select-btn.selected{background:#6366f1;color:#fff;border-color:#6366f1;}
+
 @media(max-width:800px){
   .v2-page{grid-template-columns:1fr;height:auto;}
   .v2-sidebar{max-height:40vh;border-right:none;border-bottom:1px solid var(--border);}
@@ -317,6 +344,152 @@ function parseTranscriptSpeakers(text) {
     }
   }
   return blocks
+}
+
+// ── Napkin View ──────────────────────────────────────────
+function NapkinView({ napkin, variationIdx, selectedIdx, onPrev, onNext, onRetry, onSelect, isHistoryMode }) {
+  const wrapRef = useRef(null)
+  const imgRef = useRef(null)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+
+  // Reset zoom/pan when variation changes
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }) }, [variationIdx])
+
+  // Fit image to container on load
+  const handleImgLoad = () => {
+    const img = imgRef.current
+    const wrap = wrapRef.current
+    if (!img || !wrap) return
+    const scaleX = wrap.clientWidth / img.naturalWidth
+    const scaleY = wrap.clientHeight / img.naturalHeight
+    const fit = Math.min(scaleX, scaleY, 1)
+    setZoom(fit)
+    setPan({
+      x: (wrap.clientWidth - img.naturalWidth * fit) / 2,
+      y: (wrap.clientHeight - img.naturalHeight * fit) / 2
+    })
+  }
+
+  const changeZoom = (delta) => {
+    setZoom(prev => {
+      const next = Math.min(Math.max(prev + delta, 0.1), 5)
+      // Adjust pan to zoom toward center
+      const wrap = wrapRef.current
+      if (wrap) {
+        const cx = wrap.clientWidth / 2
+        const cy = wrap.clientHeight / 2
+        setPan(p => ({
+          x: cx - (cx - p.x) * (next / prev),
+          y: cy - (cy - p.y) * (next / prev)
+        }))
+      }
+      return next
+    })
+  }
+
+  const resetView = () => handleImgLoad()
+
+  // Mouse wheel zoom
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -0.1 : 0.1
+      setZoom(prev => {
+        const next = Math.min(Math.max(prev + delta, 0.1), 5)
+        const rect = wrap.getBoundingClientRect()
+        const mx = e.clientX - rect.left
+        const my = e.clientY - rect.top
+        setPan(p => ({
+          x: mx - (mx - p.x) * (next / prev),
+          y: my - (my - p.y) * (next / prev)
+        }))
+        return next
+      })
+    }
+    wrap.addEventListener('wheel', onWheel, { passive: false })
+    return () => wrap.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // Drag handlers
+  const onMouseDown = (e) => {
+    setDragging(true)
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
+  }
+  useEffect(() => {
+    if (!dragging) return
+    const onMove = (e) => {
+      setPan({
+        x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+        y: dragStart.current.panY + (e.clientY - dragStart.current.y)
+      })
+    }
+    const onUp = () => setDragging(false)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [dragging])
+
+  if (!napkin || napkin.loading) {
+    return (
+      <div className="v2-napkin-loading">
+        <div className="v2-spinner" />
+        <div style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 12 }}>Generating Napkin visual...</div>
+      </div>
+    )
+  }
+  if (napkin.error) {
+    return (
+      <div className="v2-napkin-error">
+        Napkin generation failed: {napkin.error}
+        <br /><button onClick={onRetry} style={{ marginTop: 8, padding: '4px 12px', borderRadius: 6, border: '1px solid #ff5050', background: 'transparent', color: '#ff5050', cursor: 'pointer', fontSize: 12 }}>Retry</button>
+      </div>
+    )
+  }
+  if (!napkin.images || napkin.images.length === 0) {
+    return <div className="v2-napkin-error">No visuals generated.</div>
+  }
+  const img = napkin.images[variationIdx] || napkin.images[0]
+  const total = napkin.images.length
+  const isSelected = selectedIdx === variationIdx
+  return (
+    <div className="v2-napkin-view">
+      <div
+        className={`v2-napkin-img-wrap${dragging ? ' grabbing' : ''}`}
+        ref={wrapRef}
+        onMouseDown={onMouseDown}
+      >
+        <img
+          ref={imgRef}
+          src={img}
+          alt={`Napkin variation ${variationIdx + 1}`}
+          onLoad={handleImgLoad}
+          style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+          draggable={false}
+        />
+      </div>
+      <div className="v2-napkin-toolbar">
+        <button className="v2-napkin-zoom-btn" onClick={() => changeZoom(-0.15)} title="Zoom out">−</button>
+        <span className="v2-napkin-zoom-label">{Math.round(zoom * 100)}%</span>
+        <button className="v2-napkin-zoom-btn" onClick={() => changeZoom(0.15)} title="Zoom in">+</button>
+        <button className="v2-napkin-zoom-btn" onClick={resetView} title="Fit to window" style={{ fontSize: 12, width: 'auto', padding: '0 8px' }}>Fit</button>
+      </div>
+      <div className="v2-napkin-nav">
+        {total > 1 && <button onClick={onPrev} className="v2-napkin-nav-btn">&larr;</button>}
+        {total > 1 && <span className="v2-napkin-nav-label">Variation {variationIdx + 1} of {total}</span>}
+        {total > 1 && <button onClick={onNext} className="v2-napkin-nav-btn">&rarr;</button>}
+        {!isHistoryMode && total > 1 && (
+          <button className={`v2-napkin-select-btn${isSelected ? ' selected' : ''}`} onClick={() => onSelect(variationIdx)}>
+            {isSelected ? '✓ Selected' : 'Select'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ── Pipeline Log Panel ───────────────────────────────────
@@ -571,6 +744,11 @@ export default function Visualize2Page() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxZoom, setLightboxZoom] = useState(1)
   const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 })
+  // Napkin.ai integration
+  const [napkinResults, setNapkinResults] = useState({})
+  const [viewMode, setViewMode] = useState({})
+  const [napkinVariation, setNapkinVariation] = useState({})
+  const [napkinSelected, setNapkinSelected] = useState({})
   const lightboxDrag = useRef(null)
   const txZoneRef = useRef(null)
   const sectionRefs = useRef({})
@@ -609,6 +787,14 @@ export default function Visualize2Page() {
       if (canvas.infographic_image_url) {
         setInfographicImage(canvas.infographic_image_url)
       }
+      // Restore saved napkin images
+      if (canvas.napkin_images && typeof canvas.napkin_images === 'object') {
+        const restored = {}
+        for (const [idx, url] of Object.entries(canvas.napkin_images)) {
+          restored[idx] = { images: [url], loading: false, error: null }
+        }
+        setNapkinResults(restored)
+      }
       setSessionSaved(true)
       setIsHistoryMode(true)
       setLoading(false)
@@ -619,12 +805,22 @@ export default function Visualize2Page() {
   const handleSaveCanvas = async () => {
     if (sessionSaved || loading || visuals.length === 0) return
     setSessionSaved(true)
+
+    // Build napkin images map: { [idx]: selectedBase64DataUrl }
+    const napkinImages = {}
+    for (const [idx, result] of Object.entries(napkinResults)) {
+      if (!result || !result.images || result.images.length === 0) continue
+      const selectedIdx = napkinSelected[idx] != null ? napkinSelected[idx] : 0
+      napkinImages[idx] = result.images[selectedIdx] || result.images[0]
+    }
+
     const { sessionId, error: err } = await saveCanvasSession({
       title,
       subtitle,
       transcript: analyzedText || content,
       visuals,
       infographicImage,
+      napkinImages,
     })
     if (err) {
       console.error('Canvas save failed:', err)
@@ -633,6 +829,48 @@ export default function Visualize2Page() {
       console.log('Canvas session saved:', sessionId)
     }
   }
+
+  // Napkin.ai handlers
+  const fetchNapkinVisual = async (idx, visual) => {
+    const slug = visual.template_slug || visual.type
+    const schemaData = visual.schema_data || visual
+    setNapkinResults(prev => ({ ...prev, [idx]: { images: [], loading: true, error: null } }))
+    const { images, error: napErr } = await generateNapkinVisual(slug, schemaData, title, visual.explanation)
+    setNapkinResults(prev => ({ ...prev, [idx]: { images: images || [], loading: false, error: napErr || null } }))
+    // Auto-select first variation by default
+    if (images && images.length > 0) {
+      setNapkinSelected(prev => prev[idx] != null ? prev : { ...prev, [idx]: 0 })
+    }
+  }
+
+  const toggleViewMode = (idx) => {
+    setViewMode(prev => {
+      const current = prev[idx] || 'canvas'
+      return { ...prev, [idx]: current === 'canvas' ? 'napkin' : 'canvas' }
+    })
+  }
+
+  const cycleNapkinVariation = (idx, direction) => {
+    setNapkinVariation(prev => {
+      const current = prev[idx] || 0
+      const images = napkinResults[idx]?.images || []
+      if (images.length <= 1) return prev
+      const next = direction === 'next' ? (current + 1) % images.length : (current - 1 + images.length) % images.length
+      return { ...prev, [idx]: next }
+    })
+  }
+
+  const selectNapkinVariation = (idx, varIdx) => {
+    setNapkinSelected(prev => ({ ...prev, [idx]: varIdx }))
+  }
+
+  // Auto-trigger Napkin generation for all visuals after canvas loads
+  useEffect(() => {
+    if (visuals.length === 0 || isHistoryMode || loading) return
+    visuals.forEach((visual, idx) => {
+      if (!napkinResults[idx]) fetchNapkinVisual(idx, visual)
+    })
+  }, [visuals.length])
 
   // Generate canvas
   useEffect(() => {
@@ -889,6 +1127,9 @@ export default function Visualize2Page() {
           const slug = visual.template_slug || visual.type
           const tmpl = visual.template_slug ? getTemplate(visual.template_slug) : null
           const meta = SECTION_META[visual.type] || (tmpl ? { icon: '📌', label: tmpl.name } : { icon: '📌', label: visual.type })
+          const mode = viewMode[idx] || 'canvas'
+          const napkin = napkinResults[idx]
+          const varIdx = napkinVariation[idx] || 0
           return (
             <div key={idx} className="v2-section" id={`v2-${slug}`} ref={el => sectionRefs.current[`v2-${slug}`] = el} style={{animationDelay: `${idx * 0.1}s`}}>
               <div className="v2-section-head">
@@ -896,8 +1137,18 @@ export default function Visualize2Page() {
                 <div>
                   <div className="v2-section-label">{meta.label}</div>
                 </div>
+                {(!isHistoryMode || napkinResults[idx]) && (
+                <div className="v2-napkin-toggle">
+                  <button className={`v2-toggle-btn${mode === 'canvas' ? ' active' : ''}`} onClick={() => setViewMode(prev => ({ ...prev, [idx]: 'canvas' }))}>Canvas</button>
+                  <button className={`v2-toggle-btn${mode === 'napkin' ? ' active' : ''}`} onClick={() => toggleViewMode(idx)}>Napkin</button>
+                </div>
+                )}
               </div>
-              <VisualRenderer visual={visual} getTemplate={getTemplate} />
+              {mode === 'canvas' ? (
+                <VisualRenderer visual={visual} getTemplate={getTemplate} />
+              ) : (
+                <NapkinView napkin={napkin} variationIdx={varIdx} selectedIdx={napkinSelected[idx]} onPrev={() => cycleNapkinVariation(idx, 'prev')} onNext={() => cycleNapkinVariation(idx, 'next')} onRetry={() => fetchNapkinVisual(idx, visual)} onSelect={(vIdx) => selectNapkinVariation(idx, vIdx)} isHistoryMode={isHistoryMode} />
+              )}
               {visual.explanation && <div className="v2-explanation">{visual.explanation}</div>}
               {visual.template_id && !['eli5', 'takeaways', 'blindspots'].includes(visual.template_slug) && <VisualFeedback templateId={visual.template_id} sessionId={historySessionId} visualData={visual.schema_data} />}
             </div>

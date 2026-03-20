@@ -8,3 +8,4 @@ frontend/.vite/
 
 # backend
 backend/venv/
+backend/.env

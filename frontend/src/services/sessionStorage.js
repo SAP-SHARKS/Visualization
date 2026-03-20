@@ -326,7 +326,7 @@ export async function saveLiveSession({ finalLines, chartFeed, duration, wordCou
  * @param {string} [params.infographicImage] - Base64 data URL of the infographic image
  * @returns {Promise<{sessionId?: string, error?: string}>}
  */
-export async function saveCanvasSession({ title, subtitle, transcript, visuals, decisions, actions, infographicImage }) {
+export async function saveCanvasSession({ title, subtitle, transcript, visuals, decisions, actions, infographicImage, napkinImages }) {
   if (!isSupabaseConfigured()) {
     return { error: 'Supabase not configured' }
   }
@@ -345,6 +345,17 @@ export async function saveCanvasSession({ title, subtitle, transcript, visuals, 
       }
     }
 
+    // Upload napkin images to storage — { [idx]: base64DataUrl }
+    const napkinImageUrls = {}
+    if (napkinImages && typeof napkinImages === 'object') {
+      for (const [idx, dataUrl] of Object.entries(napkinImages)) {
+        if (!dataUrl) continue
+        const result = await uploadNapkinImage(dataUrl)
+        if (result.url) napkinImageUrls[idx] = result.url
+        else console.error(`Napkin image upload failed for visual ${idx}:`, result.error)
+      }
+    }
+
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .insert({
@@ -353,7 +364,11 @@ export async function saveCanvasSession({ title, subtitle, transcript, visuals, 
         transcript,
         mode: 'canvas',
         word_count: wordCount,
-        canvas_data: { visuals, decisions, actions, infographic_image_url: infographicImageUrl },
+        canvas_data: {
+          visuals, decisions, actions,
+          infographic_image_url: infographicImageUrl,
+          napkin_images: Object.keys(napkinImageUrls).length > 0 ? napkinImageUrls : undefined,
+        },
       })
       .select('id')
       .single()
@@ -405,6 +420,32 @@ export async function uploadInfographicImage(base64DataUrl) {
     return { url: urlData.publicUrl }
   } catch (err) {
     return { error: err.message || 'Infographic upload failed' }
+  }
+}
+
+/**
+ * Upload a Napkin SVG (base64 data URL) to Supabase Storage.
+ */
+export async function uploadNapkinImage(base64DataUrl) {
+  try {
+    const match = base64DataUrl.match(/^data:(image\/[\w+]+);base64,(.+)$/)
+    if (!match) return { error: 'Invalid base64 data URL' }
+    const mimeType = match[1]
+    const base64 = match[2]
+    const byteChars = atob(base64)
+    const byteArray = new Uint8Array(byteChars.length)
+    for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i)
+    const blob = new Blob([byteArray], { type: mimeType })
+    const ext = mimeType.includes('svg') ? 'svg' : 'png'
+    const storagePath = `napkin/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('chart-images')
+      .upload(storagePath, blob, { contentType: mimeType, upsert: false })
+    if (uploadError) throw uploadError
+    const { data: urlData } = supabase.storage.from('chart-images').getPublicUrl(storagePath)
+    return { url: urlData.publicUrl }
+  } catch (err) {
+    return { error: err.message || 'Napkin upload failed' }
   }
 }
 
